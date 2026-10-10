@@ -1,0 +1,1 @@
+-keep class com.diplay.browser.rtc.RtcNative { *; }

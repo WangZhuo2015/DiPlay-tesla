@@ -2,9 +2,11 @@
 
 本仓库在 DiPlay 核心上增加 **Tesla 浏览器 CarPlay**：Android 设备负责 USB／无线 CarPlay，Tesla 在同一网络打开浏览器使用。新增 `tesla` APK 和独立 `browser` 模块；可选 `proxy/` 单独运行，核心连接不依赖 proxy。
 
+0.1.1 增加 H.264 WebRTC 与自动 JPEG 回退，以及可选浏览器音频和 80/200/400 ms 缓冲。右侧与全屏分辨率独立配置；实车性能仍待验证。
+
 支持右侧窗口／全屏各自保存分辨率、双指触控、Siri 与媒体快捷键。分辨率保存后在下次连接生效，也可明确选择“应用并重新连接”。结合 DiPlay-CN 的中文默认策略、连接阶段提示与无变化不重连原则。
 
-[Tesla 0.1.0 签名预览 APK](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.0) · [Tesla 构建、连接与功能边界](docs/TESLA.zh-CN.md) · [独立 proxy](proxy/README.md)。此预览未内置离线认证身份，不能直接完成 iPhone 的离线 CarPlay 认证。源码构建 `./gradlew :tesla:assembleDebug`；独立连接版本需提供获授权的外部认证资产。下面保留原版 DiPlay 的说明。
+[Tesla 0.1.1 签名预览 APK](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.1) · [Tesla 构建、连接与功能边界](docs/TESLA.zh-CN.md) · [独立 proxy](proxy/README.md)。独立 proxy 支持配置证书的 HTTPS 入口；Android 8080 仍为 HTTP。此预览未内置离线认证身份，不能直接完成 iPhone 的离线 CarPlay 认证。源码构建 `./gradlew :tesla:assembleDebug`；独立连接版本需提供获授权的外部认证资产。下面保留原版 DiPlay 的说明。
 
 为兼容的比亚迪安卓车机提供有线及无线 CarPlay，采用 DiAuto 风格界面。
 

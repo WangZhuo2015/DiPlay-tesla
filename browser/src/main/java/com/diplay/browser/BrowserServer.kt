@@ -3,6 +3,7 @@ package com.diplay.browser
 import android.content.res.AssetManager
 import com.shilapi.xcertplay.airplay.AirPlayContact
 import fi.iki.elonen.NanoHTTPD
+import fi.iki.elonen.NanoWSD
 import fi.iki.elonen.NanoHTTPD.AsyncRunner
 import fi.iki.elonen.NanoHTTPD.ClientHandler
 import fi.iki.elonen.NanoHTTPD.IHTTPSession
@@ -33,14 +34,32 @@ class BrowserServer(
     private val token: String,
     private val frames: LatestFrame,
     private val target: BrowserTarget,
+    private val media: BrowserMediaHub = BrowserMediaHub(),
 ) : Closeable {
     private val controls = BrowserControl(target::touch)
     private val watchdog = Executors.newSingleThreadScheduledExecutor { Thread(it, "browser-touch-watchdog").apply { isDaemon = true } }
     private val clients = ConcurrentHashMap.newKeySet<ClientHandler>()
+    private val sockets = ConcurrentHashMap.newKeySet<BrowserMediaSocket>()
     private val workers = ThreadPoolExecutor(6, 6, 30, TimeUnit.SECONDS, ArrayBlockingQueue(12),
         { Thread(it, "browser-http").apply { isDaemon = true } })
-    private val http = object : NanoHTTPD(port) {
-        override fun serve(session: IHTTPSession): Response = serveRequest(session)
+    private val http = object : NanoWSD(port) {
+        override fun serveHttp(session: IHTTPSession): Response = serveRequest(session)
+        override fun serve(session: IHTTPSession): Response {
+            if (isWebsocketRequested(session)) {
+                val origin = session.headers["origin"]
+                if (session.uri != "/api/media" || sockets.size >= 2) return reply(Response.Status.NOT_FOUND)
+                if (origin == null || runCatching { java.net.URI(origin).rawAuthority }.getOrNull() != session.headers["host"]) return reply(Response.Status.FORBIDDEN)
+            }
+            return super.serve(session).apply {
+                val host=session.headers["host"].orEmpty()
+                if (runCatching { java.net.URI("http://$host").rawAuthority == host && !host.contains('@') }.getOrDefault(false)) {
+                    // Older Chromium versions do not include ws/wss in connect-src 'self'.
+                    addHeader("Content-Security-Policy", "$BASE_CSP; connect-src 'self' ws://$host wss://$host")
+                }
+            }
+        }
+        override fun openWebSocket(handshake: IHTTPSession): WebSocket =
+            BrowserMediaSocket(handshake, token, media) { sockets.remove(it) }.also { sockets.add(it) }
     }
     init {
         require(port in 1024..65535 && token.matches(Regex("[a-f0-9]{32}")))
@@ -53,7 +72,7 @@ class BrowserServer(
             override fun closed(handler: ClientHandler) { clients.remove(handler) }
             override fun closeAll() { clients.toList().forEach { it.close() }; clients.clear() }
         })
-        watchdog.scheduleAtFixedRate({ controls.expire() }, 250, 250, TimeUnit.MILLISECONDS)
+        watchdog.scheduleAtFixedRate({ controls.expire(); sockets.toList().forEach { it.expire() } }, 250, 250, TimeUnit.MILLISECONDS)
     }
     fun start(timeoutMillis: Int = 5000, daemon: Boolean = true) { http.start(timeoutMillis, daemon) }
     private fun serveRequest(session: IHTTPSession): Response {
@@ -63,7 +82,9 @@ class BrowserServer(
                 val asset = when (session.uri) {
                     "/", "/index.html" -> "index.html" to "text/html; charset=utf-8"
                     "/app.js" -> "app.js" to "text/javascript; charset=utf-8"
+                    "/media.js", "/browser-audio.js" -> session.uri.drop(1) to "text/javascript; charset=utf-8"
                     "/style.css" -> "style.css" to "text/css; charset=utf-8"
+                    "/rtc-licenses.txt" -> "rtc-licenses.txt" to "text/plain; charset=utf-8"
                     else -> return reply(Response.Status.NOT_FOUND)
                 }
                 return assets.open("tesla/${asset.first}").use { input ->
@@ -136,14 +157,18 @@ class BrowserServer(
         addHeader("Cache-Control", "no-store")
         addHeader("X-Content-Type-Options", "nosniff")
         addHeader("Referrer-Policy", "no-referrer")
-        addHeader("Content-Security-Policy", "default-src 'self'; img-src 'self' blob:; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'")
+        addHeader("Content-Security-Policy", "$BASE_CSP; connect-src 'self'")
         addHeader("Connection", "close")
     }
     override fun close() {
         controls.release()
+        sockets.toList().forEach { it.disconnect() }
         http.stop()
         workers.shutdownNow()
         watchdog.shutdownNow()
     }
     fun releaseInput() { controls.release() }
+    companion object {
+        private const val BASE_CSP="default-src 'self'; img-src 'self' blob:; media-src 'self' blob:; script-src 'self'; style-src 'self'; frame-ancestors 'none'; base-uri 'none'"
+    }
 }

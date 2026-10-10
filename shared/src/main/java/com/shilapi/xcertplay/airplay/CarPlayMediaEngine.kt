@@ -17,6 +17,7 @@ data class AudioStreamId(val type: Int, val audioType: String)
 
 /** Rendering seam for the decrypted CarPlay media streams. */
 interface MediaSink {
+    fun setPcmOutput(output: com.shilapi.xcertplay.media.RemotePcmOutput?) {}
     fun onVideoCodec(type: Int, codec: VideoCodec) {}
     fun onVideoConfig(type: Int, codecData: ByteArray) {}
     fun onVideoFrame(type: Int, naluBytes: ByteArray) {}

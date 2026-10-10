@@ -17,6 +17,7 @@ import android.widget.Spinner
 import android.widget.ArrayAdapter
 import android.widget.TextView
 import com.diplay.browser.*
+import com.diplay.browser.rtc.BrowserVideoOutput
 import com.shilapi.xcertplay.AppLocale
 import com.shilapi.xcertplay.CarPlayOutput
 import com.shilapi.xcertplay.CarPlayOutputExtension
@@ -41,6 +42,7 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
     override val updateApkPrefix = "DiPlay-Tesla-"
     private val prefs = context.getSharedPreferences("tesla-browser", Context.MODE_PRIVATE)
     private val frames = LatestFrame()
+    private val media = BrowserMediaHub()
     private val handler = Handler(Looper.getMainLooper())
     private val token = prefs.getString("token", null) ?: ByteArray(16).also { SecureRandom().nextBytes(it) }
         .joinToString("") { "%02x".format(it.toInt() and 255) }.also { prefs.edit().putString("token", it).apply() }
@@ -53,13 +55,13 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
     @Volatile private var error: String? = null
     @Volatile private var serverError: String? = null
     @Volatile private var stage: String = context.getString(R.string.settings_browser_waiting)
-    private var decoder: JpegVideoSink? = null
+    private var decoder: BrowserVideoOutput? = null
     private var server: BrowserServer? = null
 
     fun start() {
         Thread({
             try {
-                val next = BrowserServer(PORT, context.assets, token, frames, this)
+                val next = BrowserServer(PORT, context.assets, token, frames, this, media)
                 try { next.start(5000, true); server = next }
                 catch (failure: Exception) { next.close(); throw failure }
             } catch (failure: Exception) { serverError = "${failure.javaClass.simpleName}: ${failure.message}" }
@@ -76,9 +78,10 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
     }
     override fun mediaSink(local: MediaSink): MediaSink {
         decoder?.close()
-        val output = JpegVideoSink(negotiated ?: display, frames) { error = it }
+        val output = BrowserVideoOutput(negotiated ?: display, frames) { error = it }
         decoder = output
-        return BrowserMediaSink(local, output)
+        media.video(output)
+        return BrowserMediaSink(local, output, media.audio)
     }
     override fun attach(controller: CarPlayController, reconnect: () -> Unit) {
         this.controller = controller
@@ -91,6 +94,7 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
         reconnect = null
         decoder?.close()
         decoder = null
+        media.video(null)
         negotiated = null
         frames.clear()
         stage = context.getString(R.string.settings_browser_waiting)
@@ -122,7 +126,8 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
         .put("display", BrowserDisplayJson.encode(display))
         .put("activeDisplay", negotiated?.let(BrowserDisplayJson::encode) ?: JSONObject.NULL)
         .put("pendingReconnect", negotiated != null && negotiated != display)
-        .put("audio", "bluetooth")
+        .put("audio", if (media.audio.active) "browser" else "android")
+        .put("transport", media.transport)
 
     override fun connectionSummary(): String = serverError ?: addresses().firstOrNull()?.let { "http://$it:$PORT" }
         ?: context.getString(R.string.settings_browser_waiting)

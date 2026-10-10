@@ -62,6 +62,8 @@ class AudioCodecOutputReleaseTest {
                 Long::class.javaPrimitiveType -> 0L
                 Boolean::class.javaPrimitiveType -> false
                 EchoReference::class.java -> null
+                kotlin.jvm.functions.Function3::class.java -> { val output: (ByteArray, Int, Int) -> Boolean = { _, _, _ -> false }; output }
+                kotlin.jvm.functions.Function0::class.java -> { val stopped: () -> Unit = {}; stopped }
                 else -> {
                     check(parameter.name == "kotlin.jvm.functions.Function1") { "Unexpected renderer parameter: $parameter" }
                     val report: (String) -> Unit = {}

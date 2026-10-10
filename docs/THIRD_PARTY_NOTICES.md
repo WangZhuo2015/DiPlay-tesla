@@ -45,7 +45,7 @@ Concentus uses the Opus BSD-style license. The full copyright notices, redistrib
 
 The upstream DiPlay public preview APK includes an accessory certificate/key pair recovered from public Carlinkit C2Air Allwinner V821 firmware during the owner's local investigation. These data are not newly generated Apple-issued credentials for DiPlay and are not relicensed as project source code. Upstream bundles them to reproduce the offline experiment; continued acceptance and suitability for general distribution are unresolved. See the [DiPlay notice](https://github.com/shihabal3amri/DiPlay/blob/main/docs/THIRD_PARTY_NOTICES.md) and the matching [DiPlay-CN notice](https://github.com/serein-morii/DiPlay-CN/blob/main/docs/THIRD_PARTY_NOTICES.md). These notices describe provenance; they do not independently establish that both APKs contain identical bytes.
 
-**The DiPlay Tesla 0.1.0 preview contains no accessory identity.** It cannot perform local offline CarPlay authentication without a separately provisioned identity. The external asset input is for identities the builder is authorized to use and distribute. No third-party identity is imported automatically. Source archives contain no private keys, and the separate Android APK-signing key is never distributed.
+**The DiPlay Tesla 0.1.0 and 0.1.1 previews contain no accessory identity.** They cannot perform local offline CarPlay authentication without a separately provisioned identity. The external asset input is for identities the builder is authorized to use and distribute. No third-party identity is imported automatically. Source archives contain no private keys, and the separate Android APK-signing key is never distributed.
 
 ## Tesla port references
 
@@ -54,10 +54,25 @@ adapts the policy in [DiPlay-CN](https://github.com/serein-morii/DiPlay-CN), who
 is marked AGPL-3.0-only. Attribution and the selected connection/resume behaviors are recorded
 in [TESLA.md](TESLA.md). The existing AGPL license text applies to this adaptation.
 
-The browser transport and proxy are newly implemented here. The
+The initial JPEG browser transport and proxy were implemented here. The
 [marcraft2/tesla-carplay](https://github.com/marcraft2/tesla-carplay) browser/hotspot approach
 was consulted for architecture context; no adapter-specific code or bundled credentials
 were copied.
+
+The 0.1.1 browser WebRTC implementation adapts JNI peer lifecycle and signaling, the
+bounded keyframe-recovery policy and PCM packet framing from the GPL-3.0 tepla 0.2.1
+[public source release](https://github.com/hkhvk70-dot/tesla-carplay-local-entry/releases/tag/tepla-v0.2.1).
+The downloaded source ZIP SHA-256 is recorded in the verification notes. Its device-specific
+VPN routing, custom packetizer/SRTP patches, binary APK and authentication identity were
+not imported. The audio scheduler and route failover are implemented here.
+
+WebRTC native dependencies use unmodified official sources pinned in
+`browser/src/main/cpp/NativeDependencies.cmake`: libdatachannel and libjuice (MPL-2.0),
+libsrtp and usrsctp (BSD-style), nlohmann/json and plog (MIT), and MbedTLS (Apache-2.0
+option of its dual license). The build-only MbedTLS framework is Apache-2.0. Full
+notices are in `docs/licenses/dependencies/` and in the APK's browser
+`rtc-licenses.txt` asset, accessible through the page's Licenses link. NanoWSD uses
+NanoHTTPD's existing BSD 3-Clause license. None of these libraries supplies MFi credentials.
 
 ## Download website
 

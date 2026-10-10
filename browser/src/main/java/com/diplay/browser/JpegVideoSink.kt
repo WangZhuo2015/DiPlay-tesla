@@ -33,6 +33,7 @@ class JpegVideoSink(
     @Volatile private var generation = 0L
     @Volatile private var recovery: (() -> Unit)? = null
     private var lastConfig: ByteArray? = null
+    @Volatile private var suspended = false
     private val thread = Thread(::decode, "tesla-jpeg").apply { isDaemon = true; start() }
 
     override fun setVideoRecoveryHandler(type: Int, handler: () -> Unit) {
@@ -54,7 +55,7 @@ class JpegVideoSink(
         }
     }
     override fun onVideoFrame(type: Int, naluBytes: ByteArray) {
-        if (type != MAIN_SCREEN || !running) return
+        if (type != MAIN_SCREEN || !running || suspended) return
         val annexB = MediaCodecSupport.toAnnexB(naluBytes)
         if (annexB.isEmpty()) return
         synchronized(lock) {
@@ -86,6 +87,12 @@ class JpegVideoSink(
         needsKeyFrame = true
         queue.offer(Job.Reset)
         lastConfig?.let { queue.offer(Job.Config(it, generation)) }
+    }
+    fun setSuspended(value: Boolean) = synchronized(lock) {
+        if (suspended == value) return
+        suspended = value
+        resetChain()
+        if (value) { queue.clear(); queue.offer(Job.Reset); frames.clear() }
     }
     private fun decode() {
         var codec: MediaCodec? = null

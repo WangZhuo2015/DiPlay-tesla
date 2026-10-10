@@ -1,0 +1,18 @@
+# Official repositories, immutable commits and verified archive hashes.
+# Submodule revisions match libdatachannel/MbedTLS trees at these commits.
+set(DIPLAY_mbedtls_URL "https://codeload.github.com/Mbed-TLS/mbedtls/tar.gz/e185d7fd85499c8ce5ca2a54f5cf8fe7dbe3f8df")
+set(DIPLAY_mbedtls_SHA256 "052dccf3a404dce25a467c6fe044b0c858d609ace8e883b59e9dfd479fdd4528")
+set(DIPLAY_libdatachannel_URL "https://codeload.github.com/paullouisageneau/libdatachannel/tar.gz/a02b751917ac8afc8c58dc6f4461d25ff9465d48")
+set(DIPLAY_libdatachannel_SHA256 "12a126ac7cab6bfb4a2c90c9c105ba86687870f793f986a4e64f2351946294d3")
+set(DIPLAY_json_URL "https://codeload.github.com/nlohmann/json/tar.gz/55f93686c01528224f448c19128836e7df245f72")
+set(DIPLAY_json_SHA256 "67f4cdd9ca930c9c1e130af4a437c7fc98fab77a2846fc2d2a14b4943831f8ef")
+set(DIPLAY_libjuice_URL "https://codeload.github.com/paullouisageneau/libjuice/tar.gz/5948a4162d37bc213d6051b67ee2876ccc5a99a6")
+set(DIPLAY_libjuice_SHA256 "5703c044e0b28f16c791a35025281ae04e89e1d8f874e5eddb85641024e7e4ed")
+set(DIPLAY_libsrtp_URL "https://codeload.github.com/cisco/libsrtp/tar.gz/ee1a77c9f9dc02c42bda9901038c500c5efe4cfa")
+set(DIPLAY_libsrtp_SHA256 "635cf337ddb9a774b5c7fa453c175f3e666bf436bd3767352c0f46676b659dda")
+set(DIPLAY_plog_URL "https://codeload.github.com/SergiusTheBest/plog/tar.gz/94899e0b926ac1b0f4750bfbd495167b4a6ae9ef")
+set(DIPLAY_plog_SHA256 "92a08bce559b5f28aa88d3fd9071567414b9f43a83fe2a05a6dd14f1da536072")
+set(DIPLAY_usrsctp_URL "https://codeload.github.com/paullouisageneau/usrsctp/tar.gz/fec583d54493f879d2ae44a743423bf8a04371ab")
+set(DIPLAY_usrsctp_SHA256 "e5c114afe73c9a0ec419fab5f5b3f63f3ce57b09b90d06ea85e63dca8aed3e7c")
+set(DIPLAY_framework_URL "https://codeload.github.com/Mbed-TLS/mbedtls-framework/tar.gz/457996474728cb8e968ed21953b72f74d2f536b2")
+set(DIPLAY_framework_SHA256 "c15bcc24fc43bdf325b0e04fa63270daf6e9488167b94b46547d8134efa9c906")

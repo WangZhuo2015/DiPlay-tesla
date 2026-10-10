@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>DiPlay Tesla</title>
   <link rel="stylesheet" href="/style.css">
-  <script src="/app.js" defer></script>
+  <script src="/app.js" type="module"></script>
 </head>
 <body>
   <header>
@@ -15,7 +15,7 @@
     <button id="expandButton" data-i18n="expand">全屏</button>
     <button id="themeButton" data-i18n="theme">日夜</button>
   </header>
-  <main id="screen"><canvas id="picture" width="1024" height="768" aria-label="CarPlay"></canvas>
+  <main id="screen"><canvas id="picture" width="1024" height="768" aria-label="CarPlay"></canvas><video id="video" autoplay muted playsinline aria-label="CarPlay" hidden></video>
     <form id="pairing" class="panel" hidden>
       <h1 data-i18n="pair">连接 DiPlay</h1>
       <p data-i18n="pairHint">在 Android 设备的“连接 → Tesla 浏览器”查看地址和配对码。</p>
@@ -31,7 +31,11 @@
     <button data-action="previous" data-i18n="previous">上一曲</button>
     <button data-action="play" data-i18n="play">播放 / 暂停</button>
     <button data-action="next" data-i18n="next">下一曲</button>
-    <small data-i18n="audio">音频与麦克风使用 Android / iPhone 蓝牙</small>
+    <span id="transportStatus">JPEG</span>
+    <button id="audioButton" aria-pressed="false" data-i18n="browserAudio">浏览器音频（实验性）</button>
+    <label class="audioBuffer"><span data-i18n="buffer">音频缓冲</span><select id="audioBuffer"><option value="80">80 ms</option><option value="200" selected>200 ms</option><option value="400">400 ms</option></select></label>
+    <small data-i18n="audio">麦克风、电话与 Siri 使用 Android</small>
+    <small><a href="/rtc-licenses.txt">Licenses</a></small>
   </footer>
   <section id="displayPanel" class="overlay" role="dialog" aria-modal="true" aria-labelledby="displayTitle" hidden>
     <form id="displayForm" class="panel">
@@ -39,6 +43,8 @@
       <p data-i18n="displayHint">右侧窗口和全屏独立保存。修改在下次连接生效；页面不会改变 Tesla 系统窗口模式。</p>
       <label for="mode" data-i18n="mode">窗口配置</label>
       <select id="mode"><option value="RIGHT" data-i18n="right">右侧窗口</option><option value="FULL" data-i18n="full">全屏窗口</option></select>
+      <label for="transport" data-i18n="transport">视频传输</label>
+      <select id="transport"><option value="auto" data-i18n="auto">自动 WebRTC / JPEG</option><option value="jpeg">JPEG</option></select>
       <div class="sizes">
         <label><span data-i18n="rightWidth">右侧宽度</span><input id="rightWidth" type="number" min="320" max="2560" step="2" required></label>
         <label><span data-i18n="rightHeight">右侧高度</span><input id="rightHeight" type="number" min="240" max="1440" step="2" required></label>

@@ -29,6 +29,8 @@ test('gateway keeps upstream fixed, preserves pairing authorization and forwards
     assert.equal(received.origin,`http://127.0.0.1:${upstreamPort}`); assert.equal(received.body,'{"contacts":[]}');
     assert.equal((await request(port,'//other-host/api/status')).status,400);
     assert.equal((await request(port,'http://other-host/api/status')).status,400);
+    assert.equal((await request(port,'/api/status',{Host:'bad/host'})).status,400);
+    assert.equal((await request(port,'/api/status',{Host:'user@host'})).status,400);
     const foreign = JSON.parse((await request(port,'/api/touch',{Origin:'https://foreign.example'})).text);
     assert.equal(foreign.origin,'https://foreign.example');
   } finally { await close(gateway); await close(upstream); }

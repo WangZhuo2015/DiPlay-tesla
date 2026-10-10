@@ -4,7 +4,9 @@ import com.shilapi.xcertplay.airplay.MediaSink
 import com.shilapi.xcertplay.airplay.VideoCodec
 
 /** Local audio/microphone handling is delegated unchanged; only screen events are fanned out. */
-class BrowserMediaSink(private val local: MediaSink, private val browser: MediaSink) : MediaSink by local {
+class BrowserMediaSink(private val local: MediaSink, private val browser: MediaSink,
+    pcm: com.shilapi.xcertplay.media.RemotePcmOutput? = null) : MediaSink by local {
+    init { local.setPcmOutput(pcm) }
     override fun onVideoCodec(type: Int, codec: VideoCodec) {
         local.onVideoCodec(type, codec); browser.onVideoCodec(type, codec)
     }

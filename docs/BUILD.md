@@ -11,6 +11,7 @@ Select `mobile` to build the main DiPlay app.
 | Gradle module | Purpose | Debug APK |
 | --- | --- | --- |
 | `:mobile` | Main DiPlay app for Android head units | `mobile/build/outputs/apk/debug/mobile-debug.apk` |
+| `:tesla` | Tesla browser output; see [Tesla setup](TESLA.md) | `tesla/build/outputs/apk/debug/tesla-debug.apk` |
 | `:maphost` | Sample application that displays a map from DiPlay | `samples/maphost/build/outputs/apk/debug/maphost-debug.apk` |
 | `:home` | Optional DiPlay Home launcher | `samples/home/build/outputs/apk/debug/home-debug.apk` |
 | `:automotive` | Separate Android Automotive application inherited from xcertplay | `automotive/build/outputs/apk/debug/automotive-debug.apk` |
@@ -32,6 +33,7 @@ Install these tools:
 - Android SDK Build-Tools 36.0.0.
 - Android SDK Platform-Tools.
 - Android NDK 28.2.13676358.
+- CMake 3.22.1 when building the Tesla/browser WebRTC module.
 
 Use the Gradle wrapper included in this repository.
 The first build needs an internet connection to download dependencies.

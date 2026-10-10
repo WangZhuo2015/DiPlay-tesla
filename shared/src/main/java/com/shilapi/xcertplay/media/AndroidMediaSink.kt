@@ -212,6 +212,8 @@ class AndroidMediaSink(
      */
     private val vendorLowLatencyDecoder: Boolean = false,
 ) : MediaSink {
+    @Volatile private var pcmOutput: RemotePcmOutput? = null
+    override fun setPcmOutput(output: RemotePcmOutput?) { pcmOutput = output }
     // Each downlink publishes its own reference; a mic must match that stream and sample rate.
     private val callEchoReferences = ConcurrentHashMap<AudioStreamId, EchoReference>()
     private val appContext = context?.applicationContext
@@ -677,6 +679,8 @@ class AndroidMediaSink(
                 appContext != null && BydBluetoothSuspend.isSuspendedByUs(appContext),
             echoReference = echoReference,
             voiceFilter = callVoiceFilter && format.audioType == TELEPHONY_AUDIO_TYPE,
+            remoteOutput = { pcm, offset, length -> pcmOutput?.offer(id, format, pcm, offset, length) == true },
+            remoteStopped = { pcmOutput?.stopped(id) },
         ).also { audioRenderers[id] = it }
     }
 
@@ -1600,6 +1604,8 @@ private class AudioRenderer(
     /** Receives the played call audio so the call microphone can cancel its echo. */
     private val echoReference: EchoReference? = null,
     voiceFilter: Boolean = false,
+    private val remoteOutput: (ByteArray, Int, Int) -> Boolean = { _, _, _ -> false },
+    private val remoteStopped: () -> Unit = {},
 ) : Closeable {
     private data class AudioPacket(val rtp: ByteArray, val sample: Int)
 
@@ -1617,6 +1623,7 @@ private class AudioRenderer(
     private var track: AudioTrack? = null
     private var pcm = ByteArray(64 * 1024)
     private var playbackStarted = false
+    private var remotePlaying = false
     private var prebufferBytes = 0
     private var startThresholdBytes = 0
     private var fadeApplied = false
@@ -2148,6 +2155,20 @@ private class AudioRenderer(
     }
 
     private fun writePcm(data: ByteArray, offset: Int = 0, length: Int = data.size) {
+        if (runCatching { remoteOutput(data, offset, length) }.getOrDefault(false)) {
+            if (!remotePlaying) {
+                track?.let { it.pause(); it.flush() }
+                abandonAudioFocus()
+                playbackStarted = false
+                prebufferBytes = 0
+                totalWrittenFrames = 0
+                bufferProgress.reset()
+                remotePlaying = true
+            }
+            return
+        }
+        if (remotePlaying) requestAudioFocus()
+        remotePlaying = false
         val track = track ?: return
         diagnosticStage = "track-write"
         if (!firstPcmLogged && length > 0) {
@@ -2234,6 +2255,7 @@ private class AudioRenderer(
     }
 
     private fun maintainPlaybackBuffer() {
+        if (remotePlaying) return
         val track = track ?: return
         if (bufferProgress.shouldRebuffer(mappedChannel == AudioChannel.MEDIA, playbackStarted,
                 track.underrunCount > underrunsAtPlaybackStart, queue.isEmpty(), track.playbackHeadPosition,
@@ -2337,6 +2359,7 @@ private class AudioRenderer(
 
     @Synchronized
     private fun release() {
+        runCatching { remoteStopped() }
         NavigationPlayback.close(navigationPlaybackToken)
         AmbientMusicController.closeRenderer(ambientRendererToken)
         abandonAudioFocus()
