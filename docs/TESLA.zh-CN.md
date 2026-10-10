@@ -29,11 +29,11 @@ $env:ANDROID_HOME = 'G:\Android' # 改为你的 SDK 路径
 
 ### Release APK 与认证
 
-[Tesla 0.1.1 预览版](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.1) 提供签名 APK、独立 proxy 压缩包和 `SHA256SUMS.txt`。APK 安装在 Android 主机上，包名为 `com.diplay.tesla`；它与 `.debug` 测试包分别安装。后续更新须保留相同签名密钥。
+[Tesla 0.1.2 预览版](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.2) 提供签名 APK、独立 proxy 压缩包和 `SHA256SUMS.txt`。APK 安装在 Android 主机上，包名为 `com.diplay.tesla`；它与 `.debug` 测试包分别安装。后续更新须保留相同签名密钥。
 
-**此预览 APK 未内置 MFi 配件身份，不能直接完成离线 CarPlay 认证。** 它用于浏览器配对、显示配置及主机部署测试；实际连接 iPhone 还需要配置可用的认证来源。Android APK 签名只验证应用来源，不能代替 MFi 认证。
+**0.1.2 发布 APK 已使用本地配置的实验性 MFi 资产打包。** 资产沿用“检查 ADB 连接”任务为本项目准备的同一份身份；已核对 APK 内文件与输入一致。认证资产没有进入 Git，普通源码构建仍需自行配置 `DIPLAY_AUTH_ASSETS_DIR`。尚未用这个新版进行实际 iPhone 认证或 Tesla 实车验证。
 
-DiPlay 和 DiPlay-CN 的[公开公告](THIRD_PARTY_NOTICES.md#experimental-authentication-data)均说明，实验身份来自 Carlinkit C2Air Allwinner V821 固件，并非 Apple 为项目新签发的身份。此端口不会自动提取或再分发第三方私钥。
+DiPlay 和 DiPlay-CN 的[公开公告](THIRD_PARTY_NOTICES.md#experimental-authentication-data)说明实验身份的固件来源。这不是 Apple 为本项目新签发的身份，Android APK 签名和 HTTPS 证书也各自独立。
 
 自行构建签名包时，按 [BUILD.md](BUILD.md#build-a-release-apk) 设置四个 `ANDROID_KEYSTORE_*` / `ANDROID_KEY_*` 签名变量，然后运行：
 
@@ -51,13 +51,13 @@ DiPlay 和 DiPlay-CN 的[公开公告](THIRD_PARTY_NOTICES.md#experimental-authe
 
 Android 的 Wi-Fi 已用于向 Tesla 提供热点时，优先使用 USB CarPlay。无线 CarPlay 与 Tesla 热点同时工作需要主机支持相应的并发网络模式，也可以使用外部路由器及已有的“现有 Wi-Fi／同一局域网”功能。
 
-默认声音仍由 Android 主机或已有的车辆蓝牙路线播放。0.1.1 可在网页点击“浏览器音频（实验性）”，让音乐与导航提示通过 WebSocket PCM 在浏览器播放；首次点击允许浏览器启动音频。缓冲可选 80 / 200 / 400 ms，默认 200 ms。增加缓冲能容忍短暂抖动，也会增加延迟。
+默认声音仍由 Android 主机或已有的车辆蓝牙路线播放。0.1.2 在网页“菜单”中点击“浏览器音频（实验性）”，让音乐与导航提示通过 WebSocket PCM 在浏览器播放；首次点击允许浏览器启动音频。缓冲可选 80 / 200 / 400 ms，默认 200 ms。增加缓冲能容忍短暂抖动，也会增加延迟。
 
 页面隐藏、音频上下文暂停、连接断开或发送积压时，浏览器音频停止接管，后续音频回到 Android。电话、Siri、语音识别与麦克风仍使用 Android 原有路线；网页不采集麦克风。声音来源本来就是 iPhone 直连车辆蓝牙时，浏览器缓冲不作用于那条路线。实际车机是否允许浏览器播放声音仍需停车验证。
 
 ## 右侧窗口与全屏
 
-在 **设置 → 显示 → Tesla 分辨率**，或浏览器的“显示设置”中配置。两处编辑同一份持久化设置。
+在 **设置 → 显示 → Tesla 分辨率**，或浏览器的“菜单 → 显示设置”中配置。两处编辑同一份持久化设置。
 
 | 配置 | 初始画布 |
 | --- | --- |
@@ -71,6 +71,12 @@ Android 的 Wi-Fi 已用于向 Tesla 提供热点时，优先使用 USB CarPlay�
 修改在下次 CarPlay 连接生效。保存不会中断正在运行的会话；准备好后点击“应用并重新连接”或 Android 的“立即重新连接”。相同配置不触发重连提示。
 
 选择配置不会替 Tesla 改变系统窗口模式，仍需使用车辆自己的窗口控制。浏览器“全屏”按钮在支持时调用 Fullscreen API。页面保持画面比例，并将触控映射到实际画布；黑边起始触控会被忽略。
+
+画面使用整个浏览器可用区域，工具栏改为浮动菜单。虚拟按键默认隐藏；在“菜单 → 显示虚拟按键”展开，或点击“隐藏按键”收起，选择保存在该浏览器。展开按键不会缩小或改变画面的触控坐标。
+
+在“显示设置 → 使用当前窗口尺寸”可将当前区域的宽高填写到所选配置（超出范围时等比例缩小并取偶数），另一份配置保持不变。保存仍在下次连接生效。画面保持比例，减少黑边应通过匹配画布宽高完成，不裁切 CarPlay 内容。
+
+“菜单 → 实时诊断”显示实际解码帧率、丢帧、已排队音频时长和重新缓冲次数，以及主机可读的温度、可用内存、CPU 当前频率与策略上限。设备每 2 秒采样，超过 6 秒未更新的设备读数标记“未更新”；权限不足显示“未知”。温度保留传感器名称，不把电池温度称为 CPU 温度。策略上限低于硬件最高值不能直接判为热降频。静止画面可以显示 0 fps，不再因此强制回退 JPEG。网页支持中文、英文、阿拉伯语，也可用 `?lang=zh-CN`、`?lang=en`、`?lang=ar` 指定。
 
 浏览器支持双指触控、主页、返回、Siri 和媒体快捷键。一次只允许一个页面持有触控；页面隐藏或关闭后释放，丢失的触控在一秒无心跳后自动释放。
 

@@ -43,6 +43,7 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
     private val prefs = context.getSharedPreferences("tesla-browser", Context.MODE_PRIVATE)
     private val frames = LatestFrame()
     private val media = BrowserMediaHub()
+    private val diagnostics = BrowserDiagnostics(context)
     private val handler = Handler(Looper.getMainLooper())
     private val token = prefs.getString("token", null) ?: ByteArray(16).also { SecureRandom().nextBytes(it) }
         .joinToString("") { "%02x".format(it.toInt() and 255) }.also { prefs.edit().putString("token", it).apply() }
@@ -128,6 +129,7 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
         .put("pendingReconnect", negotiated != null && negotiated != display)
         .put("audio", if (media.audio.active) "browser" else "android")
         .put("transport", media.transport)
+        .put("device", diagnostics.snapshot() ?: JSONObject.NULL)
 
     override fun connectionSummary(): String = serverError ?: addresses().firstOrNull()?.let { "http://$it:$PORT" }
         ?: context.getString(R.string.settings_browser_waiting)

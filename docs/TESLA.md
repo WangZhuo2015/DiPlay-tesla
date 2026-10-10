@@ -50,20 +50,17 @@ provide your external runtime authentication assets as in BUILD.md and use
 
 ### Signed releases and authentication
 
-The [Tesla 0.1.1 preview](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.1)
+The [Tesla 0.1.2 preview](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.2)
 contains a signed APK, a separate proxy archive and `SHA256SUMS.txt`. Install the APK
 on the Android host. Its package is `com.diplay.tesla`; it installs separately from the
 `.debug` build. Keep the same APK signing key for subsequent release updates.
 
-**This preview APK contains no MFi accessory identity and cannot complete local offline
-CarPlay authentication by itself.** It supports browser pairing, display configuration
-and host deployment tests. An iPhone connection additionally needs a configured usable
-authentication source. APK signing establishes the application's origin; it does not
-provide MFi authentication.
-
-Both upstream projects describe experimental assets recovered from Carlinkit C2Air
-Allwinner V821 firmware; see [the provenance notices](THIRD_PARTY_NOTICES.md#experimental-authentication-data).
-This port does not automatically extract or redistribute third-party private keys.
+**The 0.1.2 release APK includes the explicitly provisioned experimental MFi identity**
+from the referenced local task, with package entries verified against those inputs.
+The identity stays outside Git; normal source builds remain credential-free.
+Actual iPhone authentication and Tesla vehicle behavior have not been tested for this version.
+APK signing and HTTPS certificates are separate from MFi authentication.
+See [the provenance notices](THIRD_PARTY_NOTICES.md#experimental-authentication-data).
 
 For a signed build, set the four signing variables in
 [BUILD.md](BUILD.md#build-a-release-apk), then run:
@@ -98,7 +95,7 @@ the host releases a lost contact after one second without a heartbeat.
 
 ## Right window and full window
 
-Use **Settings → Display → Tesla resolution**, or the browser's **Display settings**.
+Use **Settings → Display → Tesla resolution**, or the browser's **Menu → Display settings**.
 Both edit the same persisted profiles:
 
 | Profile | Initial canvas | Meaning |
@@ -242,3 +239,28 @@ Automated coverage includes profile negotiation/persistence, input ownership and
 touch release, cropped/strided YUV conversion, API pairing/origin checks, update package
 selection and independent proxy forwarding. Real iPhone authentication, sustained decoder
 performance, Tesla browser access and Bluetooth call routing require physical hardware.
+
+## Browser screen and diagnostics in 0.1.2
+
+The media surface occupies the complete viewport. A corner Menu button opens controls;
+virtual keys default to hidden, with an explicit toggle persisted in that browser.
+Visible keys float over the image and do not resize it or change touch coordinates.
+The image keeps its aspect ratio. **Use current window size** fills only the selected
+right/full profile, proportionally bounds it to 2560×1440 and rounds to even dimensions.
+Saving does not interrupt CarPlay; reconnect requires confirmation inside the page.
+
+Live diagnostics in the menu show measured decoded FPS, dropped frames, queued audio
+and rebuffer counts. Android memory, battery/available thermal sensor temperatures and
+CPU policies are sampled every two seconds on a separate browser worker. A snapshot
+older than six seconds is labeled stale; unavailable fields are unknown. Sensor names
+are preserved; policy limits are not interpreted as proof of thermal throttling.
+
+The browser and Android video watchdogs distinguish a quiet source from a decoder stall.
+A stationary screen with fresh viewer feedback stays on WebRTC. Fresh source frames
+without decoding progress for five seconds trigger JPEG fallback; initial playback and
+missing viewer feedback still have bounded timeouts. This adapts the useful diagnostics
+and static-scene handling from the referenced local tepla experiment without importing
+its device-specific hotspot/root/VPN service configuration into the core or proxy.
+
+The page supports Chinese, English and Arabic/RTL, selected from browser language or
+`?lang=zh-CN`, `?lang=en`, `?lang=ar`.

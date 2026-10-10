@@ -37,9 +37,7 @@ class BrowserVideoOutput internal constructor(
     private var peer: RtcPeer? = null
     private var id = 0L
     @Volatile private var connected = false
-    private var startedAt = 0L
-    private var feedbackAt = 0L
-    private var decoded = -1L
+    private var health: RtcHealth? = null
     private var origin = -1L
     @Volatile var sentFrames = 0L; private set
     @Volatile var receivedFrames = 0L; private set
@@ -57,11 +55,11 @@ class BrowserVideoOutput internal constructor(
         when (data.getString("type")) {
             "rtc-answer" -> runCatching { peer?.answer(data.getString("sdp")) }.onFailure { stop() }
             "rtc-ready" -> if (connected && peer != null) {
-                displayed = true; feedbackAt = System.nanoTime(); (jpeg as? JpegVideoSink)?.setSuspended(true)
+                displayed = true; health?.ready(System.nanoTime()); (jpeg as? JpegVideoSink)?.setSuspended(true)
             }
             "rtc-feedback" -> {
                 val frames = data.getLong("decoded")
-                if (frames > decoded) { decoded = frames; feedbackAt = System.nanoTime() }
+                health?.feedback(frames, System.nanoTime())
             }
             "rtc-fallback" -> stop()
         }
@@ -111,8 +109,7 @@ class BrowserVideoOutput internal constructor(
             parameters = START + sps + START + pps
             val profile = sps.sliceArray(1..3).joinToString("") { "%02x".format(it.toInt() and 255) }
             val generation = ++id
-            origin = -1; sentFrames = 0; decoded = -1; feedbackAt = 0
-            startedAt = System.nanoTime()
+            origin = -1; sentFrames = 0; health = RtcHealth(System.nanoTime())
             peer = peerFactory { kind, value -> execute {
                 if (id == generation && peer != null) when (kind) {
                     "offer" -> if (reply?.invoke(JSONObject().put("type", "rtc-offer").put("id", id).put("sdp", value)) != true) stop()
@@ -130,7 +127,9 @@ class BrowserVideoOutput internal constructor(
             if (origin < 0L) origin = frame.nanos
             val timestamp = ((frame.nanos - origin).coerceAtLeast(0) / 1000 * 90 / 1000) and 0xffff_ffffL
             val data = if (frame.key) parameters + frame.bytes else frame.bytes
-            if (runCatching { peer?.send(data, timestamp) == true }.getOrDefault(false)) sentFrames++
+            if (runCatching { peer?.send(data, timestamp) == true }.getOrDefault(false)) {
+                sentFrames++; health?.sent(System.nanoTime())
+            }
             else { sendFailures++; synchronized(lock) { queue.clear() }; requestKey() }
         }
         synchronized(lock) {
@@ -146,11 +145,12 @@ class BrowserVideoOutput internal constructor(
     private fun checkHealth() {
         if (peer == null) return
         val now = System.nanoTime()
-        if ((!displayed && now - startedAt > 10_000_000_000) || (displayed && now - feedbackAt > 4_000_000_000)) stop()
+        if (health?.expired(now) == true) stop()
+        else reply?.invoke(JSONObject().put("type", "rtc-progress").put("id", id).put("sent", sentFrames))
     }
     private fun stop() {
         val wasDisplaying = displayed
-        displayed = false; connected = false
+        displayed = false; connected = false; health = null
         (jpeg as? JpegVideoSink)?.setSuspended(false)
         val old = peer; peer = null
         runCatching { old?.close() }

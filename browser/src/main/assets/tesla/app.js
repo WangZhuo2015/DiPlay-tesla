@@ -3,8 +3,12 @@ import {createMedia} from './media.js';
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const zh = navigator.language.toLowerCase().startsWith('zh');
+  const language=(new URLSearchParams(location.search).get('lang')||navigator.language).toLowerCase();
+  const zh=language.startsWith('zh'), ar=language.startsWith('ar');
   const copy = {
+    menu:['菜单','Menu'], close:['关闭','Close'], showKeys:['显示虚拟按键','Show virtual keys'], hideKeys:['隐藏按键','Hide keys'], diagnostics:['实时诊断','Live diagnostics'],
+    fitWindow:['使用当前窗口尺寸','Use current window size'], fitHint:['按当前可用区域填写所选配置，保存后下次连接生效；画面保持比例。','Fill the selected profile from the available window. Save for the next connection; the picture keeps its aspect ratio.'],
+    unknown:['未知','Unknown'], stale:['未更新','Not updated'], resolution:['实际视频尺寸','Actual video size'], decoded:['实际解码帧率','Decoded frame rate'], dropped:['丢帧','Dropped frames'], queue:['实际音频缓冲','Queued audio'], underruns:['音频重新缓冲次数','Audio rebuffer count'], memory:['可用内存','Available memory'], battery:['电池温度','Battery temperature'], thermal:['系统热状态','System thermal status'], sampleAge:['设备采样时间','Device sample age'],
     settings:['显示设置','Display settings'], expand:['全屏','Fullscreen'], theme:['日夜','Day / night'],
     pair:['连接 DiPlay','Connect DiPlay'], pairHint:['在 Android 设备的“连接 → Tesla 浏览器”查看地址和配对码。','Find the address and pairing code in Connection → Tesla browser on the Android host.'],
     code:['配对码','Pairing code'], connect:['连接','Connect'], home:['主页','Home'], back:['返回','Back'], previous:['上一曲','Previous'], play:['播放 / 暂停','Play / pause'], next:['下一曲','Next'],
@@ -21,8 +25,17 @@ import {createMedia} from './media.js';
     waiting:['等待 CarPlay','Waiting for CarPlay'], disconnected:['连接中断，正在重试…','Connection lost; retrying…'], invalid:['检查配对码、分辨率和网络连接。','Check the pairing code, dimensions and network connection.'],
     unavailable:['此浏览器不支持全屏，请使用 Tesla 的窗口控制。','Fullscreen is unavailable; use Tesla window controls.']
   };
-  const t = key => copy[key][zh ? 0 : 1];
-  document.documentElement.lang = zh ? 'zh-CN' : 'en';
+  const arabic={
+    menu:'القائمة',close:'إغلاق',showKeys:'إظهار الأزرار الافتراضية',hideKeys:'إخفاء الأزرار',diagnostics:'التشخيص المباشر',
+    fitWindow:'استخدام أبعاد النافذة الحالية',fitHint:'تُملأ الإعدادات المحددة من مساحة النافذة المتاحة. تسري بعد الحفظ عند الاتصال التالي؛ تُحفظ نسبة أبعاد الصورة.',
+    unknown:'غير معروف',stale:'لم تُحدّث',resolution:'أبعاد الفيديو الفعلية',decoded:'معدل فك الترميز الفعلي',dropped:'الإطارات المفقودة',queue:'الصوت المخزن مؤقتًا',underruns:'مرات إعادة تخزين الصوت',memory:'الذاكرة المتاحة',battery:'حرارة البطارية',thermal:'الحالة الحرارية للنظام',sampleAge:'عمر عينة الجهاز',
+    settings:'إعدادات العرض',expand:'ملء الشاشة',theme:'نهار / ليل',pair:'اتصال DiPlay',pairHint:'اعرض العنوان ورمز الاقتران في الاتصال ← متصفح Tesla على جهاز Android.',code:'رمز الاقتران',connect:'اتصال',home:'الرئيسية',back:'رجوع',previous:'السابق',play:'تشغيل / إيقاف مؤقت',next:'التالي',
+    audio:'يستخدم الميكروفون والمكالمات وSiri جهاز Android',browserAudio:'صوت المتصفح (تجريبي)',audioOn:'صوت المتصفح مفعّل (تجريبي)',buffer:'تخزين الصوت مؤقتًا',transport:'نقل الفيديو',auto:'WebRTC / JPEG تلقائي',audioBlocked:'اضغط مجددًا للسماح بالصوت؛ استُعيد صوت Android.',
+    displayHint:'تُحفظ إعدادات النافذة اليمنى وملء الشاشة بشكل مستقل. تسري الأبعاد ومعدل الإطارات عند الاتصال التالي؛ يتغير نقل الفيديو فورًا. تتحكم Tesla في وضع النافذة.',mode:'إعداد النافذة',right:'النافذة اليمنى',full:'ملء الشاشة',rightWidth:'عرض النافذة اليمنى',rightHeight:'ارتفاع النافذة اليمنى',fullWidth:'عرض ملء الشاشة',fullHeight:'ارتفاع ملء الشاشة',fps:'معدل الإطارات (5–30)',quality:'جودة JPEG (40–95)',cancel:'إلغاء',save:'حفظ للاتصال التالي',pending:'تسري الإعدادات الجديدة عند الاتصال التالي',reconnect:'تطبيق وإعادة الاتصال',confirm:'تطبيق الإعدادات المحفوظة وإعادة اتصال CarPlay الآن؟',waiting:'بانتظار CarPlay',disconnected:'انقطع الاتصال؛ تجري إعادة المحاولة…',invalid:'تحقق من رمز الاقتران والأبعاد واتصال الشبكة.',unavailable:'ملء الشاشة غير متاح؛ استخدم عناصر التحكم في Tesla.'
+  };
+  const t = key => ar?arabic[key]:copy[key][zh ? 0 : 1];
+  document.documentElement.lang = ar?'ar':zh?'zh-CN':'en';
+  document.documentElement.dir = ar?'rtl':'ltr';
   document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
   let token = sessionStorage.getItem('diplay-token') || '';
   const fragment = new URLSearchParams(location.hash.slice(1)).get('token');
@@ -31,8 +44,21 @@ import {createMedia} from './media.js';
   const client = 'client-' + Array.from(crypto.getRandomValues(new Uint8Array(12)), x => x.toString(16).padStart(2,'0')).join('');
   const canvas = $('picture'), drawing = canvas.getContext('2d');
   const screen = $('screen'), video = $('video');
+  let videoMetrics = {};
+  const closeMenu = () => { $('menuPanel').hidden=true; $('menuButton').setAttribute('aria-expanded','false'); $('menuButton').focus(); };
+  $('menuButton').addEventListener('click',()=>{ releaseTouches(); $('menuPanel').hidden=false; $('menuButton').setAttribute('aria-expanded','true'); $('closeMenu').focus(); });
+  $('closeMenu').addEventListener('click',closeMenu);
+  function showKeys(show) {
+    $('virtualKeys').hidden=!show; document.body.classList.toggle('keysVisible',show);
+    $('keysButton').setAttribute('aria-pressed',String(show)); $('keysButton').textContent=t(show?'hideKeys':'showKeys');
+    localStorage.setItem('diplay-virtual-keys',String(show));
+  }
+  showKeys(localStorage.getItem('diplay-virtual-keys')==='true');
+  $('keysButton').addEventListener('click',()=>{ showKeys($('virtualKeys').hidden); closeMenu(); });
+  $('hideKeys').addEventListener('click',()=>{ showKeys(false); $('menuButton').focus(); });
   const media = createMedia({video,getToken:()=>token,
-    onTransport:mode=>{canvas.hidden=mode==='webrtc';$('transportStatus').textContent=mode==='webrtc'?'WebRTC · H.264':'JPEG';},
+    onTransport:mode=>{canvas.hidden=mode==='webrtc';},
+    onStats:metrics=>{videoMetrics=metrics;},
     onAudio:state=>{const button=$('audioButton'),label=state.enabled?t('audioOn'):t('browserAudio');if(button.textContent!==label)button.textContent=label;button.setAttribute('aria-pressed',String(state.enabled));}
   });
   $('audioBuffer').value=localStorage.getItem('diplay-audio-buffer')||'200';
@@ -67,11 +93,41 @@ import {createMedia} from './media.js';
     const state = await (await api('/api/status')).json();
     current = state;
     $('status').textContent = state.error || state.stage || (state.connected ? 'CarPlay' : t('waiting'));
-    $('pending').hidden = !state.pendingReconnect;
+    $('pending').hidden = !state.pendingReconnect || !$('reconnectPanel').hidden;
     document.querySelectorAll('[data-action]').forEach(button => { button.disabled = !state.connected; });
     if (!state.connected) resetPicture();
+    updateDiagnostics(state);
     return state;
   }
+  function updateDiagnostics(state) {
+    const audio=media.audio.stats();
+    const now=performance.now();
+    if(now-jpegSample>=1000){jpegFps=jpegCount*1000/(now-jpegSample);jpegCount=0;jpegSample=now;}
+    const fps=media.displayed ? videoMetrics.decodedFps : jpegFps;
+    $('transportStatus').textContent=(media.displayed?'H.264 / WebRTC':'JPEG') + (Number.isFinite(fps)?' · '+fps.toFixed(1)+' fps':'');
+    const device=state.device, fresh=device && device.ageMs<=6000;
+    const unknown=t('unknown'), stale=t('stale'), rows=[];
+    const add=(name,value)=>rows.push([name,String(value)]);
+    const active=state.activeDisplay || state.display, size=active[active.mode.toLowerCase()];
+    add(t('resolution'),media.displayed?`${video.videoWidth} × ${video.videoHeight}`:`${size.width} × ${size.height}`);
+    add(t('decoded'),media.displayed && Number.isFinite(fps)?fps.toFixed(1)+' fps':unknown);
+    add(t('dropped'),videoMetrics.dropped??unknown);
+    add(t('queue'),audio.enabled?Math.round(audio.queuedMs)+' ms':t('audio'));
+    add(t('underruns'),audio.underruns);
+    add(t('sampleAge'),device?Math.round(device.ageMs/1000)+' s':unknown);
+    add(t('memory'),fresh?Math.round(device.availableBytes/1048576)+' MiB':stale);
+    add(t('battery'),fresh && Number.isFinite(device.batteryCelsius)?device.batteryCelsius.toFixed(1)+' °C':fresh?unknown:stale);
+    add(t('thermal'),fresh && device.thermalStatus>=0?device.thermalStatus:fresh?unknown:stale);
+    for(const sensor of device?.thermalSensors||[])add(sensor.name,fresh?sensor.celsius.toFixed(1)+' °C':stale);
+    for(const cpu of device?.cpuPolicies||[]) {
+      const mhz=n=>n>0?(n/1000).toFixed(0)+' MHz':unknown;
+      add('CPU '+cpu.policy+' · '+(ar?'الحالي / الحد الأقصى':zh?'当前 / 策略上限':'current / policy limit'),fresh?mhz(cpu.currentKhz)+' / '+mhz(cpu.maxKhz):stale);
+      add('CPU '+cpu.policy+' · '+(ar?'الحد الأقصى للأجهزة':zh?'硬件最高频率':'hardware maximum'),fresh?mhz(cpu.hardwareMaxKhz):stale);
+    }
+    const list=$('diagnosticValues'); list.textContent='';
+    for(const [name,value] of rows) {const term=document.createElement('dt'),detail=document.createElement('dd');term.textContent=name;detail.textContent=value;list.append(term,detail);}
+  }
+  let jpegFps=null, jpegCount=0, jpegSample=performance.now();
   async function stream() {
     if (live) return;
     live = true;
@@ -99,6 +155,7 @@ import {createMedia} from './media.js';
           if (canvas.width !== picture.width) canvas.width = picture.width;
           if (canvas.height !== picture.height) canvas.height = picture.height;
           drawing.drawImage(picture,0,0);
+          jpegCount++;
           if (picture.close) picture.close();
           sequence = Number(response.headers.get('X-Frame-Sequence'));
         }
@@ -108,6 +165,7 @@ import {createMedia} from './media.js';
       } catch (error) {
         resetPicture(); releaseTouches();
         $('status').textContent = error.message || t('disconnected');
+        $('pairError').textContent = error.message || t('disconnected');
         await delay(Math.min(5000,250 * 2 ** Math.min(++failures,5)));
       }
     }
@@ -139,7 +197,7 @@ import {createMedia} from './media.js';
   }
   screen.addEventListener('pointerdown', event => {
     if(event.target!==canvas && event.target!==video)return;
-    if (!current || !current.connected || !$('displayPanel').hidden || fingers.size >= 2) return;
+    if (!current || !current.connected || !$('displayPanel').hidden || !$('menuPanel').hidden || !$('reconnectPanel').hidden || fingers.size >= 2) return;
     const point = normalizedPoint(event.clientX,event.clientY);
     if (!Number.isFinite(point.x) || !Number.isFinite(point.y) || point.x < 0 || point.x > 1 || point.y < 0 || point.y > 1) return;
     const used = Array.from(fingers.values()).map(finger => finger.id);
@@ -164,7 +222,8 @@ import {createMedia} from './media.js';
   }));
   $('pairing').addEventListener('submit',event => {
     event.preventDefault(); token = $('token').value.trim().toLowerCase();
-    if (!/^[a-f0-9]{32}$/.test(token)) return;
+    if (!/^[a-f0-9]{32}$/.test(token)) { $('pairError').textContent=t('invalid'); return; }
+    $('pairError').textContent='';
     sessionStorage.setItem('diplay-token',token); $('pairing').hidden = true; media.close(); media.open(); resetPicture(); stream();
   });
   $('settingsButton').addEventListener('click',async () => {
@@ -174,21 +233,30 @@ import {createMedia} from './media.js';
       ['right','full'].forEach(mode => { ['width','height'].forEach(axis => { $(mode + axis[0].toUpperCase()+axis.slice(1)).value = display[mode][axis]; }); });
       $('fps').value = display.fps; $('quality').value = display.jpegQuality;
       $('transport').value=localStorage.getItem('diplay-video')||'auto';
-      releaseTouches(); $('displayError').textContent = ''; $('displayPanel').hidden = false; $('mode').focus();
+      releaseTouches(); closeMenu(); $('displayError').textContent = ''; $('displayPanel').hidden = false; $('mode').focus();
     } catch (error) { $('status').textContent = error.message; }
   });
-  $('closeSettings').addEventListener('click',() => { $('displayPanel').hidden = true; $('settingsButton').focus(); });
+  $('closeSettings').addEventListener('click',() => { $('displayPanel').hidden = true; $('menuButton').focus(); });
+  $('fitWindow').addEventListener('click',()=>{
+    const mode=$('mode').value.toLowerCase(),box=screen.getBoundingClientRect();
+    const scale=Math.min(1,2560/box.width,1440/box.height);
+    const width=Math.floor(box.width*scale/2)*2,height=Math.floor(box.height*scale/2)*2;
+    if(width<320 || height<240){$('displayError').textContent=t('invalid');return;}
+    $(mode+'Width').value=width; $(mode+'Height').value=height;
+  });
   $('displayForm').addEventListener('submit',async event => {
     event.preventDefault();
     const size = mode => ({width:Number($(mode+'Width').value),height:Number($(mode+'Height').value)});
     try {
       await api('/api/display',{mode:$('mode').value,right:size('right'),full:size('full'),fps:Number($('fps').value),jpegQuality:Number($('quality').value)});
       if($('transport').value!==(localStorage.getItem('diplay-video')||'auto'))media.useVideo($('transport').value);
-      $('displayPanel').hidden = true; $('settingsButton').focus(); await status();
+      $('displayPanel').hidden = true; $('menuButton').focus(); await status();
     } catch (error) { $('displayError').textContent = error.message; }
   });
-  $('reconnectButton').addEventListener('click',async () => {
-    if (!confirm(t('confirm'))) return;
+  $('reconnectButton').addEventListener('click',() => { releaseTouches(); $('reconnectPanel').hidden=false; $('pending').hidden=true; $('cancelReconnect').focus(); });
+  $('cancelReconnect').addEventListener('click',() => { $('reconnectPanel').hidden=true; $('pending').hidden=!current?.pendingReconnect; $('reconnectButton').focus(); });
+  $('confirmReconnect').addEventListener('click',async () => {
+    $('reconnectPanel').hidden=true;
     try { releaseTouches(); await api('/api/action',{action:'reconnect'}); resetPicture(); await status(); }
     catch (error) { $('status').textContent = error.message; }
   });
@@ -201,7 +269,17 @@ import {createMedia} from './media.js';
   });
   document.body.classList.toggle('light',localStorage.getItem('diplay-light') === 'true');
   $('themeButton').addEventListener('click',() => { document.body.classList.toggle('light'); localStorage.setItem('diplay-light',String(document.body.classList.contains('light'))); });
-  document.addEventListener('keydown',event => { if (event.key === 'Escape') $('closeSettings').click(); });
+  document.addEventListener('keydown',event => {
+    if(event.key==='Escape') { if(!$('reconnectPanel').hidden)$('cancelReconnect').click(); else if(!$('displayPanel').hidden)$('closeSettings').click(); else if(!$('menuPanel').hidden)closeMenu(); else showKeys(false); }
+    if(event.key==='Tab') {
+      const dialog=!$('reconnectPanel').hidden?$('reconnectPanel'):!$('displayPanel').hidden?$('displayPanel'):!$('menuPanel').hidden?$('menuPanel'):null;
+      if(!dialog)return;
+      const nodes=[...dialog.querySelectorAll('button,input,select,summary,a[href]')].filter(node=>!node.disabled && node.getClientRects().length);
+      const first=nodes[0],last=nodes[nodes.length-1];
+      if(event.shiftKey && document.activeElement===first){event.preventDefault();last.focus();}
+      else if(!event.shiftKey && document.activeElement===last){event.preventDefault();first.focus();}
+    }
+  });
   $('pairing').hidden = Boolean(token);
   if (token) stream();
 })();

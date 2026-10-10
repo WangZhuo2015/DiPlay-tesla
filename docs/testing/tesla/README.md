@@ -1,7 +1,51 @@
-# Tesla port verification — 2026-10-10
+# Tesla port verification — 2026-10-11
 
 Checked on Windows with JDK 25, Android SDK 37 and a dedicated Android 10/API 29 emulator.
 The APK was installed only on that emulator. No iPhone or Tesla vehicle was connected.
+
+## 0.1.2 screen, health and authentication checks — 2026-10-11
+
+The complete AGENTS.md CI command plus browser/Tesla tests and lint passed on the
+final source-only build. Signed `:tesla:lintRelease :tesla:assembleStandaloneRelease`
+also passed. Unit totals: shared 1211, common 1012, home 4, browser 24, Tesla 4,
+**2255 tests, zero failures/errors**. All 12 Node tests passed, including deterministic
+clock simulations of two minutes of stationary video, fresh source frames with a stalled
+decoder, initial playback timeout and the existing PCM/HTTPS/WSS/proxy checks.
+
+The APK has package `com.diplay.tesla`, versionCode 3, versionName 0.1.2, API 25–37,
+and all three native ABIs. `apksigner verify` passes v2 signing; certificate SHA-256
+is `ea2fcd23e0571640b90098e970116427ae13b71a4744941a0fe4b3042f4ba117`, unchanged
+from 0.1.0/0.1.1. Both offline-MFi entries match the explicitly provided local files
+byte-for-byte (67-byte PKCS#8 identity and 607-byte certificate bundle). A fresh digest signed by the supplied P-256 key verified against its certificate. Credential
+inputs remain outside Git. Final page, hidden-key default, RTC health module, inline
+reconnect dialog and Arabic strings were verified inside the APK.
+
+No new emulator, actual iPhone or Tesla vehicle test was performed for this version.
+The 0.1.1 real H.264/WebRTC emulator result below is historical, not a new 0.1.2 result.
+
+Browser layout checks use the production page with 130% body font and a PNG grid
+explicitly labeled **LAYOUT TEST / No CarPlay session**, plus mock authenticated status.
+The media surface and viewport both measure 1024×768 or 1920×1080; virtual keys default
+to hidden. Expanding keys retained the complete surface height. Full/right profile
+selection and filling current dimensions preserved the other profile and saved without
+immediately reconnecting.
+
+- [Default compact view](browser-012-compact-font130.jpg)
+- [Default full view](browser-012-full-font130.jpg)
+- [Compact menu](browser-012-menu-compact-font130.jpg), [full menu](browser-012-menu-full-font130.jpg)
+- [Expanded keys](browser-012-keys-compact-font130.jpg)
+- [Compact settings](browser-012-settings-compact-font130.jpg), [full settings](browser-012-settings-full-font130.jpg)
+- [Arabic compact](browser-012-menu-ar-compact-font130.jpg), [Arabic full](browser-012-menu-ar-full-font130.jpg)
+- [Arabic 360×640 narrow view](browser-012-menu-ar-narrow-font130.jpg)
+
+The original browser-native reconnect confirmation blocked the automation session.
+It was replaced with an explicit inline confirmation dialog; automated click rechecking
+remains incomplete. Subsequent menu/RTL screenshots use a fixture that initializes the
+menu as visible; they verify rendering rather than interaction. At 360×640 the panel
+scroll width equals its client width (327 px), with vertical scrolling for large fonts.
+The host sampler is tested against synthetic sysfs fixtures: invalid/NaN temperatures
+are omitted, actual names are retained, and unavailable CPU limits remain unknown.
+No V50-specific sensor names or root/hotspot/HTTPS key configuration was imported.
 
 ## 0.1.1 media and HTTPS checks
 
@@ -133,3 +177,10 @@ The preview does not provide standalone offline iPhone authentication.
 Real iPhone authentication, Tesla browser/network restrictions, sustained WebRTC/JPEG performance,
 thermal behavior, Bluetooth audio, microphone/Siri/calls and reconnection require a parked
 vehicle and actual host. The source-only APK contains no accessory identity.
+
+## 0.1.2 release checksums
+
+```text
+2ae842b8776a7bd99a40cfcacf70160bee540be25c56ca8d5a66ae23e5bf058c  DiPlay-Tesla-0.1.2.apk
+219abbc69a6c51edaed6085a76be601c373571c1d33a52fdff970d49f21f16e3  DiPlay-Tesla-Proxy-0.1.2.zip
+```

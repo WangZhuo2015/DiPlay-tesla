@@ -45,6 +45,8 @@ Concentus uses the Opus BSD-style license. The full copyright notices, redistrib
 
 The upstream DiPlay public preview APK includes an accessory certificate/key pair recovered from public Carlinkit C2Air Allwinner V821 firmware during the owner's local investigation. These data are not newly generated Apple-issued credentials for DiPlay and are not relicensed as project source code. Upstream bundles them to reproduce the offline experiment; continued acceptance and suitability for general distribution are unresolved. See the [DiPlay notice](https://github.com/shihabal3amri/DiPlay/blob/main/docs/THIRD_PARTY_NOTICES.md) and the matching [DiPlay-CN notice](https://github.com/serein-morii/DiPlay-CN/blob/main/docs/THIRD_PARTY_NOTICES.md). These notices describe provenance; they do not independently establish that both APKs contain identical bytes.
 
+**The DiPlay Tesla 0.1.2 release APK explicitly bundles the owner's locally provisioned experimental identity**, also used for the 0.1.1 local debug experiment in the referenced “检查 ADB 连接” task. Inputs remain outside Git and are not included in source archives or the proxy ZIP. APK recipients can extract that accessory identity. This is separate from Android application signing and is not a new Apple-issued DiPlay identity. No real iPhone authentication is claimed for this version.
+
 **The DiPlay Tesla 0.1.0 and 0.1.1 previews contain no accessory identity.** They cannot perform local offline CarPlay authentication without a separately provisioned identity. The external asset input is for identities the builder is authorized to use and distribute. No third-party identity is imported automatically. Source archives contain no private keys, and the separate Android APK-signing key is never distributed.
 
 ## Tesla port references
@@ -83,3 +85,9 @@ The static site layout, CSS and generator adapt DiAuto (AGPL-3.0). The AGPL lice
 Required Notice: Copyright AndyShaman (https://github.com/AndyShaman/BYDMate)
 
 The maneuver PNGs under `shared/src/main/assets/byd-hud-icons` were imported from BYDMate. Its PolyForm Noncommercial 1.0.0 terms and required notice are included alongside the assets. These files are separate from the project code license; upstream describes them as donor assets and their original provenance is not independently established. The validated DiLink5.1 windshield path uses factory turn codes rather than these images.
+
+The 0.1.2 static-screen WebRTC watchdog and device diagnostics selectively adapt the
+local changes to tepla in task `01a120db-3d51-73f2-a917-5882c000b655` (“检查 ADB 连接”).
+They retain the existing GPL-3.0 reference attribution; the new browser layout and
+bounded Android sampler live in the browser module. Hardware-specific root/hotspot
+scripts, private HTTPS keys and VPN routing are not part of this migration.

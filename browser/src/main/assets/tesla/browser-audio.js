@@ -68,6 +68,10 @@ export function createBrowserAudio({send,onState=()=>{},createContext=()=>new (w
     stopped:stop,
     setBuffer(ms) { if (![80,200,400].includes(ms)) return; bufferMs=ms; stop(); publish(); },
     close() { disable(); if (context) { context.onstatechange=null; context.close().catch(()=>{}); context=null; } },
-    get enabled() { return enabled; }
+    get enabled() { return enabled; },
+    stats() {
+      const now=context?.currentTime||0;
+      return {enabled,targetMs:bufferMs,queuedMs:enabled?Math.max(0,...[...streams.values()].map(stream=>(stream.next-now)*1000)):0,underruns};
+    }
   };
 }

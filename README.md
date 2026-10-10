@@ -4,7 +4,7 @@ This fork adds a Tesla browser output to the existing Android CarPlay receiver. 
 `tesla` APK composes the core with the `browser` library; the optional Node.js `proxy/`
 process is deployed independently. Tesla and the Android host share a local network.
 
-Version 0.1.1 adds H.264 WebRTC with automatic JPEG fallback and optional browser PCM
+Version 0.1.2 adds a full-viewport browser surface, hidden-by-default virtual keys, live diagnostics and static-screen protection. It retains H.264 WebRTC with automatic JPEG fallback and optional browser PCM
 audio with 80/200/400 ms buffering. Right/full resolutions remain independent. Vehicle
 performance is not yet validated.
 
@@ -14,10 +14,10 @@ or an explicit Apply and reconnect. Selected DiPlay-CN locale, connection-hint a
 behaviors are adapted for this output.
 
 See [Tesla setup and boundaries](docs/TESLA.md) and [optional proxy](proxy/README.md).
-Download the [Tesla 0.1.1 signed preview](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.1).
+Download the [Tesla 0.1.2 signed preview](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.2).
 The independent proxy accepts TLS certificates for HTTPS; Android:8080 remains HTTP.
-This preview has no offline authentication identity and cannot authenticate an iPhone
-by itself.
+The 0.1.2 release APK explicitly bundles the locally provisioned experimental MFi identity.
+Actual iPhone authentication and Tesla vehicle performance still require testing.
 Build with `./gradlew :tesla:assembleDebug`; source-only APKs still require externally
 provisioned CarPlay authentication assets to connect an iPhone. The original DiPlay
 documentation follows.
