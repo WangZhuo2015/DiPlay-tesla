@@ -1,4 +1,21 @@
-# DiPlay
+# DiPlay Tesla
+
+This fork adds a Tesla browser output to the existing Android CarPlay receiver. A separate
+`tesla` APK composes the core with the `browser` library; the optional Node.js `proxy/`
+process is deployed independently. Tesla and the Android host share a local network.
+
+Right-window and full-window profiles have independent configurable resolutions. Touch,
+Siri and media shortcuts are supported. Saved display changes wait for the next connection
+or an explicit Apply and reconnect. Selected DiPlay-CN locale, connection-hint and resume
+behaviors are adapted for this output.
+
+See [Tesla setup and boundaries](docs/TESLA.md) and [optional proxy](proxy/README.md).
+Download the [Tesla 0.1.0 signed preview](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.0).
+This preview has no offline authentication identity and cannot authenticate an iPhone
+by itself.
+Build with `./gradlew :tesla:assembleDebug`; source-only APKs still require externally
+provisioned CarPlay authentication assets to connect an iPhone. The original DiPlay
+documentation follows.
 
 **CarPlay for compatible BYD Android head units.** Wired and wireless, with the familiar DiAuto interface. Independent app: `com.shihab.diplay`.
 

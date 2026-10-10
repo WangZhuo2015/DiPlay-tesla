@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>DiPlay Tesla</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header>
+    <strong>DiPlay <span>Tesla</span></strong>
+    <p id="status" role="status" aria-live="polite">连接 CarPlay / Connect CarPlay</p>
+    <button id="settingsButton" data-i18n="settings">显示设置</button>
+    <button id="expandButton" data-i18n="expand">全屏</button>
+    <button id="themeButton" data-i18n="theme">日夜</button>
+  </header>
+  <main id="screen"><canvas id="picture" width="1024" height="768" aria-label="CarPlay"></canvas>
+    <form id="pairing" class="panel" hidden>
+      <h1 data-i18n="pair">连接 DiPlay</h1>
+      <p data-i18n="pairHint">在 Android 设备的“连接 → Tesla 浏览器”查看地址和配对码。</p>
+      <label for="token" data-i18n="code">配对码</label>
+      <input id="token" type="password" autocomplete="off" required maxlength="32">
+      <button type="submit" data-i18n="connect">连接</button>
+    </form>
+  </main>
+  <footer>
+    <button data-action="home" data-i18n="home">主页</button>
+    <button data-action="back" data-i18n="back">返回</button>
+    <button data-action="siri">Siri</button>
+    <button data-action="previous" data-i18n="previous">上一曲</button>
+    <button data-action="play" data-i18n="play">播放 / 暂停</button>
+    <button data-action="next" data-i18n="next">下一曲</button>
+    <small data-i18n="audio">音频与麦克风使用 Android / iPhone 蓝牙</small>
+  </footer>
+  <section id="displayPanel" class="overlay" role="dialog" aria-modal="true" aria-labelledby="displayTitle" hidden>
+    <form id="displayForm" class="panel">
+      <h1 id="displayTitle" data-i18n="settings">显示设置</h1>
+      <p data-i18n="displayHint">右侧窗口和全屏独立保存。修改在下次连接生效；页面不会改变 Tesla 系统窗口模式。</p>
+      <label for="mode" data-i18n="mode">窗口配置</label>
+      <select id="mode"><option value="RIGHT" data-i18n="right">右侧窗口</option><option value="FULL" data-i18n="full">全屏窗口</option></select>
+      <div class="sizes">
+        <label><span data-i18n="rightWidth">右侧宽度</span><input id="rightWidth" type="number" min="320" max="2560" step="2" required></label>
+        <label><span data-i18n="rightHeight">右侧高度</span><input id="rightHeight" type="number" min="240" max="1440" step="2" required></label>
+        <label><span data-i18n="fullWidth">全屏宽度</span><input id="fullWidth" type="number" min="320" max="2560" step="2" required></label>
+        <label><span data-i18n="fullHeight">全屏高度</span><input id="fullHeight" type="number" min="240" max="1440" step="2" required></label>
+        <label><span data-i18n="fps">帧率 (5–30)</span><input id="fps" type="number" min="5" max="30" required></label>
+        <label><span data-i18n="quality">画质 (40–95)</span><input id="quality" type="number" min="40" max="95" required></label>
+      </div>
+      <p id="displayError" role="alert"></p>
+      <div class="actions"><button id="closeSettings" type="button" data-i18n="cancel">取消</button><button type="submit" data-i18n="save">保存，下次连接生效</button></div>
+    </form>
+  </section>
+  <aside id="pending" hidden><span data-i18n="pending">新配置等待下次连接</span><button id="reconnectButton" data-i18n="reconnect">应用并重新连接</button></aside>
+</body>
+</html>

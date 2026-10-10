@@ -25,6 +25,7 @@ CarPlay and the CarPlay icon are Apple Inc. marks/assets. This asset is not cove
 - Bouncy Castle 1.79 — The Legion of the Bouncy Castle Inc.; Bouncy Castle license (MIT-style).
 - JmDNS 3.6.3 — JmDNS contributors; Apache License 2.0.
 - SLF4J — QOS.ch; MIT license.
+- NanoHTTPD 2.3.1 — NanoHTTPD contributors; BSD 3-Clause license. Used only by the optional browser output library. Its [full notice](licenses/dependencies/NanoHTTPD-LICENSE.txt) accompanies the source.
 
 Gradle dependency declarations and version catalog accompany the source. License files available in the resolved artifacts are included under `docs/licenses/dependencies/`.
 
@@ -42,7 +43,21 @@ Concentus uses the Opus BSD-style license. The full copyright notices, redistrib
 
 ## Experimental authentication data
 
-The public preview APK includes an accessory certificate/key pair recovered from public Carlinkit C2Air Allwinner V821 firmware during the owner's local investigation. These data are not newly generated Apple-issued credentials for DiPlay and are not relicensed as project source code. They are bundled in the preview APK to reproduce the offline experiment; continued acceptance and suitability for general distribution are unresolved. The source archive does not contain the private key, and the separate Android APK-signing key is never distributed.
+The upstream DiPlay public preview APK includes an accessory certificate/key pair recovered from public Carlinkit C2Air Allwinner V821 firmware during the owner's local investigation. These data are not newly generated Apple-issued credentials for DiPlay and are not relicensed as project source code. Upstream bundles them to reproduce the offline experiment; continued acceptance and suitability for general distribution are unresolved. See the [DiPlay notice](https://github.com/shihabal3amri/DiPlay/blob/main/docs/THIRD_PARTY_NOTICES.md) and the matching [DiPlay-CN notice](https://github.com/serein-morii/DiPlay-CN/blob/main/docs/THIRD_PARTY_NOTICES.md). These notices describe provenance; they do not independently establish that both APKs contain identical bytes.
+
+**The DiPlay Tesla 0.1.0 preview contains no accessory identity.** It cannot perform local offline CarPlay authentication without a separately provisioned identity. The external asset input is for identities the builder is authorized to use and distribute. No third-party identity is imported automatically. Source archives contain no private keys, and the separate Android APK-signing key is never distributed.
+
+## Tesla port references
+
+The one-time Chinese locale fallback in `tesla/src/main/java/com/diplay/tesla/TeslaLocaleDefault.kt`
+adapts the policy in [DiPlay-CN](https://github.com/serein-morii/DiPlay-CN), whose locale source
+is marked AGPL-3.0-only. Attribution and the selected connection/resume behaviors are recorded
+in [TESLA.md](TESLA.md). The existing AGPL license text applies to this adaptation.
+
+The browser transport and proxy are newly implemented here. The
+[marcraft2/tesla-carplay](https://github.com/marcraft2/tesla-carplay) browser/hotspot approach
+was consulted for architecture context; no adapter-specific code or bundled credentials
+were copied.
 
 ## Download website
 

@@ -4607,7 +4607,7 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun createMediaEngine(sink: AndroidMediaSink): CarPlayMediaEngine =
         CarPlayMediaEngine(
-            sink = sink,
+            sink = CarPlayOutput.extension?.mediaSink(sink) ?: sink,
             microphoneEnabled = microphoneAvailable,
             audioCaptureDirectory = audioCaptureDirectory(),
         )
@@ -4723,6 +4723,7 @@ class CarPlayHostActivity : ComponentActivity() {
         }
         updateHotspotStatus(status)
         val description = status.describe()
+        CarPlayOutput.extension?.connectionStage(description)
         setConnectionStage(description)
         when (status) {
             is CarPlayStatus.Failed -> if (status.wifiResetRequired) {
@@ -4779,6 +4780,11 @@ class CarPlayHostActivity : ComponentActivity() {
                 finish()
             }
         }
+        CarPlayOutput.extension?.attach(snapshot.controller) {
+            runOnUiThread {
+                if (controller === snapshot.controller) restartCarPlay("Output settings applied; reconnecting")
+            }
+        }
         if (snapshot.width > 0 && snapshot.height > 0) {
             activeDisplaySize = DisplaySize(snapshot.width, snapshot.height)
         }
@@ -4830,7 +4836,9 @@ class CarPlayHostActivity : ComponentActivity() {
         } else {
             size
         }
-        val airPlayConfig = createAirPlayConfig(effectiveSize)
+        val baseConfig = createAirPlayConfig(effectiveSize)
+        val airPlayConfig = CarPlayOutput.extension?.configure(baseConfig) ?: baseConfig
+        if (airPlayConfig.main != baseConfig.main) pendingViewAreas = null
         val locationProvider: Iap2LocationProvider? =
             when {
                 !config.locationReportingEnabled -> null
@@ -4897,6 +4905,11 @@ class CarPlayHostActivity : ComponentActivity() {
             },
         )
         controller = next
+        CarPlayOutput.extension?.attach(next) {
+            runOnUiThread {
+                if (controller === next) restartCarPlay("Output settings applied; reconnecting")
+            }
+        }
         resetSidePanel() // a new session starts without the side panel
         updateClusterMapShown()
         CarPlayMediaKeys.attach(this, next)
@@ -5006,6 +5019,11 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun applyDisplaySize(size: DisplaySize) {
         val display = sessionDisplay
+        if (display != null && CarPlayOutput.extension?.fixedDisplay == true) {
+            activeDisplaySize = size
+            videoView?.let { updateVideoLayout(it.width, it.height) }
+            return
+        }
         if (display != null && applyViewArea(size, display)) return
         val layoutChanged = displayLayoutChanged(size)
         if (shuttingDown.get()) return
@@ -5938,6 +5956,7 @@ internal object CarPlayBackgroundSession {
     @Synchronized
     fun clear(expected: CarPlayController? = null, keepOwner: Boolean = false) {
         if (expected != null && controller !== expected) return
+        CarPlayOutput.extension?.detach(controller)
         controller = null
         sink = null
         if (!keepOwner) { stopAction = null; owner = null }

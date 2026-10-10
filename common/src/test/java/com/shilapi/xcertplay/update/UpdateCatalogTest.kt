@@ -75,4 +75,14 @@ class UpdateCatalogTest {
     fun returnsNullForAnEmptyReleaseList() {
         assertNull(UpdateCatalog.parse("[]"))
     }
+
+    @Test fun teslaUpdateCannotSelectTheOriginalAndroidOrCnApk() {
+        assertNull(UpdateCatalog.parse(releaseJson, "DiPlay-Tesla-"))
+        val json = """[{"tag_name":"v0.1.1","assets":[
+            {"name":"DiPlay-Tesla-0.1.1.apk","browser_download_url":"https://example.com/tesla.apk"},
+            {"name":"DiPlay-0.2.16.apk","browser_download_url":"https://example.com/mobile.apk"},
+            {"name":"SHA256SUMS.txt","browser_download_url":"https://example.com/SHA256SUMS.txt"}
+        ]}]"""
+        assertEquals("DiPlay-Tesla-0.1.1.apk", UpdateCatalog.parse(json, "DiPlay-Tesla-")?.apkName)
+    }
 }

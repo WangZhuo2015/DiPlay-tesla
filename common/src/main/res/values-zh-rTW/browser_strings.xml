@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_browser_connection">Tesla 瀏覽器（實驗性）</string>
+    <string name="settings_browser_connection_hint">Tesla 在同一網路透過瀏覽器開啟 CarPlay。聲音透過 Android 裝置或 iPhone 的藍牙連線播放。選用 proxy 獨立執行。</string>
+    <string name="settings_browser_display">Tesla 解析度（實驗性）</string>
+    <string name="settings_browser_display_hint">右側視窗與全螢幕分別儲存像素尺寸。儲存後於下次連線 CarPlay 時生效；準備好後再選擇重新連線。</string>
+    <string name="settings_browser_right">右側視窗</string>
+    <string name="settings_browser_full">全螢幕視窗</string>
+    <string name="settings_browser_right_width">右側視窗寬度（像素）</string>
+    <string name="settings_browser_right_height">右側視窗高度（像素）</string>
+    <string name="settings_browser_full_width">全螢幕視窗寬度（像素）</string>
+    <string name="settings_browser_full_height">全螢幕視窗高度（像素）</string>
+    <string name="settings_browser_fps">幀率（5–30 fps）</string>
+    <string name="settings_browser_quality">JPEG 畫質（40–95）</string>
+    <string name="settings_browser_invalid">寬度需為 320–2560 的偶數，高度需為 240–1440 的偶數；幀率 5–30；畫質 40–95。</string>
+    <string name="settings_browser_pairing_hint">讓 Tesla 連接 Android 裝置所在網路，開啟以下地址之一。在瀏覽器輸入配對碼，或複製連結。請妥善保管配對碼。</string>
+    <string name="settings_browser_pairing_code">配對碼</string>
+    <string name="settings_browser_copy_link">複製瀏覽器連結</string>
+    <string name="settings_browser_waiting">等待網路或 CarPlay</string>
+</resources>

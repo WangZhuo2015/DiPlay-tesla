@@ -14,7 +14,7 @@ internal object UpdateCatalog {
     internal const val CHECKSUMS_FILE = "SHA256SUMS.txt"
 
     /** Returns the first published release that carries an APK and its checksums, or null. */
-    internal fun parse(json: String): UpdateRelease? {
+    internal fun parse(json: String, apkPrefix: String? = null): UpdateRelease? {
         val releases = JSONArray(json)
         for (index in 0 until releases.length()) {
             val release = releases.optJSONObject(index) ?: continue
@@ -27,7 +27,7 @@ internal object UpdateCatalog {
                 val asset = assets.optJSONObject(assetIndex) ?: continue
                 val name = asset.optString("name")
                 val url = asset.optString("browser_download_url")
-                if (name.endsWith(".apk")) {
+                if (name.endsWith(".apk") && (apkPrefix == null || name.startsWith(apkPrefix))) {
                     apkName = name
                     apkUrl = url
                 }

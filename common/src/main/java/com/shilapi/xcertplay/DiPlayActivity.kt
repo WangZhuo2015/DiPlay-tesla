@@ -91,6 +91,8 @@ internal enum class SettingsSection {
     CARPLAY_CONTROLS,
     WHEEL_KEYS,
     CONNECTION_SETUP,
+    BROWSER_CONNECTION,
+    BROWSER_DISPLAY,
     DIAGNOSTICS,
     AUTOMATIC_CONNECTION,
     BYD_ADB,
@@ -115,11 +117,12 @@ internal object SettingsInformationArchitecture {
         SettingsCategory.ABOUT to emptySet(),
         SettingsCategory.CONNECTION to setOf(
             SettingsSection.CONNECTION_SETUP,
+            SettingsSection.BROWSER_CONNECTION,
             SettingsSection.AUTOMATIC_CONNECTION,
             SettingsSection.BYD_ADB,
             SettingsSection.PERMISSIONS_AND_HELP,
         ),
-        SettingsCategory.DISPLAY to setOf(SettingsSection.DISPLAY_AND_PERFORMANCE),
+        SettingsCategory.DISPLAY to setOf(SettingsSection.DISPLAY_AND_PERFORMANCE, SettingsSection.BROWSER_DISPLAY),
         SettingsCategory.AUDIO to setOf(SettingsSection.AUDIO_ROUTING),
         SettingsCategory.NAVIGATION to setOf(SettingsSection.LOCATION, SettingsSection.BYD_NAVIGATION),
         SettingsCategory.VEHICLE to setOf(
@@ -1505,6 +1508,22 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
     }
 
     private fun allSettingsSections(content: LinearLayout) {
+        CarPlayOutput.extension?.let { output ->
+            filteredSection(content, SettingsSection.BROWSER_CONNECTION,
+                getString(R.string.settings_browser_connection), R.drawable.ic_dp_connection) { card ->
+                card.addView(label(getString(R.string.settings_browser_connection_hint), 14, MUTED))
+                card.addView(button("${getString(R.string.settings_browser_connection)} · ${output.connectionSummary()}", false) {
+                    output.showConnectionSettings(this) { render() }
+                }, matchButton(SETTINGS_BLOCK_GAP_DP, 60))
+            }
+            filteredSection(content, SettingsSection.BROWSER_DISPLAY,
+                getString(R.string.settings_browser_display), R.drawable.ic_dp_controls) { card ->
+                card.addView(label(getString(R.string.settings_browser_display_hint), 14, MUTED))
+                card.addView(button("${getString(R.string.settings_browser_display)} · ${output.displaySummary()}", false) {
+                    output.showDisplaySettings(this) { markReconnectNeeded(); render() }
+                }, matchButton(SETTINGS_BLOCK_GAP_DP, 60))
+            }
+        }
         filteredSection(content, SettingsSection.CARPLAY_CONTROLS,
             getString(R.string.carplay_controls), R.drawable.ic_dp_controls) { card ->
             val gestureFingers = listOf(0, 2, 3, 4)
@@ -2184,11 +2203,11 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
 
     private fun latestRelease(): UpdateRelease? {
         val json = UpdateClient.fetchText(
-            UpdateClient.RELEASES_URL,
+            CarPlayOutput.extension?.updateReleasesUrl ?: UpdateClient.RELEASES_URL,
             "application/vnd.github+json",
             userAgent(),
         )
-        val release = UpdateCatalog.parse(json) ?: return null
+        val release = UpdateCatalog.parse(json, CarPlayOutput.extension?.updateApkPrefix) ?: return null
         return release.takeIf { UpdateVersion.isNewer(it.tagName, version()) }
     }
 

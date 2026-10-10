@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_browser_connection">متصفح Tesla (تجريبي)</string>
+    <string name="settings_browser_connection_hint">افتح CarPlay في متصفح Tesla على الشبكة نفسها. يستخدم الصوت اتصال Bluetooth لجهاز Android أو iPhone. يعمل الوكيل الاختياري بشكل مستقل.</string>
+    <string name="settings_browser_display">دقة Tesla (تجريبي)</string>
+    <string name="settings_browser_display_hint">للنافذة اليمنى والنافذة الكاملة أحجام بكسل مستقلة. تسري التغييرات عند اتصال CarPlay التالي. أعد الاتصال عندما تكون مستعداً.</string>
+    <string name="settings_browser_right">النافذة اليمنى</string>
+    <string name="settings_browser_full">النافذة الكاملة</string>
+    <string name="settings_browser_right_width">عرض النافذة اليمنى (بكسل)</string>
+    <string name="settings_browser_right_height">ارتفاع النافذة اليمنى (بكسل)</string>
+    <string name="settings_browser_full_width">عرض النافذة الكاملة (بكسل)</string>
+    <string name="settings_browser_full_height">ارتفاع النافذة الكاملة (بكسل)</string>
+    <string name="settings_browser_fps">معدل الإطارات (5–30)</string>
+    <string name="settings_browser_quality">جودة JPEG (40–95)</string>
+    <string name="settings_browser_invalid">استخدم قيماً زوجية: العرض 320–2560، الارتفاع 240–1440؛ الإطارات 5–30؛ الجودة 40–95.</string>
+    <string name="settings_browser_pairing_hint">صل Tesla بشبكة جهاز Android وافتح أحد هذه العناوين. أدخل رمز الاقتران في المتصفح أو انسخ الرابط. احتفظ بالرمز سرياً.</string>
+    <string name="settings_browser_pairing_code">رمز الاقتران</string>
+    <string name="settings_browser_copy_link">نسخ رابط المتصفح</string>
+    <string name="settings_browser_waiting">في انتظار الشبكة أو CarPlay</string>
+</resources>

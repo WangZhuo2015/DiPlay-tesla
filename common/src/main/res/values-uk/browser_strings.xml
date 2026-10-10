@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_browser_connection">Браузер Tesla (експериментально)</string>
+    <string name="settings_browser_connection_hint">Відкрийте CarPlay у браузері Tesla в одній мережі. Звук передається через Bluetooth пристрою Android або iPhone. Додатковий проксі працює окремо.</string>
+    <string name="settings_browser_display">Роздільність Tesla (експериментально)</string>
+    <string name="settings_browser_display_hint">Права та повна області мають окремі розміри. Зміни діють під час наступного підключення CarPlay. Перепідключіться, коли будете готові.</string>
+    <string name="settings_browser_right">Права область</string>
+    <string name="settings_browser_full">Повна область</string>
+    <string name="settings_browser_right_width">Ширина правої області (пікселі)</string>
+    <string name="settings_browser_right_height">Висота правої області (пікселі)</string>
+    <string name="settings_browser_full_width">Ширина повної області (пікселі)</string>
+    <string name="settings_browser_full_height">Висота повної області (пікселі)</string>
+    <string name="settings_browser_fps">Частота кадрів (5–30)</string>
+    <string name="settings_browser_quality">Якість JPEG (40–95)</string>
+    <string name="settings_browser_invalid">Парні розміри: ширина 320–2560, висота 240–1440; частота 5–30; якість 40–95.</string>
+    <string name="settings_browser_pairing_hint">Підключіть Tesla до мережі пристрою Android та відкрийте одну з адрес. Введіть код сполучення або скопіюйте посилання. Не розголошуйте код.</string>
+    <string name="settings_browser_pairing_code">Код сполучення</string>
+    <string name="settings_browser_copy_link">Копіювати посилання</string>
+    <string name="settings_browser_waiting">Очікування мережі або CarPlay</string>
+</resources>

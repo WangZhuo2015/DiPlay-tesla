@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_browser_connection">Tesla browser (experimental)</string>
+    <string name="settings_browser_connection_hint">Open CarPlay in the Tesla browser on the same network. Audio uses the Android host or iPhone Bluetooth connection. The optional proxy runs separately.</string>
+    <string name="settings_browser_display">Tesla resolution (experimental)</string>
+    <string name="settings_browser_display_hint">Right window and full window have separate pixel sizes. Save now; changes apply at the next CarPlay connection. Reconnect only when ready.</string>
+    <string name="settings_browser_right">Right window</string>
+    <string name="settings_browser_full">Full window</string>
+    <string name="settings_browser_right_width">Right window width (pixels)</string>
+    <string name="settings_browser_right_height">Right window height (pixels)</string>
+    <string name="settings_browser_full_width">Full window width (pixels)</string>
+    <string name="settings_browser_full_height">Full window height (pixels)</string>
+    <string name="settings_browser_fps">Frame rate (5–30 fps)</string>
+    <string name="settings_browser_quality">JPEG quality (40–95)</string>
+    <string name="settings_browser_invalid">Use even pixel sizes: width 320–2560, height 240–1440; frame rate 5–30; quality 40–95.</string>
+    <string name="settings_browser_pairing_hint">Connect Tesla to the Android host network and open one of these addresses. Enter the pairing code in the browser, or copy the link. Keep the code private.</string>
+    <string name="settings_browser_pairing_code">Pairing code</string>
+    <string name="settings_browser_copy_link">Copy browser link</string>
+    <string name="settings_browser_waiting">Waiting for network or CarPlay</string>
+</resources>

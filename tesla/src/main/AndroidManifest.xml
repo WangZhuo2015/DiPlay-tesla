@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <application android:name=".TeslaApplication" android:label="DiPlay Tesla"
+        android:icon="@drawable/ic_carplay" android:allowBackup="false"
+        android:supportsRtl="true" android:localeConfig="@xml/locales_config"
+        android:theme="@style/Theme.Xcertplay">
+        <service android:name="com.shilapi.xcertplay.shared.MyCarAppService" tools:node="remove" />
+        <meta-data android:name="androidx.car.app.minCarApiLevel" tools:node="remove" />
+    </application>
+</manifest>

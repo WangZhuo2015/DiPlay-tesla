@@ -18,7 +18,11 @@ import org.robolectric.annotation.Config
 class UpdateInstallCompatibilityTest {
     @Test fun installationUsesOnlySupportedPermissionApis() {
         val activity = Robolectric.buildActivity(DiPlayActivity::class.java).get()
-        val apk = File(activity.cacheDir, "update/test/DiPlay.apk").apply {
+        val updateRoot = File(activity.cacheDir, "update")
+        val apk = object : File(updateRoot, "test/DiPlay.apk") {
+            // AndroidX checks '/' boundaries; model the Android relative path on a Windows host.
+            override fun getCanonicalPath(): String = updateRoot.canonicalPath + "/test/DiPlay.apk"
+        }.apply {
             parentFile!!.mkdirs()
             writeBytes(byteArrayOf(1))
         }

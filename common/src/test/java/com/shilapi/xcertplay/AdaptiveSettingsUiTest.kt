@@ -52,6 +52,7 @@ class AdaptiveSettingsUiTest {
     private var activity: DiPlayActivity? = null
 
     @After fun tearDown() {
+        CarPlayOutput.extension = null
         activity?.finish()
         AppAppearanceRuntime.resetForTest()
         context.getSharedPreferences("diplay", 0).edit().clear().commit()
@@ -582,6 +583,34 @@ class AdaptiveSettingsUiTest {
             R.string.side_panel, R.string.split_screen_areas, R.string.carplay_rotation).forEach {
             assertFalse(text(it), text(it) in display)
         }
+    }
+
+    @Test fun browserSettingsAreGatedToTheOutputAndLiveInConnectionAndDisplay() {
+        val screen = openSettings()
+        assertFalse(texts(screen).any { it.text.toString().startsWith(screen.getString(R.string.settings_browser_display)) })
+        CarPlayOutput.extension = object : CarPlayOutputExtension {
+            override fun configure(config: com.shilapi.xcertplay.airplay.AirPlayConfig) = config
+            override fun mediaSink(local: com.shilapi.xcertplay.airplay.MediaSink) = local
+            override fun attach(controller: CarPlayController, reconnect: () -> Unit) {}
+            override fun detach(controller: CarPlayController?) {}
+            override fun connectionSummary() = "http://192.168.1.2:8080"
+            override fun displaySummary() = "1024×768"
+            override fun showConnectionSettings(activity: android.app.Activity, saved: () -> Unit) {}
+            override fun showDisplaySettings(activity: android.app.Activity, saved: () -> Unit) { saved() }
+        }
+        fun visible(category: SettingsCategory): List<String> {
+            ReflectionHelpers.setField(screen, "settingsCategory", category)
+            ReflectionHelpers.callInstanceMethod<Unit>(screen, "render")
+            return texts(screen).map { it.text.toString() }.toList()
+        }
+        val connection = visible(SettingsCategory.CONNECTION)
+        val display = visible(SettingsCategory.DISPLAY)
+        assertTrue(connection.any { it.startsWith(screen.getString(R.string.settings_browser_connection)) })
+        assertFalse(connection.any { it.startsWith(screen.getString(R.string.settings_browser_display)) })
+        assertTrue(display.any { it.startsWith(screen.getString(R.string.settings_browser_display)) })
+        assertFalse(display.any { it.startsWith(screen.getString(R.string.settings_browser_connection)) })
+        val overview = visible(SettingsCategory.OVERVIEW)
+        assertFalse(overview.any { it.startsWith(screen.getString(R.string.settings_browser_display)) })
     }
 
     @Test
