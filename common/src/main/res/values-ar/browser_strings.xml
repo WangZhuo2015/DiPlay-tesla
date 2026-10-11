@@ -13,8 +13,8 @@
     <string name="settings_browser_fps">معدل الإطارات (5–30)</string>
     <string name="settings_browser_quality">جودة JPEG (40–95)</string>
     <string name="settings_browser_invalid">استخدم قيماً زوجية: العرض 320–2560، الارتفاع 240–1440؛ الإطارات 5–30؛ الجودة 40–95.</string>
-    <string name="settings_browser_pairing_hint">صل Tesla بشبكة جهاز Android وافتح أحد هذه العناوين. أدخل رمز الاقتران في المتصفح أو انسخ الرابط. احتفظ بالرمز سرياً.</string>
-    <string name="settings_browser_pairing_code">رمز الاقتران</string>
+    <string name="settings_browser_pairing_hint">صل Tesla بشبكة الهاتف وافتح أحد العناوين أدناه. أدخل الرمز من ستة أرقام أو انسخ الرابط؛ صالح لخمس دقائق. يتذكر المتصفح الاتصال. أعد فتح هذه الصفحة للحصول على رمز جديد بعد انتهاء الصلاحية أو خمس محاولات خاطئة.</string>
+    <string name="settings_browser_pairing_code">رمز الاقتران من 6 أرقام</string>
     <string name="settings_browser_copy_link">نسخ رابط المتصفح</string>
     <string name="settings_browser_waiting">في انتظار الشبكة أو CarPlay</string>
 </resources>

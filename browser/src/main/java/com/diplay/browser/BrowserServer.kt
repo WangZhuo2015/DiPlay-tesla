@@ -35,6 +35,7 @@ class BrowserServer(
     private val frames: LatestFrame,
     private val target: BrowserTarget,
     private val media: BrowserMediaHub = BrowserMediaHub(),
+    private val pairing: BrowserPairing = BrowserPairing(),
 ) : Closeable {
     private val controls = BrowserControl(target::touch)
     private val watchdog = Executors.newSingleThreadScheduledExecutor { Thread(it, "browser-touch-watchdog").apply { isDaemon = true } }
@@ -92,12 +93,18 @@ class BrowserServer(
                     decorate(newFixedLengthResponse(Response.Status.OK, asset.second, ByteArrayInputStream(bytes), bytes.size.toLong()))
                 }
             }
+            val origin = session.headers["origin"]
+            if (origin != null && runCatching { java.net.URI(origin).rawAuthority }.getOrNull() != session.headers["host"]) return reply(Response.Status.FORBIDDEN)
+            if (session.uri == "/api/pair") {
+                if (session.method != Method.POST) return reply(Response.Status.METHOD_NOT_ALLOWED)
+                val body = body(session) ?: return reply(Response.Status.BAD_REQUEST)
+                return if (pairing.accept(body.optString("code"))) json(JSONObject().put("token", token))
+                else reply(Response.Status.UNAUTHORIZED)
+            }
             val authorization = session.headers["authorization"].orEmpty()
             if (!MessageDigest.isEqual(authorization.toByteArray(Charsets.UTF_8), "Bearer $token".toByteArray(Charsets.UTF_8))) {
                 return reply(Response.Status.UNAUTHORIZED)
             }
-            val origin = session.headers["origin"]
-            if (origin != null && runCatching { java.net.URI(origin).rawAuthority }.getOrNull() != session.headers["host"]) return reply(Response.Status.FORBIDDEN)
             return when (session.uri) {
                 "/api/status" -> if (session.method == Method.GET) json(target.status()) else reply(Response.Status.METHOD_NOT_ALLOWED)
                 "/api/frame" -> {

@@ -9,14 +9,16 @@
 </head>
 <body>
   <button id="menuButton" class="menuButton" aria-expanded="false" aria-controls="menuPanel" data-i18n="menu">菜单</button>
-  <section id="menuPanel" class="overlay" role="dialog" aria-modal="true" aria-labelledby="menuTitle" hidden>
+  <section id="menuPanel" class="overlay menuOverlay" role="dialog" aria-modal="true" aria-labelledby="menuTitle" hidden>
   <div class="panel">
   <header>
     <h1 id="menuTitle">DiPlay Tesla</h1>
     <button id="closeMenu" data-i18n="close">关闭</button>
   </header>
-    <p id="status" role="status" aria-live="polite">连接 CarPlay / Connect CarPlay</p>
-    <p id="transportStatus">JPEG</p>
+    <div class="menuConnection">
+      <p id="status" role="status" aria-live="polite">连接 CarPlay / Connect CarPlay</p>
+      <p id="transportStatus">JPEG</p>
+    </div>
     <div class="menuActions">
     <button id="settingsButton" data-i18n="settings">显示设置</button>
     <button id="keysButton" aria-pressed="false" data-i18n="showKeys">显示虚拟按键</button>
@@ -24,8 +26,10 @@
     <button id="themeButton" data-i18n="theme">日夜</button>
     <button id="audioButton" aria-pressed="false" data-i18n="browserAudio">浏览器音频（实验性）</button>
     </div>
-    <label class="audioBuffer"><span data-i18n="buffer">音频缓冲</span><select id="audioBuffer"><option value="80">80 ms</option><option value="200" selected>200 ms</option><option value="400">400 ms</option></select></label>
-    <p data-i18n="audio">麦克风、电话与 Siri 使用 Android</p>
+    <div class="menuOptions">
+      <label class="audioBuffer"><span data-i18n="buffer">音频缓冲</span><select id="audioBuffer"><option value="80">80 ms</option><option value="200" selected>200 ms</option><option value="400">400 ms</option></select></label>
+      <p data-i18n="audio">麦克风、电话与 Siri 使用 Android</p>
+    </div>
     <details id="diagnostics"><summary data-i18n="diagnostics">实时诊断</summary><dl id="diagnosticValues"></dl></details>
     <p><a href="/rtc-licenses.txt">Licenses</a></p>
   </div>
@@ -35,7 +39,7 @@
       <h1 data-i18n="pair">连接 DiPlay</h1>
       <p data-i18n="pairHint">在 Android 设备的“连接 → Tesla 浏览器”查看地址和配对码。</p>
       <label for="token" data-i18n="code">配对码</label>
-      <input id="token" type="password" autocomplete="off" required maxlength="32">
+      <input id="token" type="text" inputmode="numeric" autocomplete="one-time-code" required maxlength="6" pattern="[0-9]{6}" dir="ltr">
       <p id="pairError" role="alert"></p>
       <button type="submit" data-i18n="connect">连接</button>
     </form>

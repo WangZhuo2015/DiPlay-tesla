@@ -13,8 +13,8 @@
     <string name="settings_browser_fps">幀率（5–30 fps）</string>
     <string name="settings_browser_quality">JPEG 畫質（40–95）</string>
     <string name="settings_browser_invalid">寬度需為 320–2560 的偶數，高度需為 240–1440 的偶數；幀率 5–30；畫質 40–95。</string>
-    <string name="settings_browser_pairing_hint">讓 Tesla 連接 Android 裝置所在網路，開啟以下地址之一。在瀏覽器輸入配對碼，或複製連結。請妥善保管配對碼。</string>
-    <string name="settings_browser_pairing_code">配對碼</string>
+    <string name="settings_browser_pairing_hint">讓 Tesla 連接手機所在網路，開啟以下地址。輸入 6 位碼或複製連結，5 分鐘有效；配對後瀏覽器自動記住。過期或輸錯 5 次後，重新開啟此頁取得新碼。</string>
+    <string name="settings_browser_pairing_code">6 位配對碼</string>
     <string name="settings_browser_copy_link">複製瀏覽器連結</string>
     <string name="settings_browser_waiting">等待網路或 CarPlay</string>
 </resources>

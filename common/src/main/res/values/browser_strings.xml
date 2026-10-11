@@ -13,8 +13,8 @@
     <string name="settings_browser_fps">Frame rate (5–30 fps)</string>
     <string name="settings_browser_quality">JPEG quality (40–95)</string>
     <string name="settings_browser_invalid">Use even pixel sizes: width 320–2560, height 240–1440; frame rate 5–30; quality 40–95.</string>
-    <string name="settings_browser_pairing_hint">Connect Tesla to the Android host network and open one of these addresses. Enter the pairing code in the browser, or copy the link. Keep the code private.</string>
-    <string name="settings_browser_pairing_code">Pairing code</string>
+    <string name="settings_browser_pairing_hint">Connect Tesla to the phone network and open an address below. Enter the six-digit code or copy the link; it lasts five minutes. The browser remembers the connection. Reopen this page for a new code if it expires or five attempts fail.</string>
+    <string name="settings_browser_pairing_code">6-digit pairing code</string>
     <string name="settings_browser_copy_link">Copy browser link</string>
     <string name="settings_browser_waiting">Waiting for network or CarPlay</string>
 </resources>

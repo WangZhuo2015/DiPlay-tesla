@@ -26,7 +26,9 @@ class BrowserServerTest {
             override fun action(name: String) = true
             override fun saveDisplay(display: BrowserDisplay) { selected = display }
         }
-        val server = BrowserServer(port, RuntimeEnvironment.getApplication().assets, token, frames, target)
+        val pairing = BrowserPairing(nextCode = { 123456 })
+        pairing.begin()
+        val server = BrowserServer(port, RuntimeEnvironment.getApplication().assets, token, frames, target, pairing = pairing)
         server.start(2000, true)
         try {
             fun request(path: String, auth: Boolean = true, body: String? = null, origin: String? = null): Pair<Int, ByteArray> {
@@ -57,6 +59,17 @@ class BrowserServerTest {
                 }
             }
             assertEquals(401, request("/api/status",auth = false).first)
+            assertEquals(405, request("/api/pair", auth = false).first)
+            repeat(5) {
+                assertEquals(403, request("/api/pair", auth = false, body = """{"code":"123456"}""", origin = "http://elsewhere").first)
+            }
+            val rejected = request("/api/pair", auth = false, body = """{"code":"999999"}""")
+            assertEquals(401, rejected.first)
+            assertFalse(String(rejected.second).contains(token))
+            val paired = request("/api/pair", auth = false, body = """{"code":"123456"}""", origin = "http://127.0.0.1:$port")
+            assertEquals(200, paired.first)
+            assertEquals(token, JSONObject(String(paired.second)).getString("token"))
+            assertEquals(401, request("/api/status", auth = false).first)
             assertEquals(403, request("/api/status",origin = "http://elsewhere").first)
             assertEquals(200, request("/api/status").first)
             assertEquals(204, request("/api/frame").first)

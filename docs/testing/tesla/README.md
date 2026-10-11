@@ -4,6 +4,74 @@ Build checks run on Windows with JDK 25 and Android SDK 37. Historical 0.1.0/0.1
 device checks used a dedicated Android 10/API 29 emulator without an iPhone or Tesla.
 The 0.1.3 local V50/iPhone test is recorded separately below.
 
+## 0.1.4 pairing and browser output — 2026-10-11
+
+The complete AGENTS.md Android CI command, browser/Tesla unit tests and debug lint/build
+passed after the final menu adjustment. All 12 independent Node audio/RTC/proxy tests
+passed, with **2264 unit tests and zero failures/errors**. New tests verify that video and recovery/diagnostic callbacks reach only the
+browser, while connection state, audio, microphone and the optional remote PCM endpoint
+remain on the local sink. Pairing tests cover an initially closed window, five-minute
+expiry, leading zeros, five failed attempts, owner renewal and invalidation of the old
+code. A real HTTP socket test exchanges the short code without bearer authentication,
+rejects a foreign origin before it consumes attempts, and keeps every other API protected.
+The final complete CI also passed after preserving the core playback callback: the browser's
+RTC readiness, or the first generated JPEG, reports the first frame once per session,
+so the wireless retry budget can reset after stable video without a local video decoder.
+The RTC regression asserts that an offer alone does not count as playback and that a later
+JPEG fallback does not duplicate the notification.
+
+Browser QA used the production assets with a localhost fixture and synthetic image,
+not an iPhone session. It verified wrong-code rejection, successful six-digit pairing,
+reload with the stored credential and a copied `#code` link after navigation/reload.
+Menu screenshots use 130% text, with 1920×1080 full and 1024×768 compact viewports.
+The compact menu wraps into two horizontal rows; buttons remain equal in height.
+Arabic RTL at 1024×768 and 360×740 retains logical alignment. The narrow panel scrolls
+vertically with `scrollWidth == clientWidth`, without horizontal overflow. Virtual keys
+stay hidden. The synthetic image and “no CarPlay session” label make the scope explicit.
+
+![Full menu, 130% text](browser-014-menu-full-font130.jpg)
+![Compact menu, 130% text](browser-014-menu-compact-font130.jpg)
+![Arabic compact menu, 130% text](browser-014-menu-ar-font130.jpg)
+![Arabic narrow menu, 130% text](browser-014-menu-narrow-ar-font130.jpg)
+![Six-digit pairing, 130% text](browser-014-pairing-font130.jpg)
+
+The pre-install read-only V50 sample had responsive ADB and approximately 78% aggregate
+CPU idle. The firmware's `dnsmasq` used about 89% of one core. scrcpy's server was using
+1920 pixels, 60 fps and 8 Mbps; its AVC encoder showed repeated release/reacquisition.
+These observations do not establish a cause of the reported freezes or prove a speedup
+from the new output path. The iPhone session had disconnected before installation, so
+there is no comparable live-video CPU baseline from that sample.
+
+The first signed 0.1.4 build installed successfully on the V50 with the unchanged certificate.
+The saved wireless switch was off; only that switch was restored for the requested wireless
+test, retaining the other current settings. The iPhone reconnected, and the existing browser
+credential remained valid. Actual 1920×1080 WebRTC showed approximately 19–25 fps during
+music UI updates, with zero reported drops. Media resource-manager output showed no active
+video decoder for DiPlay after RTC readiness; its initial JPEG decoder had been released.
+
+The owner started music and first reported no sound. The session log confirmed AAC-LC,
+48 kHz stereo packets and decoded PCM, without RTP sequence loss in those samples. Android's
+local AudioTrack was unavailable (`minBufferResult=-1`), so it cannot be assumed to provide
+audible fallback on this V50 firmware. When checked, the webpage audio control was off and
+the selected buffer was 400 ms. It was enabled again; the owner then reported audible sound.
+The browser showed 637 ms queued PCM and zero rebuffers in that sample. This is a real
+audible result, but not a sustained listening certification or a Tesla vehicle test.
+
+The final signed build includes the playback callback fix, passes Release lint/build,
+matches the provisioned authentication inputs and the existing signing certificate,
+and was updated on the V50. The wireless iPhone and 1920×1080 WebRTC automatically
+reconnected without page reload. Browser audio was enabled again after the app update;
+the selected 400 ms buffer was preserved. A later sample counted one rebuffer, so the
+earlier zero-rebuffer observation is not a claim of uninterrupted listening.
+The final device log recorded `Video: first frame rendered` at 11:37:37 and
+`wireless startup retry budget reset after stable video session` at 11:38:37.
+This confirms that the core received browser playback feedback without local video
+decoding. A subsequent browser sample showed 480 ms queued PCM and one rebuffer.
+
+Final local-only APK SHA-256:
+`8705946579d8946e94db30b13702af59611afddf6d5aedaa84322903253e7c47`.
+No credential-bearing APK was publicly uploaded.
+
 ## 0.1.3 V50 local test — 2026-10-11
 
 The complete AGENTS.md CI command, browser/Tesla checks and signed standalone Release

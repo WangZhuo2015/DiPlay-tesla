@@ -9,6 +9,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 @RunWith(RobolectricTestRunner::class) @Config(sdk=[29])
 class BrowserVideoOutputTest {
@@ -66,7 +67,12 @@ class BrowserVideoOutputTest {
 
     @Test fun videoSwitchWaitsForBrowserReadinessAndRetainsEncodedFrames() {
         val sent=CountDownLatch(1);val offer=CountDownLatch(1);var id=0L;var jpegFrames=0
-        val jpeg=object:MediaSink{override fun onVideoFrame(type:Int,naluBytes:ByteArray){jpegFrames++}}
+        val firstFrame=CountDownLatch(1);val rendered=AtomicInteger()
+        var jpegDiagnostic: ((String) -> Unit)? = null
+        val jpeg=object:MediaSink{
+            override fun onVideoFrame(type:Int,naluBytes:ByteArray){jpegFrames++}
+            override fun setVideoDiagnosticHandler(type:Int,handler:(String)->Unit){jpegDiagnostic=handler}
+        }
         val output=BrowserVideoOutput(jpeg,{}){event->object:RtcPeer{
             override fun start(profile:String){event("offer","test");event("connected","")}
             override fun answer(sdp:String){}
@@ -74,14 +80,17 @@ class BrowserVideoOutputTest {
             override fun close(){}
         }}
         try {
+            output.setVideoDiagnosticHandler(110) { if (it == "first frame rendered") { rendered.incrementAndGet(); firstFrame.countDown() } }
             output.onVideoConfig(110,byteArrayOf(1,0x42,0,0x1f,-1,-31,0,4,0x67,0x42,0,0x1f,1,0,2,0x68,0))
             output.attach(true){data->if(data.getString("type")=="rtc-offer"){id=data.getLong("id");offer.countDown()};true}
             assertTrue(offer.await(2,TimeUnit.SECONDS))
+            assertEquals("An offer alone does not prove playback",0,rendered.get())
             // Drain the connected callback before injecting a recoverable frame.
             output.command(JSONObject().put("type","rtc-ready").put("id",id))
             val until=System.nanoTime()+2_000_000_000
             while(output.transport!="webrtc" && System.nanoTime()<until)Thread.sleep(5)
             assertEquals("webrtc",output.transport)
+            assertTrue("Browser playback must reset the core wireless retry budget",firstFrame.await(2,TimeUnit.SECONDS))
             output.onVideoFrame(110,byteArrayOf(0,0,0,1,0x65,1))
             assertTrue("Encoded frame was stranded in the queue",sent.await(2,TimeUnit.SECONDS));assertEquals(0,jpegFrames)
             output.command(JSONObject().put("type","rtc-fallback").put("id",id))
@@ -89,6 +98,8 @@ class BrowserVideoOutputTest {
             while(output.transport!="jpeg" && System.nanoTime()<fallback)Thread.sleep(5)
             assertEquals("jpeg",output.transport)
             output.onVideoFrame(110,byteArrayOf(0,0,0,1,0x65,1));assertEquals(1,jpegFrames)
+            jpegDiagnostic?.invoke("first frame rendered")
+            assertEquals("JPEG fallback must not duplicate the session playback proof",1,rendered.get())
         } finally {output.close()}
     }
 }

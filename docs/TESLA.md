@@ -87,10 +87,12 @@ can extract the accessory private key from such an APK. The APK signing key rema
    CarPlay from the iPhone when the Android Wi-Fi interface is already providing the
    Tesla hotspot. Wireless CarPlay needs a supported concurrent network arrangement;
    the existing Same LAN / Existing Wi-Fi mode can use an external router.
-3. In **Settings → Connection → Tesla browser**, find the host URLs and pairing code.
-   Open `http://HOST_IP:8080` in Tesla and enter the code, or use the copied browser link.
+3. In **Settings → Connection → Tesla browser**, find the host URLs and six-digit pairing code.
+   Open the displayed URL in Tesla and enter the code, or use the copied browser link.
+   The code lasts five minutes; reopen the phone page after expiry or five wrong attempts.
+   This browser stores the resulting session credential and reconnects without re-entering the code.
 4. Start the existing USB/wireless connection from DiPlay. Keep the app/session service
-   running; the Android screen can be covered by another app without stopping the stream.
+   running; Tesla video is rendered only in the browser, without a second Android video decoder.
 5. Audio defaults to the existing Android/car Bluetooth route. Optionally click
    **Browser audio (experimental)** to play music and navigation PCM in the browser.
    Choose an 80/200/400 ms buffer (200 ms default). Hidden pages, suspended audio contexts,

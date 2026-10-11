@@ -23,6 +23,9 @@ Local standalone APKs bundle the explicitly provisioned experimental MFi identit
 The 0.1.3 [local V50 test](docs/testing/tesla/README.md#013-v50-local-test--2026-10-11)
 authenticated an iPhone wirelessly and displayed real H.264 / WebRTC CarPlay.
 Sustained audio and Tesla vehicle performance still require testing.
+The 0.1.4 local build adds six-digit pairing with a remembered browser connection,
+browser-only video decoding and a horizontal menu at the top. See its
+[release notes](docs/RELEASE-NOTES-TESLA-0.1.4.md) for the local testing scope.
 Build with `./gradlew :tesla:assembleDebug`; source-only APKs still require externally
 provisioned CarPlay authentication assets to connect an iPhone. The original DiPlay
 documentation follows.

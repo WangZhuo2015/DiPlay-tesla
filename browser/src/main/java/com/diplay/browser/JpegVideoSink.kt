@@ -14,6 +14,7 @@ import java.io.Closeable
 import java.nio.ByteBuffer
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
 /** A separate decoder/worker; browser backpressure never blocks the local audio or video sink. */
 class JpegVideoSink(
@@ -32,12 +33,17 @@ class JpegVideoSink(
     @Volatile private var needsKeyFrame = true
     @Volatile private var generation = 0L
     @Volatile private var recovery: (() -> Unit)? = null
+    @Volatile private var diagnostic: ((String) -> Unit)? = null
+    private val rendered = AtomicBoolean()
     private var lastConfig: ByteArray? = null
     @Volatile private var suspended = false
     private val thread = Thread(::decode, "tesla-jpeg").apply { isDaemon = true; start() }
 
     override fun setVideoRecoveryHandler(type: Int, handler: () -> Unit) {
         if (type == MAIN_SCREEN) recovery = handler
+    }
+    override fun setVideoDiagnosticHandler(type: Int, handler: (String) -> Unit) {
+        if (type == MAIN_SCREEN) { diagnostic = handler; rendered.set(false) }
     }
     override fun onVideoCodec(type: Int, codec: VideoCodec) {
         if (type == MAIN_SCREEN && codec != VideoCodec.H264) report("Browser output requires H.264; reconnect with HEVC disabled")
@@ -75,6 +81,7 @@ class JpegVideoSink(
             lastConfig = null
             generation++
             recovery = null
+            diagnostic = null
             queue.clear()
             needsKeyFrame = true
             frames.clear()
@@ -160,9 +167,12 @@ class JpegVideoSink(
                                             val output = ByteArrayOutputStream()
                                             check(YuvImage(nv21, ImageFormat.NV21, width, height, null)
                                                 .compressToJpeg(Rect(0, 0, width, height), display.jpegQuality, output))
-                                            synchronized(lock) {
-                                                if (running && codecGeneration == generation && !needsKeyFrame) frames.publish(output.toByteArray())
+                                            val published = synchronized(lock) {
+                                                if (running && codecGeneration == generation && !needsKeyFrame) {
+                                                    frames.publish(output.toByteArray()); true
+                                                } else false
                                             }
+                                            if (published && rendered.compareAndSet(false, true)) diagnostic?.invoke("first frame rendered")
                                             lastJpegNanos = now
                                         } finally { image.close() }
                                     }

@@ -10,8 +10,8 @@ import {createMedia} from './media.js';
     fitWindow:['使用当前窗口尺寸','Use current window size'], fitHint:['按当前可用区域填写所选配置，保存后下次连接生效；画面保持比例。','Fill the selected profile from the available window. Save for the next connection; the picture keeps its aspect ratio.'],
     unknown:['未知','Unknown'], stale:['未更新','Not updated'], resolution:['实际视频尺寸','Actual video size'], decoded:['实际解码帧率','Decoded frame rate'], dropped:['丢帧','Dropped frames'], queue:['实际音频缓冲','Queued audio'], underruns:['音频重新缓冲次数','Audio rebuffer count'], memory:['可用内存','Available memory'], battery:['电池温度','Battery temperature'], thermal:['系统热状态','System thermal status'], sampleAge:['设备采样时间','Device sample age'],
     settings:['显示设置','Display settings'], expand:['全屏','Fullscreen'], theme:['日夜','Day / night'],
-    pair:['连接 DiPlay','Connect DiPlay'], pairHint:['在 Android 设备的“连接 → Tesla 浏览器”查看地址和配对码。','Find the address and pairing code in Connection → Tesla browser on the Android host.'],
-    code:['配对码','Pairing code'], connect:['连接','Connect'], home:['主页','Home'], back:['返回','Back'], previous:['上一曲','Previous'], play:['播放 / 暂停','Play / pause'], next:['下一曲','Next'],
+    pair:['连接 DiPlay','Connect DiPlay'], pairHint:['在手机“连接 → Tesla 浏览器”查看 6 位码，5 分钟有效。配对后自动记住；失效时重新打开手机连接页获取新码。','Find the six-digit code in Connection → Tesla browser on the phone. It lasts five minutes. This browser remembers the connection; reopen the phone connection page for a new code if needed.'],
+    code:['6 位配对码','6-digit pairing code'], connect:['连接','Connect'], home:['主页','Home'], back:['返回','Back'], previous:['上一曲','Previous'], play:['播放 / 暂停','Play / pause'], next:['下一曲','Next'],
     audio:['麦克风、电话与 Siri 使用 Android','Microphone, calls and Siri use Android'],
     browserAudio:['浏览器音频（实验性）','Browser audio (experimental)'], audioOn:['浏览器音频已开启（实验性）','Browser audio enabled (experimental)'],
     buffer:['音频缓冲','Audio buffer'], transport:['视频传输','Video transport'], auto:['自动 WebRTC / JPEG','Automatic WebRTC / JPEG'],
@@ -29,7 +29,7 @@ import {createMedia} from './media.js';
     menu:'القائمة',close:'إغلاق',showKeys:'إظهار الأزرار الافتراضية',hideKeys:'إخفاء الأزرار',diagnostics:'التشخيص المباشر',
     fitWindow:'استخدام أبعاد النافذة الحالية',fitHint:'تُملأ الإعدادات المحددة من مساحة النافذة المتاحة. تسري بعد الحفظ عند الاتصال التالي؛ تُحفظ نسبة أبعاد الصورة.',
     unknown:'غير معروف',stale:'لم تُحدّث',resolution:'أبعاد الفيديو الفعلية',decoded:'معدل فك الترميز الفعلي',dropped:'الإطارات المفقودة',queue:'الصوت المخزن مؤقتًا',underruns:'مرات إعادة تخزين الصوت',memory:'الذاكرة المتاحة',battery:'حرارة البطارية',thermal:'الحالة الحرارية للنظام',sampleAge:'عمر عينة الجهاز',
-    settings:'إعدادات العرض',expand:'ملء الشاشة',theme:'نهار / ليل',pair:'اتصال DiPlay',pairHint:'اعرض العنوان ورمز الاقتران في الاتصال ← متصفح Tesla على جهاز Android.',code:'رمز الاقتران',connect:'اتصال',home:'الرئيسية',back:'رجوع',previous:'السابق',play:'تشغيل / إيقاف مؤقت',next:'التالي',
+    settings:'إعدادات العرض',expand:'ملء الشاشة',theme:'نهار / ليل',pair:'اتصال DiPlay',pairHint:'اعرض الرمز المكوّن من ستة أرقام في الاتصال ← متصفح Tesla على الهاتف. صالح لخمس دقائق. يتذكر المتصفح الاتصال؛ أعد فتح صفحة الاتصال على الهاتف للحصول على رمز جديد عند الحاجة.',code:'رمز الاقتران من 6 أرقام',connect:'اتصال',home:'الرئيسية',back:'رجوع',previous:'السابق',play:'تشغيل / إيقاف مؤقت',next:'التالي',
     audio:'يستخدم الميكروفون والمكالمات وSiri جهاز Android',browserAudio:'صوت المتصفح (تجريبي)',audioOn:'صوت المتصفح مفعّل (تجريبي)',buffer:'تخزين الصوت مؤقتًا',transport:'نقل الفيديو',auto:'WebRTC / JPEG تلقائي',audioBlocked:'اضغط مجددًا للسماح بالصوت؛ استُعيد صوت Android.',
     displayHint:'تُحفظ إعدادات النافذة اليمنى وملء الشاشة بشكل مستقل. تسري الأبعاد ومعدل الإطارات عند الاتصال التالي؛ يتغير نقل الفيديو فورًا. تتحكم Tesla في وضع النافذة.',mode:'إعداد النافذة',right:'النافذة اليمنى',full:'ملء الشاشة',rightWidth:'عرض النافذة اليمنى',rightHeight:'ارتفاع النافذة اليمنى',fullWidth:'عرض ملء الشاشة',fullHeight:'ارتفاع ملء الشاشة',fps:'معدل الإطارات (5–30)',quality:'جودة JPEG (40–95)',cancel:'إلغاء',save:'حفظ للاتصال التالي',pending:'تسري الإعدادات الجديدة عند الاتصال التالي',reconnect:'تطبيق وإعادة الاتصال',confirm:'تطبيق الإعدادات المحفوظة وإعادة اتصال CarPlay الآن؟',waiting:'بانتظار CarPlay',disconnected:'انقطع الاتصال؛ تجري إعادة المحاولة…',invalid:'تحقق من رمز الاقتران والأبعاد واتصال الشبكة.',unavailable:'ملء الشاشة غير متاح؛ استخدم عناصر التحكم في Tesla.'
   };
@@ -37,9 +37,13 @@ import {createMedia} from './media.js';
   document.documentElement.lang = ar?'ar':zh?'zh-CN':'en';
   document.documentElement.dir = ar?'rtl':'ltr';
   document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
-  let token = sessionStorage.getItem('diplay-token') || '';
-  const fragment = new URLSearchParams(location.hash.slice(1)).get('token');
-  if (fragment && /^[a-f0-9]{32}$/.test(fragment)) { token = fragment; sessionStorage.setItem('diplay-token', token); }
+  function rememberToken(value) { token=value; localStorage.setItem('diplay-token',value); sessionStorage.removeItem('diplay-token'); }
+  let token = localStorage.getItem('diplay-token') || sessionStorage.getItem('diplay-token') || '';
+  if (!/^[a-f0-9]{32}$/.test(token)) token='';
+  const fragments = new URLSearchParams(location.hash.slice(1));
+  const fragment = fragments.get('token'), pairingCode = fragments.get('code');
+  if (fragment && /^[a-f0-9]{32}$/.test(fragment)) rememberToken(fragment);
+  else if(token)rememberToken(token);
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);
   const client = 'client-' + Array.from(crypto.getRandomValues(new Uint8Array(12)), x => x.toString(16).padStart(2,'0')).join('');
   const canvas = $('picture'), drawing = canvas.getContext('2d');
@@ -48,6 +52,7 @@ import {createMedia} from './media.js';
   const closeMenu = () => { $('menuPanel').hidden=true; $('menuButton').setAttribute('aria-expanded','false'); $('menuButton').focus(); };
   $('menuButton').addEventListener('click',()=>{ releaseTouches(); $('menuPanel').hidden=false; $('menuButton').setAttribute('aria-expanded','true'); $('closeMenu').focus(); });
   $('closeMenu').addEventListener('click',closeMenu);
+  $('menuPanel').addEventListener('click',event=>{if(event.target===$('menuPanel'))closeMenu();});
   function showKeys(show) {
     $('virtualKeys').hidden=!show; document.body.classList.toggle('keysVisible',show);
     $('keysButton').setAttribute('aria-pressed',String(show)); $('keysButton').textContent=t(show?'hideKeys':'showKeys');
@@ -81,7 +86,7 @@ import {createMedia} from './media.js';
         headers:{ Authorization:'Bearer ' + requestToken, ...(body === undefined ? {} : {'Content-Type':'application/json'}) },
         body:body === undefined ? undefined : JSON.stringify(body), cache:'no-store', signal:abort.signal, keepalive });
       if (response.status === 401) {
-        if (requestToken === token) { live = false; media.close(); $('pairing').hidden = false; }
+        if (requestToken === token) { live = false; media.close(); token=''; localStorage.removeItem('diplay-token'); sessionStorage.removeItem('diplay-token'); $('pairing').hidden = false; }
         throw new Error(t('invalid'));
       }
       if (!response.ok) throw new Error(t('invalid'));
@@ -220,12 +225,22 @@ import {createMedia} from './media.js';
   document.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click',() => {
     releaseTouches(); api('/api/action',{action:button.dataset.action}).catch(error => { $('status').textContent = error.message; });
   }));
-  $('pairing').addEventListener('submit',event => {
-    event.preventDefault(); token = $('token').value.trim().toLowerCase();
-    if (!/^[a-f0-9]{32}$/.test(token)) { $('pairError').textContent=t('invalid'); return; }
-    $('pairError').textContent='';
-    sessionStorage.setItem('diplay-token',token); $('pairing').hidden = true; media.close(); media.open(); resetPicture(); stream();
-  });
+  async function pair(code) {
+    if (!/^[0-9]{6}$/.test(code)) { $('pairError').textContent=t('invalid'); return; }
+    const button=$('pairing').querySelector('button[type="submit"]');
+    button.disabled=true; $('pairError').textContent='';
+    const abort=new AbortController(), timer=setTimeout(()=>abort.abort(),5000);
+    try {
+      const response=await fetch('/api/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code}),cache:'no-store',signal:abort.signal});
+      if(!response.ok)throw new Error(t('invalid'));
+      const credential=(await response.json()).token;
+      if(!/^[a-f0-9]{32}$/.test(credential))throw new Error(t('invalid'));
+      rememberToken(credential); $('token').value=''; $('pairing').hidden=true;
+      media.close(); resetPicture(); stream();
+    } catch (_) { $('pairError').textContent=t('invalid'); }
+    finally { clearTimeout(timer); button.disabled=false; }
+  }
+  $('pairing').addEventListener('submit',event => { event.preventDefault(); pair($('token').value.trim()); });
   $('settingsButton').addEventListener('click',async () => {
     try {
       const state = await status(), display = state.display;
@@ -282,4 +297,5 @@ import {createMedia} from './media.js';
   });
   $('pairing').hidden = Boolean(token);
   if (token) stream();
+  else if(pairingCode)pair(pairingCode);
 })();

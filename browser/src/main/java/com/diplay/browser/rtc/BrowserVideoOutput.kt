@@ -12,6 +12,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicBoolean
 
 /** Encoded video and JPEG fallback live entirely inside the browser module. */
 class BrowserVideoOutput internal constructor(
@@ -29,6 +30,8 @@ class BrowserVideoOutput internal constructor(
     @Volatile private var closed = false
     @Volatile private var displayed = false
     @Volatile private var recovery: (() -> Unit)? = null
+    @Volatile private var diagnostic: ((String) -> Unit)? = null
+    private val rendered = AtomicBoolean()
     @Volatile private var lastRecovery = 0L
     private var config: ByteArray? = null
     private var parameters = ByteArray(0)
@@ -57,6 +60,7 @@ class BrowserVideoOutput internal constructor(
             "rtc-answer" -> runCatching { peer?.answer(data.getString("sdp")) }.onFailure { stop() }
             "rtc-ready" -> if (connected && peer != null) {
                 displayed = true; health?.ready(System.nanoTime()); (jpeg as? JpegVideoSink)?.setSuspended(true)
+                reportDiagnostic("first frame rendered")
             }
             "rtc-feedback" -> {
                 val frames = data.getLong("decoded")
@@ -69,6 +73,15 @@ class BrowserVideoOutput internal constructor(
     override fun setVideoRecoveryHandler(type: Int, handler: () -> Unit) {
         jpeg.setVideoRecoveryHandler(type, handler)
         if (type == MAIN_SCREEN) recovery = handler
+    }
+    override fun setVideoDiagnosticHandler(type: Int, handler: (String) -> Unit) {
+        if (type != MAIN_SCREEN) return
+        diagnostic = handler; rendered.set(false)
+        jpeg.setVideoDiagnosticHandler(type, ::reportDiagnostic)
+    }
+    private fun reportDiagnostic(message: String) {
+        val callback = diagnostic ?: return
+        if (message != "first frame rendered" || rendered.compareAndSet(false, true)) callback(message)
     }
     override fun onVideoCodec(type: Int, codec: VideoCodec) {
         jpeg.onVideoCodec(type, codec)
@@ -97,6 +110,7 @@ class BrowserVideoOutput internal constructor(
         }
     }
     override fun onScreenStreamActive(type: Int, active: Boolean) {
+        if (type == MAIN_SCREEN && !active) diagnostic = null
         jpeg.onScreenStreamActive(type, active)
         if (type == MAIN_SCREEN && !active) execute { stop(); config = null; attempted = false }
     }

@@ -43,6 +43,7 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
     private val prefs = context.getSharedPreferences("tesla-browser", Context.MODE_PRIVATE)
     private val frames = LatestFrame()
     private val media = BrowserMediaHub()
+    private val pairing = BrowserPairing()
     private val diagnostics = BrowserDiagnostics(context)
     private val handler = Handler(Looper.getMainLooper())
     private val token = prefs.getString("token", null) ?: ByteArray(16).also { SecureRandom().nextBytes(it) }
@@ -64,7 +65,7 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
         Thread({
             try {
                 val (port, next) = startBrowserServer(
-                    create = { BrowserServer(it, context.assets, token, frames, this, media) },
+                    create = { BrowserServer(it, context.assets, token, frames, this, media, pairing) },
                     start = { it.start(5000, true) },
                 )
                 server = next
@@ -145,10 +146,11 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
     }
     override fun showConnectionSettings(activity: Activity, saved: () -> Unit) {
         val links = links()
-        val link = links.firstOrNull()?.let { "$it/#token=$token" }.orEmpty()
+        val code = pairing.begin()
+        val link = links.firstOrNull()?.let { "$it/#code=$code" }.orEmpty()
         val info = TextView(activity).apply {
             text = activity.getString(R.string.settings_browser_pairing_hint) + "\n\n" +
-                links.joinToString("\n") + "\n\n" + activity.getString(R.string.settings_browser_pairing_code) + ":\n" + token +
+                links.joinToString("\n") + "\n\n" + activity.getString(R.string.settings_browser_pairing_code) + ":\n" + code +
                 (serverError?.let { "\n\n$it" } ?: "")
             setTextIsSelectable(true)
             setPadding(dp(activity, PANEL_PADDING_DP), dp(activity, PANEL_PADDING_DP), dp(activity, PANEL_PADDING_DP), 0)
