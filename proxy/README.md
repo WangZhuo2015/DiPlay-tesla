@@ -39,6 +39,13 @@ upstream in the examples below. TLS lives in this independent process; changing 
 Android URL to `https://` does not enable encryption. All domain, certificate/key and
 network settings are supplied by the user; this download contains templates only.
 
+Some Tesla firmware restricts RFC1918 private-IP access (`10.0.0.0/8`,
+`172.16.0.0/12`, `192.168.0.0/16`). A working phone/desktop request does not establish
+vehicle access, and a domain or TLS alone may not resolve it. Configure an entry address
+the car can reach and its firmware permits, then verify in the car. See the
+[private-IP deployment notes](https://github.com/WangZhuo2015/DiPlay-tesla/blob/main/docs/TESLA-QUICKSTART.md#tesla-private-ip-access-restrictions)
+for the developer report and configuration boundaries.
+
 Prepare a domain and a certificate chain/key for it that the vehicle browser trusts.
 Keep the key outside Git. On the gateway device, set:
 

@@ -50,6 +50,12 @@ JSON 模板中的域名和地址是占位值，必须替换。证书到期前自
 
 Android 服务本身提供 HTTP；把 `http://主机IP:端口` 直接改成 `https://` 不会启用 TLS。HTTP 可用于可信局域网排查。Tesla 是否允许访问该 HTTP 地址取决于固件，正式入口应使用配置好的受信任 HTTPS。
 
+### Tesla 内网 IP 访问限制
+
+部分 Tesla 固件会限制浏览器访问 RFC1918 内网地址，包括 `10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16`。热点已连接、电脑／手机能打开页面，车机仍可能显示拒绝访问或连接失败。[Tesla Android 开发者的部署记录](https://github.com/tesla-android/tesla-android.github.io/blob/main/install-guide-2022-18-1.md#ip-address-range)描述了这一限制；具体行为随固件和网络而异。
+
+因此，给内网 IP 加一个域名或 HTTPS 证书不保证可以访问；域名仍指向受限地址时，问题可能继续存在。按自己的网络规划配置车机可达且固件允许的入口地址、DNS、证书和 Android 本机网关，再从车机验证。公开模板的域名／地址仅作占位，不能直接当成可用入口；电脑的 `127.0.0.1` 测试也不能替代这一步。
+
 ## 3. 车机打开页面与配对
 
 1. 在 Tesla 的 Wi-Fi 设置连接 Android 主机热点。确认 Android 的 DiPlay 仍在运行。
@@ -98,6 +104,7 @@ Android 服务本身提供 HTTP；把 `http://主机IP:端口` 直接改成 `htt
 | 现象 | 先检查 |
 | --- | --- |
 | HTTPS 完全打不开 | Tesla 是否连接正确热点；自己的 DNS、网关服务、证书及实际上游端口。安装 APK 不会自动创建 HTTPS 入口 |
+| 手机／电脑可打开，Tesla 拒绝访问 | 检查入口解析是否落到车机限制的内网 IP；按上面的内网 IP 说明检查网关地址与车辆侧可达性 |
 | 出现证书报错 | 证书覆盖的域名、有效期、完整证书链和设备时间；按自己的配置修复 |
 | 找不到验证码／码失效 | Android 的“设置 → 连接 → Tesla 浏览器（实验性）”；重新打开取得新码 |
 | 网页打开但一直等待 CarPlay | iPhone 是否已连上 Android，热点名称／密码、蓝牙配对和权限是否正确 |
@@ -112,8 +119,20 @@ Android 服务本身提供 HTTP；把 `http://主机IP:端口` 直接改成 `htt
 
 ## 已验证的范围
 
-0.1.10 已在 V50 安装，iPhone 无线连接；用户在 HTTPS 页面确认默认有声音、把手正常收起。此前 0.1.9 的同一路线已确认左侧图标可切换、画面和声音连续。目标车型是 2026 Model Y Juniper，但这组反馈没有单独确认车辆型号、2K 长时间性能或通话／Siri。
+用户于 2026-10-12 补充确认 **0.1.10 已在 2026 Model Y Juniper 实车测试，音频、触摸均正常**。
 
-此版本包含明确配置的实验性配件身份，可以进行本地 iPhone 认证；它不是 Apple 为 DiPlay 新签发的身份，接收者可从 APK 提取该配件私钥。来源见[认证资产说明](THIRD_PARTY_NOTICES.md#experimental-authentication-data)。Android APK 签名私钥和用户 HTTPS 证书私钥不随包分发。
+| 项目 | 实测设备／结果 |
+| --- | --- |
+| 车辆 | 2026 Tesla Model Y Juniper |
+| Android 主机 | ZTE V50 移动 WiFi |
+| iPhone | iPhone 16 Pro Max、iPhone 17 Pro Max |
+| iOS | 两台手机均为 iOS 27.0.1 |
+| 功能 | 车机浏览器 CarPlay 音频、触摸正常 |
 
-[验证记录](testing/tesla/README.md#0110-default-audio-and-retracting-menu--2026-10-11)包含自动检查和截图。请停车完成设备、网络、声音和触控检查。
+![Model Y Juniper 实测照片，地址栏域名已遮挡](testing/tesla/model-y-juniper-v50-redacted.png)
+
+V50 此前的无线 iPhone／HTTPS 测试还确认了默认音频、顶部把手收起和图标切换。长时间 2K 性能及通话／Siri 没有在这次反馈中单独验证，其他车型和固件需要分别测试。
+
+此版本包含明确配置的实验性配件身份，可以进行本地 iPhone 认证；它不是 Apple 为 DiPlay 新签发的身份。来源见[认证资产说明](THIRD_PARTY_NOTICES.md#experimental-authentication-data)。Android APK 签名私钥和用户 HTTPS 证书私钥不随包分发。
+
+[实车验证记录](testing/tesla/README.md#model-y-juniper-vehicle-report--2026-10-12)包含设备组合、照片，以及此前的自动检查和截图。请停车完成设备、网络、声音和触控检查。

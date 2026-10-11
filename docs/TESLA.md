@@ -7,6 +7,11 @@ profile's size; frame rate and JPEG quality are shared. Saving waits for the nex
 connection. [Screen sources and public screenshots](TESLA-DISPLAY-PRESETS.md) use
 synthetic content without private vehicle or account data.
 
+**The owner tested 0.1.10 on a 2026 Model Y Juniper: CarPlay audio and touch work normally.**
+The host is a **ZTE V50 mobile Wi-Fi device**; phones are **iPhone 16 Pro Max and
+iPhone 17 Pro Max, both running iOS 27.0.1**. See the
+[vehicle report and domain-redacted photo](testing/tesla/README.md#model-y-juniper-vehicle-report--2026-10-12).
+
 Fit window defaults to 1/2 scaling, with 3/4 and 1× options. Scaling is applied after
 the viewport/DPR output is capped, so it actually halves both dimensions even on a
 dense display. Very small windows retain the minimum 320×240 bounds. Choices are
@@ -89,7 +94,7 @@ key for subsequent releases.
 **The complete 0.1.10 APK includes the explicitly provisioned experimental MFi identity**,
 with package entries verified against those inputs. The identity stays outside Git;
 normal source builds remain credential-free. V50 wireless iPhone authentication and
-owner-reported HTTPS picture/audio are recorded in [validation](testing/tesla/README.md#0110-default-audio-and-retracting-menu--2026-10-11).
+the Model Y Juniper audio/touch report are recorded in [validation](testing/tesla/README.md#model-y-juniper-vehicle-report--2026-10-12).
 Other Tesla firmware and voice still need separate checks. User HTTPS domains,
 certificates/private keys, hotspot passwords and routing configuration are omitted.
 Users configure their own gateway. APK signing, HTTPS and MFi authentication are separate.
@@ -101,7 +106,7 @@ independent proxy upstream as well. Other startup errors do not trigger port ret
 It also recognizes a hotspot's actual Wi-Fi bridge membership. The
 [local V50 test](testing/tesla/README.md#013-v50-local-test--2026-10-11) authenticated
 an iPhone wirelessly and decoded real H.264 / WebRTC video in a computer browser;
-sustained audio and Tesla vehicle behavior remain unverified.
+the later 0.1.10 vehicle report above confirms working audio and touch on the listed combination.
 
 For a signed build, set the four signing variables in
 [BUILD.md](BUILD.md#build-a-release-apk), then run:
@@ -112,8 +117,8 @@ For a signed build, set the four signing variables in
 
 The output is `tesla/build/outputs/apk/release/tesla-release.apk`. To include an identity
 you are authorized to use and distribute, also set `DIPLAY_AUTH_ASSETS_DIR` and select
-`:tesla:assembleStandaloneRelease`. That task rejects missing or empty assets. Recipients
-can extract the accessory private key from such an APK. The APK signing key remains local.
+`:tesla:assembleStandaloneRelease`. That task rejects missing or empty assets.
+The APK signing key remains local.
 
 1. Install and open DiPlay Tesla on the Android host.
 2. Connect Tesla to an internet-sharing network that can reach that host. Prefer USB
@@ -238,22 +243,28 @@ from the public tepla 0.2.1 source release; attribution and dependency licenses 
 the source and APK. Its device-specific VPN and SRTP optimizations were not imported.
 
 Local HTTP does not encrypt the stream or pairing token. Use a trusted local network;
-an independently deployed HTTPS gateway can add transport encryption. Tesla firmware
-browser/network restrictions and actual Android buffer-mode decoder support still need
-parked vehicle testing. JPEG compression adds CPU/bandwidth cost: start at 1024×768/20 fps
+an independently deployed HTTPS gateway can add transport encryption. Audio and touch
+are confirmed on the listed Model Y Juniper combination; other firmware/network paths
+and Android buffer-mode decoder support need separate testing.
+JPEG compression adds CPU/bandwidth cost: start at 1024×768/20 fps
 and increase only after checking responsiveness, temperature, audio and reconnection.
 This port does not claim validated support while driving or change Tesla's restrictions.
 
 ## HTTPS access and performance checks
 
-Android:8080 remains HTTP. Version 0.1.1 adds explicitly configured TLS to the independent
+The Android app's actual browser port remains HTTP. Version 0.1.1 adds explicitly configured TLS to the independent
 proxy, preserving the core/proxy separation. See the [HTTPS gateway procedure](../proxy/README.md#https-browser-gateway-011).
 Open `https://YOUR_DOMAIN:8443` after supplying a trusted full certificate chain and its key,
 configuring DNS and making the gateway reachable from the car. The gateway must reach
-Android:8080. Selecting port 443 removes the port from the URL. No domain/certificate has
-been deployed for this project. HTTPS does not manage internet sharing, routing or
-firmware-specific private-network restrictions; changing the Android URL's scheme alone
+the actual HTTP port shown in Android connection settings. Selecting port 443 removes
+the port from the URL. Users supply their own domain, certificate and private configuration;
+the owner's tested deployment is not distributed. HTTPS does not manage internet sharing,
+routing or firmware-specific private-IP restrictions; changing the Android URL's scheme alone
 does not work. Transport certificates and MFi accessory authentication are separate.
+
+Some Tesla firmware restricts RFC1918 private-IP access. A phone/desktop request working
+on the hotspot is insufficient, and a domain or TLS alone may not resolve the restriction.
+See the [private-IP entry notes](TESLA-QUICKSTART.md#tesla-private-ip-access-restrictions).
 
 The gateway forwards `/api/media` using WS/WSS as well as HTTP. WebRTC video uses direct
 browser-to-Android UDP with host ICE candidates; the proxy is not a TURN/UDP relay.
@@ -270,8 +281,9 @@ a time; saved changes still wait for reconnection.
 
 For browser-routed audio, compare 200 and 400 ms before trying 80 ms. For Android-routed
 audio, compare the existing 500/1000 ms music buffers. These controls operate on separate
-routes and do not affect direct iPhone-to-car Bluetooth. Buffering adds latency. Vehicle
-browser audio availability, sustained performance and call routing require hardware testing.
+routes and do not affect direct iPhone-to-car Bluetooth. Buffering adds latency. Browser
+audio works on the listed Model Y Juniper combination; sustained performance and call
+routing remain separate hardware checks.
 
 ## Verification
 

@@ -27,6 +27,13 @@
 本机 HTTPS 入口与显示功能独立，配置方法见
 [Android root gateway](../proxy/android-root/README.md)。具体部署数据不放在公开文档中。
 
+## 实车反馈
+
+用户确认 **0.1.10 已在 2026 Model Y Juniper 上测试，音频、触摸正常**。
+主机为 **ZTE V50 移动 WiFi**，手机为 **iPhone 16 Pro Max／17 Pro Max，均为 iOS 27.0.1**。
+[实车记录与域名打码照片](testing/tesla/README.md#model-y-juniper-vehicle-report--2026-10-12)
+与下方合成布局截图分别记录。反馈没有提供实际输出尺寸，不能据此认定 2K 持续性能已经验证。
+
 ## 官方屏幕资料
 
 检索日期：2026-10-11。不同市场、配置和生产时间可能有差异，下面仅记录对应资料确认的尺寸。

@@ -4,6 +4,22 @@
 
 **[中文使用指南：安装、iPhone 连接、HTTPS、配对、画面与声音](https://github.com/WangZhuo2015/DiPlay-tesla/blob/main/docs/TESLA-QUICKSTART.zh-CN.md)** · [English quick start](https://github.com/WangZhuo2015/DiPlay-tesla/blob/main/docs/TESLA-QUICKSTART.md)
 
+## 实车测试
+
+**已在 2026 Model Y Juniper 上测试，CarPlay 音频、触摸均正常。** 用户于 2026-10-12 补充确认以下组合：
+
+| 项目 | 实测设备／结果 |
+| --- | --- |
+| 车辆 | 2026 Tesla Model Y Juniper |
+| Android 主机 | ZTE V50 移动 WiFi |
+| 手机 | iPhone 16 Pro Max、iPhone 17 Pro Max |
+| iOS | 两台手机均为 iOS 27.0.1 |
+| 功能 | 车机浏览器 CarPlay 音频、触摸正常 |
+
+![Model Y Juniper 实测照片，地址栏域名已遮挡](https://raw.githubusercontent.com/WangZhuo2015/DiPlay-tesla/main/docs/testing/tesla/model-y-juniper-v50-redacted.png)
+
+照片只遮挡地址栏域名，保留原始尺寸和其他区域；音频、触摸结果来自用户实测反馈。其他车型、固件及长时间 2K 性能需要分别验证。
+
 ## 下载
 
 | 文件 | 用途 |
@@ -25,6 +41,8 @@ GitHub 的 Source code 压缩包是源码，不含配件身份。旧的 0.1.0／
 
 **公开文件不包含用户的域名、HTTPS 证书／私钥、热点密码或设备路由配置。** 这些由用户自行配置；APK 本身只提供 HTTP。Android 本机 HTTPS 方案需要 root 和另行安装的 Caddy。无线热点并发能力取决于主机固件，其他设备可以比较 USB 或现有局域网连接。
 
+**部分 Tesla 固件限制内网 IP 访问。** 手机／电脑能打开热点内地址，不代表车机可以访问；只加域名或 HTTPS 也不保证解决。请按[内网 IP 访问限制说明](https://github.com/WangZhuo2015/DiPlay-tesla/blob/main/docs/TESLA-QUICKSTART.zh-CN.md#tesla-内网-ip-访问限制)，自行配置车机可达且固件允许的地址、DNS、证书和 Android／网关端转发。
+
 ## 变化
 
 - 默认浏览器音乐／导航音频，手动关闭后记住；80／200／400 ms 缓冲可选，默认 200 ms。
@@ -35,11 +53,11 @@ GitHub 的 Source code 压缩包是源码，不含配件身份。旧的 0.1.0／
 
 ## 验证与范围
 
-完整 Android CI、2271 项 Android 单元测试和 29 项浏览器／代理测试通过，签名及 APK 资源检查通过。0.1.10 已装到 V50，用户在无线 iPhone 和 HTTPS 页面确认默认有声音、把手正常收起；0.1.9 同一路线已确认图标切换、连续画面和声音。公开图片使用合成内容，不包含真实账号、车辆、导航位置或网络配置。
+完整 Android CI、2271 项 Android 单元测试和 29 项浏览器／代理测试通过，签名及 APK 资源检查通过。0.1.10 已装到 ZTE V50，用户在无线 iPhone 和 HTTPS 页面确认默认有声音、把手正常收起；此次补充确认了 Model Y Juniper 实车音频和触摸正常。界面布局截图使用合成内容；上面的实车照片由用户提供，域名已遮挡。
 
-通话、Siri 语音和麦克风仍使用 Android 主机，网页目前不提供麦克风采集或回传。不同 Tesla 固件、目标 Model Y Juniper 的长时间 2K 性能及通话／Siri 仍需停车测试；有浏览器音乐不等于主机语音硬件已正常工作。
+通话、Siri 语音和麦克风仍使用 Android 主机，网页目前不提供麦克风采集或回传。不同 Tesla 固件、长时间 2K 性能及通话／Siri 仍需分别测试；有浏览器音乐不等于主机语音硬件已正常工作。
 
-完整连接 APK 包含此前明确配置的实验性配件身份，不是 Apple 为 DiPlay 新签发的身份；APK 接收者可提取这份配件私钥。认证身份不进入 Git 或源码压缩包，Android 签名私钥和用户 HTTPS 私钥留在本地。[认证资产说明](https://github.com/WangZhuo2015/DiPlay-tesla/blob/main/docs/THIRD_PARTY_NOTICES.md#experimental-authentication-data) · [验证记录与截图](https://github.com/WangZhuo2015/DiPlay-tesla/blob/main/docs/testing/tesla/README.md#0110-default-audio-and-retracting-menu--2026-10-11)
+完整连接 APK 包含此前明确配置的实验性配件身份，不是 Apple 为 DiPlay 新签发的身份。认证身份不进入 Git 或源码压缩包，Android 签名私钥和用户 HTTPS 私钥留在本地。[认证资产说明](https://github.com/WangZhuo2015/DiPlay-tesla/blob/main/docs/THIRD_PARTY_NOTICES.md#experimental-authentication-data) · [实车记录与截图](https://github.com/WangZhuo2015/DiPlay-tesla/blob/main/docs/testing/tesla/README.md#model-y-juniper-vehicle-report--2026-10-12)
 
 APK SHA-256：
 

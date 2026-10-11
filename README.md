@@ -6,6 +6,13 @@ process is deployed independently. Tesla and the Android host share a local netw
 
 [Download complete 0.1.10 APK](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10) · **[Installation and browser setup](docs/TESLA-QUICKSTART.md)** · [中文使用指南](docs/TESLA-QUICKSTART.zh-CN.md)
 
+**Tested in a 2026 Model Y Juniper: CarPlay audio and touch work normally.** The Android
+host is a **ZTE V50 mobile Wi-Fi**, with **iPhone 16 Pro Max and iPhone 17 Pro Max,
+both on iOS 27.0.1**. This is the owner's confirmed setup; other combinations need
+their own checks.
+
+![Model Y Juniper vehicle photo with the address-bar domain redacted](docs/testing/tesla/model-y-juniper-v50-redacted.png)
+
 Install `DiPlay-Tesla-0.1.10.apk` on the Android host, enable its hotspot and connect
 the iPhone in DiPlay. Connect Tesla to that hotspot. Android **Settings → Connection →
 Tesla browser (experimental)** shows the entry and six-digit pairing code. Open the
@@ -13,7 +20,7 @@ entry in Tesla and pair; this browser remembers the connection. Codes last five 
 
 The complete APK includes the explicitly provisioned experimental accessory identity
 for local iPhone authentication, so end users do not need to compile it. It is not a new
-Apple-issued DiPlay identity; APK recipients can extract the accessory private key.
+Apple-issued DiPlay identity.
 [Provenance and scope](docs/THIRD_PARTY_NOTICES.md#experimental-authentication-data)
 are documented. Source archives and the independent proxy omit that identity, and the
 Android signing private key stays local.
@@ -24,6 +31,11 @@ configuration. Use the [rooted Android gateway](proxy/android-root/README.md) or
 [independent proxy](proxy/README.md) with your own domain, DNS and certificate. Android
 can display the configured HTTPS entry. Routing is configured on Android/the gateway;
 Tesla connects through the hotspot's default gateway.
+
+**Tesla firmware can restrict private-IP access.** An HTTP address working on a phone
+or computer does not establish vehicle access; a domain or HTTPS alone may not fix it.
+Read the [private-IP entry notes](docs/TESLA-QUICKSTART.md#tesla-private-ip-access-restrictions)
+and configure your own reachable gateway address, DNS and trusted certificate.
 
 0.1.10 defaults browser music/navigation audio on and remembers manual disabling.
 Tap the page when the browser requires interaction. The top-center menu handle retracts
@@ -41,12 +53,11 @@ include synthetic screenshots without real accounts, vehicles or private configu
 
 ![Synthetic compact menu and stream summary](docs/testing/tesla/browser-0.1.10-menu-compact-font130.jpg)
 
-0.1.10 was installed on V50 with a wireless iPhone; the owner confirmed default HTTPS
-sound and idle handle retraction. The earlier 0.1.9 HTTPS test confirmed working dock
-activation and continuous picture/audio. Calls, Siri voice and microphone input still use
-Android; the page has no microphone capture. Other Tesla firmware, sustained 2K on the
-target Model Y and voice still need parked testing. [Release notes](docs/RELEASE-NOTES-TESLA-0.1.10.md)
-and [validation](docs/testing/tesla/README.md#0110-default-audio-and-retracting-menu--2026-10-11)
+The Model Y Juniper test confirms working audio and touch on 0.1.10. Earlier V50 checks
+also confirmed default audio and idle handle retraction. Calls, Siri voice and microphone
+input still use Android; the page has no microphone capture. Sustained 2K performance and
+voice were not separately validated in this report. [Release notes](docs/RELEASE-NOTES-TESLA-0.1.10.md)
+and [vehicle validation](docs/testing/tesla/README.md#model-y-juniper-vehicle-report--2026-10-12)
 record the scope.
 
 [Technical/build guide](docs/TESLA.md) · [Independent proxy](proxy/README.md).
@@ -74,7 +85,7 @@ Install on the **car**, not the iPhone. No jailbreak, dongle, Mac, account or au
 - Local diagnostic export. Reports are sent only if you choose to share them.
 - Separate installation alongside DiAuto. Run one projection app at a time.
 
-This is **not an Apple-certified product**. The APK bundles an experimental accessory identity recovered from public Carlinkit firmware, not a newly provisioned MFi identity for DiPlay. A bundled private key is extractable. Acceptance after future iOS updates, reliability across head units and suitability of that identity for general distribution are unresolved. This release invites community testing; it is not a guarantee of universal compatibility.
+This is **not an Apple-certified product**. The APK bundles an experimental accessory identity recovered from public Carlinkit firmware, not a newly provisioned MFi identity for DiPlay. Acceptance after future iOS updates, reliability across head units and suitability of that identity for general distribution are unresolved. This release invites community testing; it is not a guarantee of universal compatibility.
 
 Earlier releases were tested on the development DiLink5.1 car: live windshield guidance and street names work, Car hotspot now starts CarPlay, and Wi-Fi Direct performance is substantially improved. Audio underrun recovery is improved in 0.2.15; remaining cutouts need current diagnostic reports. The 0.2.16 software Opus microphone fallback was accepted on a BOS Mini A1 head unit (Android 9) with an iPhone 12 on iOS 27. The floating-map test build was installed on the development DiLink 5.1 car; feedback led to the pinch corrections in 0.2.9. Earlier wheel-speed and video contributions were tested on a BYD Tang with DiLink 5.0 and an iPhone 15 Pro on iOS 27; wheel-speed dead reckoning in tunnels remains unverified. Broader head-unit and iOS compatibility is not guaranteed. The HUD firmware scope and cleanup limits are documented in [BYD navigation](docs/BYD_NAVIGATION.md).
 
@@ -117,4 +128,4 @@ This repository starts with a clean public source snapshot. Local research, test
 
 ## Local release packaging
 
-Local standalone builds explicitly select an external asset directory and contain the experimental accessory identity. The public Tesla 0.1.0/0.1.1 APKs and source/CI builds omit it. The Git repository and source archive exclude all accessory and Android signing keys; tests generate synthetic identities at runtime. Recipients of a credential-bearing APK can extract its identity.
+Standalone builds explicitly select an authorized external asset directory and contain the experimental accessory identity. The public Tesla 0.1.0/0.1.1 APKs and source/CI builds omit it. The Git repository and source archive exclude all accessory and Android signing keys; tests generate synthetic identities at runtime.

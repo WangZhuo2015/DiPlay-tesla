@@ -163,7 +163,6 @@ Run the release checks and build:
 
 The output is `mobile/build/outputs/apk/release/mobile-release.apk`.
 The APK contains the runtime identity you supplied.
-Recipients can extract that identity from the APK.
 The APK excludes the Android signing key.
 See [the project notices](THIRD_PARTY_NOTICES.md) for the experimental identity used in public releases.
 

@@ -4,6 +4,8 @@ DiPlay Tesla 安装在 Android 7.1 以上的主机上。iPhone 通过 USB 或无
 
 直接使用发布 APK 请先看[使用指南](TESLA-QUICKSTART.zh-CN.md)，包含安装、无线连接、HTTPS 自行配置、配对码、预设与音频步骤。本文侧重模块、构建和技术边界。
 
+**0.1.10 已在 2026 Model Y Juniper 实车测试，CarPlay 音频、触摸均正常。** 主机为 **ZTE V50 移动 WiFi**，手机为 **iPhone 16 Pro Max／17 Pro Max，均运行 iOS 27.0.1**。详见[实车记录与域名打码照片](testing/tesla/README.md#model-y-juniper-vehicle-report--2026-10-12)。
+
 ## 模块划分
 
 - `shared`：原有 CarPlay 协议与媒体核心。
@@ -33,10 +35,10 @@ $env:ANDROID_HOME = 'G:\Android' # 改为你的 SDK 路径
 
 [Tesla 0.1.10 完整连接版](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10)安装在 Android 主机上，包名为 `com.diplay.tesla`；它与 `.debug` 测试包分别安装。沿用相同签名的版本可以覆盖安装并保留设置，后续更新须保留相同签名密钥。
 
-**0.1.10 完整连接 APK 使用此前明确配置的实验性 MFi 资产打包。** 已核对 APK 内文件与输入一致。认证资产没有进入 Git，普通源码构建仍需自行配置 `DIPLAY_AUTH_ASSETS_DIR`。V50 的无线 iPhone、HTTPS 画面和浏览器音频反馈见[验证记录](testing/tesla/README.md#0110-default-audio-and-retracting-menu--2026-10-11)；不同 Tesla 固件及语音仍需单独实测。用户 HTTPS 域名、证书／私钥、热点密码与设备路由配置没有打包，由使用者自行部署。
+**0.1.10 完整连接 APK 使用此前明确配置的实验性 MFi 资产打包。** 已核对 APK 内文件与输入一致。认证资产没有进入 Git，普通源码构建仍需自行配置 `DIPLAY_AUTH_ASSETS_DIR`。V50 的无线 iPhone 和 Model Y Juniper 音频／触摸反馈见[验证记录](testing/tesla/README.md#model-y-juniper-vehicle-report--2026-10-12)；不同 Tesla 固件及语音仍需单独实测。用户 HTTPS 域名、证书／私钥、热点密码与设备路由配置没有打包，由使用者自行部署。
 
 0.1.3 本地测试版在系统服务占用默认端口时依次尝试 8080–8089，连接页显示实际地址。独立 proxy 的上游也应填写实际端口；其他启动错误不会触发端口重试。
-它也根据实际 Wi-Fi 网桥成员选择热点地址。[V50 本地测试](testing/tesla/README.md#013-v50-local-test--2026-10-11)已通过 iPhone 无线认证，并在电脑浏览器解码真实 H.264 / WebRTC CarPlay 画面；持续音频与 Tesla 实车表现仍待验证。
+它也根据实际 Wi-Fi 网桥成员选择热点地址。[V50 本地测试](testing/tesla/README.md#013-v50-local-test--2026-10-11)已通过 iPhone 无线认证，并在电脑浏览器解码真实 H.264 / WebRTC CarPlay 画面；后续 0.1.10 的上述实车反馈确认了该组合的音频、触摸正常。
 
 DiPlay 和 DiPlay-CN 的[公开公告](THIRD_PARTY_NOTICES.md#experimental-authentication-data)说明实验身份的固件来源。这不是 Apple 为本项目新签发的身份，Android APK 签名和 HTTPS 证书也各自独立。
 
@@ -46,7 +48,7 @@ DiPlay 和 DiPlay-CN 的[公开公告](THIRD_PARTY_NOTICES.md#experimental-authe
 .\gradlew.bat :tesla:lintRelease :tesla:assembleRelease
 ```
 
-输出为 `tesla/build/outputs/apk/release/tesla-release.apk`。如拥有可使用且允许随 APK 分发的资产，额外设置 `DIPLAY_AUTH_ASSETS_DIR` 并运行 `:tesla:assembleStandaloneRelease`；该任务在资产缺失或为空时停止。认证私钥会包含在这种 APK 内并可被接收者提取，Android 签名私钥则始终留在本地。
+输出为 `tesla/build/outputs/apk/release/tesla-release.apk`。如拥有可使用且允许随 APK 分发的资产，额外设置 `DIPLAY_AUTH_ASSETS_DIR` 并运行 `:tesla:assembleStandaloneRelease`；该任务在资产缺失或为空时停止。Android 签名私钥始终留在本地。
 
 1. 在 Android 主机安装并打开 DiPlay Tesla。
 2. 让 Tesla 连接能够访问该主机、同时提供互联网的网络。
@@ -60,7 +62,7 @@ Android 的 Wi-Fi 已用于向 Tesla 提供热点时，优先使用 USB CarPlay�
 
 0.1.10 默认开启浏览器音频，让音乐与导航提示通过 WebSocket PCM 在浏览器播放。浏览器限制自动播放时，配对或点一下页面会尝试启动声音；无需再单独打开菜单中的音频按钮。手动关闭后，本浏览器记住关闭状态，刷新或重连不会强行开启；可在菜单重新开启。HTTP／HTTPS 等不同来源分别保存偏好。缓冲可选 80 / 200 / 400 ms，默认 200 ms。增加缓冲能容忍短暂抖动，也会增加延迟。
 
-页面隐藏、音频上下文暂停、连接断开或发送积压时，浏览器音频停止接管，后续音频回到 Android。电话、Siri、语音识别与麦克风仍使用 Android 原有路线；网页不采集麦克风。声音来源本来就是 iPhone 直连车辆蓝牙时，浏览器缓冲不作用于那条路线。实际车机是否允许浏览器播放声音仍需停车验证。
+页面隐藏、音频上下文暂停、连接断开或发送积压时，浏览器音频停止接管，后续音频回到 Android。电话、Siri、语音识别与麦克风仍使用 Android 原有路线；网页不采集麦克风。声音来源本来就是 iPhone 直连车辆蓝牙时，浏览器缓冲不作用于那条路线。上述 Model Y Juniper 已确认浏览器音频正常，其他车型和固件需分别验证。
 
 ## 右侧窗口与全屏
 
@@ -130,9 +132,11 @@ $env:DIPLAY_TLS_KEY = 'C:\certs\privkey.pem'
 node proxy/server.mjs
 ```
 
-在车辆上打开 **`https://你的域名:8443`**，输入 Android 主机上的配对码。域名须指向车辆能到达、且当前固件允许访问的网关地址；网关须能访问 Android 主机的 `8080`。证书须由浏览器信任的 CA 签发、覆盖此域名且在有效期内，并包含中间证书。自签证书或把域名证书用于 IP 地址不适合作为 Tesla 的正式访问入口。
+在车辆上打开 **`https://你的域名:8443`**，输入 Android 主机上的配对码。域名须指向车辆能到达、且当前固件允许访问的网关地址；网关须能访问 Android 连接页显示的实际 HTTP 端口。证书须由浏览器信任的 CA 签发、覆盖此域名且在有效期内，并包含中间证书。自签证书或把域名证书用于 IP 地址不适合作为 Tesla 的正式访问入口。
 
-证书可以用 [Let's Encrypt 的 DNS-01 验证](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)申请；域名验证与网关是否可达是两回事。标准 `443` 端口可通过 `DIPLAY_PORT` 配置，此时 URL 不带端口；系统权限或路由器转发需自行配置。HTTPS 不会自动创建 DNS、热点或 NAT，也不会解除车辆固件的私网访问限制。0.1.7 本地测试已经复用热点主机的受信任证书并验证 HTTPS/WSS；具体域名与设备配置只留在本地，Tesla 实车表现仍需验证。
+证书可以用 [Let's Encrypt 的 DNS-01 验证](https://letsencrypt.org/docs/challenge-types/#dns-01-challenge)申请；域名验证与网关是否可达是两回事。标准 `443` 端口可通过 `DIPLAY_PORT` 配置，此时 URL 不带端口；系统权限或路由器转发需自行配置。HTTPS 不会自动创建 DNS、热点或 NAT，也不保证解除车辆固件的内网 IP 限制。0.1.7 本地测试已验证 HTTPS/WSS，后续 0.1.10 的 Model Y Juniper 实车反馈确认音频、触摸正常；具体域名与设备配置只留在本地。
+
+部分固件会限制 RFC1918 内网 IP。电脑／手机能打开热点地址，不代表车机也能访问；只加域名或 HTTPS 不保证解决。详见[内网 IP 访问限制](TESLA-QUICKSTART.zh-CN.md#tesla-内网-ip-访问限制)，自行配置车机可达且固件允许的地址、DNS 和 Android／网关端转发。
 
 两份 TLS 文件必须一起设置；缺失、无法读取或格式错误时启动失败，不降级到 HTTP。证书更新后需重启 proxy。HTTPS 证书保护传输，MFi 身份负责 iPhone 认证，二者互不替代。详细参数见 [proxy 说明](../proxy/README.md#https-browser-gateway-011)。
 
@@ -140,7 +144,7 @@ node proxy/server.mjs
 
 0.1.1 默认尝试原始 H.264 → WebRTC → 浏览器解码，减少 Android 解码和 JPEG 再编码的开销。连接或解码失败时自动回退到 JPEG；“显示设置 → 视频传输”也可选择 JPEG。页脚显示当前实际路线，收到并播放视频后才显示 WebRTC。队列过期或溢出后丢弃失效的预测帧并请求关键帧，避免堆积延迟。
 
-参考 tepla 的压缩视频传输、关键帧恢复和分流 PCM 思路，音频重新实现了可配置缓冲与回退。没有照搬其 VPN 路由方案，也没有沿用其固定 60 ms 音频调度值。桌面浏览器的合成视频测试已通过，实际 Tesla 的清晰度和稳定性仍需验证。
+参考 tepla 的压缩视频传输、关键帧恢复和分流 PCM 思路，音频重新实现了可配置缓冲与回退。没有照搬其 VPN 路由方案，也没有沿用其固定 60 ms 音频调度值。桌面浏览器合成视频测试已通过，Model Y Juniper 的上述实车反馈确认音频、触摸正常；长时间高分辨率性能仍需单独验证。
 
 - 模糊时先确认窗口配置正确，避免把右侧低分辨率画面放大全屏。WebRTC 下优先调整分辨率；JPEG 下可逐步提高画质到 85–90。每次只改一项，观察带宽和延迟。
 - 卡顿时先降低帧率到 15，再检查全屏尺寸与主机温度。修改仍在下次连接或明确重连后生效。提高画质并不会提高帧率。
@@ -163,6 +167,6 @@ node proxy/server.mjs
 
 局域网 HTTP 不加密画面与配对码，应使用可信网络；独立 HTTPS 网关可增加传输加密。JPEG 会增加 CPU、带宽和温度负担，建议从 1024×768、20 fps 开始调整。
 
-V50 无线 iPhone 认证和用户反馈的 HTTPS 画面／音乐已验证。不同 Tesla 固件的浏览器限制、长时间高分辨率性能、通话与 Siri 仍需停车实测，目前不宣称所有车型已完成验证或行驶支持。
+ZTE V50 无线 iPhone 认证及 2026 Model Y Juniper 的音频、触摸已获用户实测确认；手机为 iPhone 16 Pro Max／17 Pro Max，均为 iOS 27.0.1。不同 Tesla 固件的浏览器限制、长时间高分辨率性能、通话与 Siri 仍需分别实测，目前不宣称所有车型已完成验证或行驶支持。
 
 协议细节及检查命令见 [英文技术说明](TESLA.md)。

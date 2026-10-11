@@ -11,6 +11,12 @@
 HTTPS 服务。电脑同时连接多个网络时，其请求可能走另一个网关；那属于电脑测试
 环境，不能作为车机部署步骤。本方案不要求 Windows 配置或管理员操作。
 
+部分 Tesla 固件限制 `10.0.0.0/8`、`172.16.0.0/12`、`192.168.0.0/16` 等内网 IP。
+手机／电脑可打开页面不代表车机可访问，给受限地址加域名或 HTTPS 也不保证解决。
+需要按自己的网络配置车机可达且固件允许的入口地址、DNS、证书和 Android 别名，
+再在车机验证。详见[内网 IP 访问限制与参考记录](https://github.com/WangZhuo2015/DiPlay-tesla/blob/main/docs/TESLA-QUICKSTART.zh-CN.md#tesla-内网-ip-访问限制)。
+模板中的 TEST-NET 地址只是文档占位值，不能直接当成部署地址。
+
 参考实现有两种：root 主机用本机地址别名与独立 TLS 代理；无 root 主机可通过
 独立 VpnService 建立本地地址，再使用非特权 TLS 端口。VPN 地址接力依赖具体
 Android 固件，在其他设备上需要验证，也可能与 CarPlay 的 VPN 冲突。本目录提供

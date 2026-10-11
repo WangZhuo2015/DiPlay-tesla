@@ -39,6 +39,12 @@ Template domains and addresses are placeholders. Keep real configurations and ce
 
 The APK server itself uses HTTP. Replacing `http://` with `https://` cannot enable TLS. Direct HTTP can help troubleshoot a trusted LAN, but Tesla firmware may restrict it. HTTPS certificates and the iPhone accessory identity serve separate purposes.
 
+### Tesla private-IP access restrictions
+
+Some Tesla firmware restricts browser access to RFC1918 private addresses: `10.0.0.0/8`, `172.16.0.0/12` and `192.168.0.0/16`. A hotspot page may work on a phone or computer while the vehicle rejects it. The [Tesla Android developer's deployment notes](https://github.com/tesla-android/tesla-android.github.io/blob/main/install-guide-2022-18-1.md#ip-address-range) record this restriction; behavior varies by firmware and network.
+
+A domain or HTTPS certificate alone does not establish reachability when DNS still points to a restricted address. Configure your own permitted, reachable gateway address, DNS, certificate and Android entry, then check from the vehicle. Template addresses are placeholders; computer localhost tests do not validate vehicle access.
+
 ## Open and pair the browser
 
 1. Connect Tesla to the Android hotspot or another network that can reach the host and supply internet access. Keep DiPlay running.
@@ -66,6 +72,7 @@ The menu handle retracts after about two seconds; tap its visible top-edge strip
 | Symptom | Check first |
 | --- | --- |
 | HTTPS does not open | Hotspot connection, your DNS, gateway process, valid certificate chain and actual upstream port |
+| Phone/computer works, Tesla rejects access | Check whether DNS resolves to a restricted private IP; validate the entry address and gateway from the vehicle |
 | Pairing code expires | Reopen the Android Tesla browser dialog for a new code |
 | Page waits for CarPlay | iPhone connection, Android permissions, hotspot details and Bluetooth pairing |
 | Accessory authentication fails | Use the complete 0.1.10 APK; 0.1.0/0.1.1 and source-only builds omit the identity |
@@ -77,6 +84,18 @@ The menu handle retracts after about two seconds; tap its visible top-edge strip
 
 Use browser live diagnostics and Android **Settings → Diagnostics → Save diagnostic report**. Remove private data, hotspot passwords and pairing information before sharing.
 
-The APK was installed on V50 with a wireless iPhone. The owner confirmed default HTTPS audio and a retracting handle; the earlier 0.1.9 HTTPS test confirmed dock activation and continuous picture/audio. The target is a 2026 Model Y Juniper, but these reports did not separately identify the client model or validate sustained 2K output, calls or Siri.
+On 2026-10-12 the owner confirmed **0.1.10 tested in a 2026 Model Y Juniper, with working CarPlay audio and touch**.
 
-The complete APK includes an explicitly provisioned experimental identity, not a new Apple-issued DiPlay identity. Recipients can extract its accessory private key. [Provenance](THIRD_PARTY_NOTICES.md#experimental-authentication-data) and [validation](testing/tesla/README.md#0110-default-audio-and-retracting-menu--2026-10-11) describe the scope. APK signing private keys and user HTTPS private keys are not distributed. Perform setup and checks while parked.
+| Item | Tested setup/result |
+| --- | --- |
+| Vehicle | 2026 Tesla Model Y Juniper |
+| Android host | ZTE V50 mobile Wi-Fi |
+| Phones | iPhone 16 Pro Max and iPhone 17 Pro Max |
+| iOS | 27.0.1 on both phones |
+| Functions | Vehicle-browser CarPlay audio and touch work normally |
+
+![Model Y Juniper vehicle photo, address-bar domain redacted](testing/tesla/model-y-juniper-v50-redacted.png)
+
+Earlier V50 wireless iPhone/HTTPS checks also confirmed default audio, handle retraction and dock activation. Sustained 2K performance, calls and Siri were not separately validated in this report. Other vehicles and firmware need individual checks.
+
+The complete APK includes an explicitly provisioned experimental identity, not a new Apple-issued DiPlay identity. [Provenance](THIRD_PARTY_NOTICES.md#experimental-authentication-data) and [vehicle validation](testing/tesla/README.md#model-y-juniper-vehicle-report--2026-10-12) describe the scope. APK signing private keys and user HTTPS private keys are not distributed. Perform setup and checks while parked.

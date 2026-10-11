@@ -1,8 +1,38 @@
-# Tesla port verification — 2026-10-11
+# Tesla port verification
 
 Build checks run on Windows with JDK 25 and Android SDK 37. Historical 0.1.0/0.1.1
 device checks used a dedicated Android 10/API 29 emulator without an iPhone or Tesla.
 The local V50/iPhone tests are recorded separately below.
+
+## Model Y Juniper vehicle report — 2026-10-12
+
+The owner confirmed that **DiPlay Tesla 0.1.10 works on a 2026 Model Y Juniper,
+with normal CarPlay audio and touch**, and supplied this hardware combination:
+
+| Item | Tested equipment / result |
+| --- | --- |
+| Vehicle | 2026 Tesla Model Y Juniper |
+| Android host | ZTE V50 mobile Wi-Fi device |
+| Phones | iPhone 16 Pro Max and iPhone 17 Pro Max |
+| iOS | 27.0.1 on both phones |
+| Result | CarPlay browser audio and touch work normally |
+
+The date above records the owner's report, not a measured photo capture or test time.
+The prior wireless/HTTPS checks and this vehicle report are owner feedback; audio
+quality and touch behavior are not established by the photograph alone. Tesla firmware,
+selected output resolution and sustained 2K performance were not supplied in this report.
+Calls, Siri voice and microphone behavior remain outside this confirmation.
+
+![Owner-supplied Model Y Juniper photo, address-bar domain covered](model-y-juniper-v50-redacted.png)
+
+The published PNG uses the original 1707×1280 photo. Only the address-bar domain rectangle
+was covered with opaque pixels; every pixel outside that rectangle matches the decoded
+original JPEG. The PNG has no EXIF or other metadata. Other visible photo content is unchanged.
+
+The [Chinese](../../TESLA-QUICKSTART.zh-CN.md#tesla-内网-ip-访问限制) and
+[English](../../TESLA-QUICKSTART.md#tesla-private-ip-access-restrictions) guides explain
+firmware-dependent private-IP access restrictions and user-configured HTTPS entry points.
+The user's domain, certificates and deployment configuration remain outside public files.
 
 ## 0.1.10 default audio and retracting menu — 2026-10-11
 
