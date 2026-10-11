@@ -49,18 +49,19 @@ assets match their inputs. Customer HTTPS metadata/certificate/configuration rem
 and is absent from the APK/public source. The iPhone was disconnected before this update,
 then reconnected; the owner confirmed default audio and the menu handle through HTTPS.
 
-Local APK SHA-256:
+Complete APK SHA-256:
 `605c2dd283889db9581ac4fd3df78b8522ab6a4d3e6637d04ae38e43e5c2f612`.
 
-Public upload of this credential-bearing APK was rejected by automatic approval review,
-even after explicit owner authorization and the completed local checks. No APK upload
-executed; the 0.1.10 Release remains a draft with the independent proxy/checksum assets.
-A separate signed source-only candidate was built with authentication assets unset.
-Release lint/build and signature verification passed; ZIP/assets checks confirm no
-offline-MFi or credential containers and no private HTTPS configuration. Its SHA-256 is
-`5c9a6f68d90c5f58ebcb9a034993a373cd47ce6a459c3edfe04e7bc10d939594`.
-It cannot provide standalone iPhone authentication. The installed V50 build is the
-credential-bearing, owner-tested build; it was not replaced by the source-only candidate.
+The complete release APK is the same owner-tested binary installed on V50. Its signature,
+browser assets and provisioned accessory identity were checked again before distribution.
+The required Android CI and all 29 Node tests were rerun for publication and passed.
+Package/source scans confirm that the owner's real HTTPS domain, routing address and
+private deployment paths are absent from the APK, proxy ZIP and public source. HTTPS
+certificate/key files and hotspot configuration are not packaged; the proxy ships templates.
+The release includes SHA256SUMS for the APK and the independent proxy ZIP, plus
+[Chinese](../../TESLA-QUICKSTART.zh-CN.md) and [English](../../TESLA-QUICKSTART.md) user guides.
+The source-only candidate was not selected for distribution because it cannot independently
+authenticate an iPhone; the installed V50 build remains the complete, owner-tested build.
 
 ## 0.1.9 browser touch and stream summary — 2026-10-11
 

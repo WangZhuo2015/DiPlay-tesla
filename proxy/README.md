@@ -1,8 +1,11 @@
 # Optional DiPlay proxy
 
 This Node.js 22+ process is deployed independently of the Android CarPlay host. No Android
-module imports it or requires it. Tesla can open `http://ANDROID_IP:8080` directly without it.
-There are no npm dependencies.
+module imports it or requires it. Direct HTTP access uses the actual address shown in
+Android Connection → Tesla browser, where the vehicle firmware permits it. There are no
+npm dependencies. For APK installation, iPhone connection and browser pairing, start with
+the [user guide](https://github.com/WangZhuo2015/DiPlay-tesla/blob/main/docs/TESLA-QUICKSTART.md)
+or [中文使用指南](https://github.com/WangZhuo2015/DiPlay-tesla/blob/main/docs/TESLA-QUICKSTART.zh-CN.md).
 
 For HTTPS hosted on a rooted Android hotspot device, see the independent
 [Android root gateway](android-root/README.md). Its public configuration template contains
@@ -30,8 +33,11 @@ that direct path, the browser automatically falls back to gateway-forwarded JPEG
 
 ## HTTPS browser gateway (0.1.1+)
 
-The Android APK still serves HTTP on port 8080. TLS lives in this independent process;
-changing that Android URL to `https://` does not enable encryption.
+The Android APK serves HTTP, starting at port 8080 and trying later ports when firmware
+already occupies it. Use the actual port shown in Connection → Tesla browser as the
+upstream in the examples below. TLS lives in this independent process; changing that
+Android URL to `https://` does not enable encryption. All domain, certificate/key and
+network settings are supplied by the user; this download contains templates only.
 
 Prepare a domain and a certificate chain/key for it that the vehicle browser trusts.
 Keep the key outside Git. On the gateway device, set:
@@ -50,7 +56,8 @@ to a gateway address the vehicle can reach and its firmware permits. The certifi
 cover the domain, be valid and include its intermediate chain. Do not expect a self-signed
 certificate or a domain certificate opened by IP address to be trusted by the Tesla browser.
 Port 443 can be selected with `DIPLAY_PORT`; it removes `:8443` from the URL and may require
-OS permissions or router forwarding. The gateway machine must be able to reach Android:8080.
+OS permissions or router forwarding. The gateway machine must be able to reach Android's
+actual HTTP port.
 
 TLS defaults to port 8443 and a minimum of TLS 1.2. Supplying only one credential, unreadable
 files or an invalid key/certificate stops startup; it never silently falls back to HTTP.

@@ -80,16 +80,19 @@ provide your external runtime authentication assets as in BUILD.md and use
 
 ### Signed releases and authentication
 
-The latest public download is the [Tesla 0.1.1 preview](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.1).
-The 0.1.2 Release remains a draft; its signed credential-bearing APK is local only. Install a local APK
-on the Android host. Its package is `com.diplay.tesla`; it installs separately from the
-`.debug` build. Keep the same APK signing key for subsequent release updates.
+For installation and first use, follow the [quick-start guide](TESLA-QUICKSTART.md).
+The [complete Tesla 0.1.10 APK](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10)
+installs on the Android host as `com.diplay.tesla`, separately from `.debug` builds.
+Updates with the same signing certificate preserve settings. Keep the same APK signing
+key for subsequent releases.
 
-**The local 0.1.2 standalone APK includes the explicitly provisioned experimental MFi identity**
-from the referenced local task, with package entries verified against those inputs.
-The identity stays outside Git; normal source builds remain credential-free.
-Actual iPhone authentication and Tesla vehicle behavior have not been tested for this version.
-APK signing and HTTPS certificates are separate from MFi authentication.
+**The complete 0.1.10 APK includes the explicitly provisioned experimental MFi identity**,
+with package entries verified against those inputs. The identity stays outside Git;
+normal source builds remain credential-free. V50 wireless iPhone authentication and
+owner-reported HTTPS picture/audio are recorded in [validation](testing/tesla/README.md#0110-default-audio-and-retracting-menu--2026-10-11).
+Other Tesla firmware and voice still need separate checks. User HTTPS domains,
+certificates/private keys, hotspot passwords and routing configuration are omitted.
+Users configure their own gateway. APK signing, HTTPS and MFi authentication are separate.
 See [the provenance notices](THIRD_PARTY_NOTICES.md#experimental-authentication-data).
 
 The 0.1.3 local test build tries ports 8080–8089 if a firmware service already occupies

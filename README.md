@@ -4,62 +4,55 @@ This fork adds a Tesla browser output to the existing Android CarPlay receiver. 
 `tesla` APK composes the core with the `browser` library; the optional Node.js `proxy/`
 process is deployed independently. Tesla and the Android host share a local network.
 
-Version 0.1.10 offers Fit window, Low load (720p), Clear (1080p) and 2K clear (1440p)
-presets, with manual parameters collapsed by default. Presets use the
-actual viewport aspect ratio, retain the other window's dimensions and apply on the
-next connection. [Screen sources, preset values and public screenshots](docs/TESLA-DISPLAY-PRESETS.md)
-show synthetic layout content without real vehicle or account data.
+[Download complete 0.1.10 APK](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10) · **[Installation and browser setup](docs/TESLA-QUICKSTART.md)** · [中文使用指南](docs/TESLA-QUICKSTART.zh-CN.md)
 
-Fit window adds 1/2 (default), 3/4 and 1× scaling, remembered separately for right/full
-profiles in this browser after saving. Half width and height use a quarter of the pixels.
-An independent [rooted Android HTTPS gateway](proxy/android-root/README.md) can run on
-the hotspot host. Real domains, routing addresses and certificate settings stay in local
-ignored configuration; the repository contains only a template and generator.
-The Android connection page reads optional local HTTPS-origin metadata and copies that
-entry first. Vehicle access uses the Android hotspot gateway; no Windows route setup is
-part of deployment.
+Install `DiPlay-Tesla-0.1.10.apk` on the Android host, enable its hotspot and connect
+the iPhone in DiPlay. Connect Tesla to that hotspot. Android **Settings → Connection →
+Tesla browser (experimental)** shows the entry and six-digit pairing code. Open the
+entry in Tesla and pair; this browser remembers the connection. Codes last five minutes.
 
-![Browser fit scaling](docs/testing/tesla/browser-017-scale-full-font130.jpg)
+The complete APK includes the explicitly provisioned experimental accessory identity
+for local iPhone authentication, so end users do not need to compile it. It is not a new
+Apple-issued DiPlay identity; APK recipients can extract the accessory private key.
+[Provenance and scope](docs/THIRD_PARTY_NOTICES.md#experimental-authentication-data)
+are documented. Source archives and the independent proxy omit that identity, and the
+Android signing private key stays local.
 
-The 0.1.9 local build preserves touch release coordinates and queues press/release
-events in order, fixing the browser path that could show a pressed dock icon without
-activating it. The menu now groups video transport, actual frame dimensions, decoded
-frame rate and available SoC temperature. [Validation and synthetic screenshots](docs/testing/tesla/README.md#019-browser-touch-and-stream-summary--2026-10-11)
-record the automated checks. The owner confirmed working dock activation and continuous
-HTTPS picture/audio in the 0.1.9 local test.
+**Configure your own HTTPS entry separately.** Downloads and public files contain no
+user domains, HTTPS certificates/private keys, hotspot passwords or device routing
+configuration. Use the [rooted Android gateway](proxy/android-root/README.md) or the
+[independent proxy](proxy/README.md) with your own domain, DNS and certificate. Android
+can display the configured HTTPS entry. Routing is configured on Android/the gateway;
+Tesla connects through the hotspot's default gateway.
 
-The 0.1.10 local build defaults browser audio on and remembers manual disabling. Browsers
-that require user interaction start audio on the next tap. The menu uses a top-center
-handle that retracts after two seconds, keeping only a 12 px strip visible. Diagnostics
-no longer label Android battery broadcasts as physical battery temperatures on powered hosts.
-Actual named thermal sensors remain visible. [Current checks and screenshots](docs/testing/tesla/README.md#0110-default-audio-and-retracting-menu--2026-10-11)
-include the default-on and saved-off behavior.
+0.1.10 defaults browser music/navigation audio on and remembers manual disabling.
+Tap the page when the browser requires interaction. The top-center menu handle retracts
+after two seconds; virtual keys are hidden by default. The 0.1.9 touch fix preserves
+release coordinates and orders press/release events, repairing dock/home activation.
+Diagnostics use named thermal sensors and no longer show a misleading battery reading
+on powered hosts.
 
-Version 0.1.2 adds a full-viewport browser surface, hidden-by-default virtual keys, live diagnostics and static-screen protection. It retains H.264 WebRTC with automatic JPEG fallback and optional browser PCM
-audio with 80/200/400 ms buffering. Right/full resolutions remain independent. Vehicle
-performance is not yet validated.
+Display presets offer Fit window, 720p, 1080p and 2K (up to 2560×1440), with 1/2, 3/4
+and 1× Fit scaling. Right/full dimensions save independently and apply on the next
+connection or an explicit Apply and reconnect. H.264 WebRTC is preferred with automatic
+JPEG fallback. The menu groups actual transport, received dimensions, decoded fps and
+readable SoC temperature. [Preset details and screen sources](docs/TESLA-DISPLAY-PRESETS.md)
+include synthetic screenshots without real accounts, vehicles or private configuration.
 
-Right-window and full-window profiles have independent configurable resolutions. Touch,
-Siri and media shortcuts are supported. Saved display changes wait for the next connection
-or an explicit Apply and reconnect. Selected DiPlay-CN locale, connection-hint and resume
-behaviors are adapted for this output.
+![Synthetic compact menu and stream summary](docs/testing/tesla/browser-0.1.10-menu-compact-font130.jpg)
 
-See [Tesla setup and boundaries](docs/TESLA.md) and [optional proxy](proxy/README.md).
-The latest public APK is the [Tesla 0.1.1 signed preview](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.1).
-The 0.1.2 and 0.1.10 Releases remain drafts; credential-bearing APKs are available locally only.
-The independent proxy accepts TLS certificates for HTTPS; the Android browser service uses HTTP.
-The 0.1.3 local test build tries ports 8080–8089 when firmware already owns 8080;
-the Connection settings show the actual URL. Set the proxy upstream to that actual port.
-Local standalone APKs bundle the explicitly provisioned experimental MFi identity.
-The 0.1.3 [local V50 test](docs/testing/tesla/README.md#013-v50-local-test--2026-10-11)
-authenticated an iPhone wirelessly and displayed real H.264 / WebRTC CarPlay.
-Sustained audio and Tesla vehicle performance still require testing.
-The 0.1.4 local build adds six-digit pairing with a remembered browser connection,
-browser-only video decoding and a horizontal menu at the top. See its
-[release notes](docs/RELEASE-NOTES-TESLA-0.1.4.md) for the local testing scope.
-Build with `./gradlew :tesla:assembleDebug`; source-only APKs still require externally
-provisioned CarPlay authentication assets to connect an iPhone. The original DiPlay
-documentation follows.
+0.1.10 was installed on V50 with a wireless iPhone; the owner confirmed default HTTPS
+sound and idle handle retraction. The earlier 0.1.9 HTTPS test confirmed working dock
+activation and continuous picture/audio. Calls, Siri voice and microphone input still use
+Android; the page has no microphone capture. Other Tesla firmware, sustained 2K on the
+target Model Y and voice still need parked testing. [Release notes](docs/RELEASE-NOTES-TESLA-0.1.10.md)
+and [validation](docs/testing/tesla/README.md#0110-default-audio-and-retracting-menu--2026-10-11)
+record the scope.
+
+[Technical/build guide](docs/TESLA.md) · [Independent proxy](proxy/README.md).
+Normal source builds omit accessory authentication; standalone builds need authorized
+external assets. The upstream DiPlay documentation follows. For this Tesla port, start
+with the quick-start guide above.
 
 **CarPlay for compatible BYD Android head units.** Wired and wireless, with the familiar DiAuto interface. Independent app: `com.shihab.diplay`.
 

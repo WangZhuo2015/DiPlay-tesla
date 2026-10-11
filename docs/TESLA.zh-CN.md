@@ -2,6 +2,8 @@
 
 DiPlay Tesla 安装在 Android 7.1 以上的主机上。iPhone 通过 USB 或无线 CarPlay 连接这台主机，Tesla 在同一局域网用浏览器显示画面并发送触控。
 
+直接使用发布 APK 请先看[使用指南](TESLA-QUICKSTART.zh-CN.md)，包含安装、无线连接、HTTPS 自行配置、配对码、预设与音频步骤。本文侧重模块、构建和技术边界。
+
 ## 模块划分
 
 - `shared`：原有 CarPlay 协议与媒体核心。
@@ -29,9 +31,9 @@ $env:ANDROID_HOME = 'G:\Android' # 改为你的 SDK 路径
 
 ### Release APK 与认证
 
-[最新公开版为 Tesla 0.1.1](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.1)。0.1.2 Release 仍为草稿，含认证资产的签名 APK 仅保存在本地。APK 安装在 Android 主机上，包名为 `com.diplay.tesla`；它与 `.debug` 测试包分别安装。后续更新须保留相同签名密钥。
+[Tesla 0.1.10 完整连接版](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10)安装在 Android 主机上，包名为 `com.diplay.tesla`；它与 `.debug` 测试包分别安装。沿用相同签名的版本可以覆盖安装并保留设置，后续更新须保留相同签名密钥。
 
-**0.1.2 本地独立连接 APK 已使用此前配置的实验性 MFi 资产打包。** 资产沿用“检查 ADB 连接”任务为本项目准备的同一份身份；已核对 APK 内文件与输入一致。认证资产没有进入 Git，普通源码构建仍需自行配置 `DIPLAY_AUTH_ASSETS_DIR`。实际 iPhone 认证或 Tesla 实车验证仍需单独记录。
+**0.1.10 完整连接 APK 使用此前明确配置的实验性 MFi 资产打包。** 已核对 APK 内文件与输入一致。认证资产没有进入 Git，普通源码构建仍需自行配置 `DIPLAY_AUTH_ASSETS_DIR`。V50 的无线 iPhone、HTTPS 画面和浏览器音频反馈见[验证记录](testing/tesla/README.md#0110-default-audio-and-retracting-menu--2026-10-11)；不同 Tesla 固件及语音仍需单独实测。用户 HTTPS 域名、证书／私钥、热点密码与设备路由配置没有打包，由使用者自行部署。
 
 0.1.3 本地测试版在系统服务占用默认端口时依次尝试 8080–8089，连接页显示实际地址。独立 proxy 的上游也应填写实际端口；其他启动错误不会触发端口重试。
 它也根据实际 Wi-Fi 网桥成员选择热点地址。[V50 本地测试](testing/tesla/README.md#013-v50-local-test--2026-10-11)已通过 iPhone 无线认证，并在电脑浏览器解码真实 H.264 / WebRTC CarPlay 画面；持续音频与 Tesla 实车表现仍待验证。
@@ -161,6 +163,6 @@ node proxy/server.mjs
 
 局域网 HTTP 不加密画面与配对码，应使用可信网络；独立 HTTPS 网关可增加传输加密。JPEG 会增加 CPU、带宽和温度负担，建议从 1024×768、20 fps 开始调整。
 
-实际 iPhone 认证、Tesla 固件的浏览器限制、持续解码性能和蓝牙通话需要停车实测。目前不宣称已完成实车验证或行驶支持。
+V50 无线 iPhone 认证和用户反馈的 HTTPS 画面／音乐已验证。不同 Tesla 固件的浏览器限制、长时间高分辨率性能、通话与 Siri 仍需停车实测，目前不宣称所有车型已完成验证或行驶支持。
 
 协议细节及检查命令见 [英文技术说明](TESLA.md)。

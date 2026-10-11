@@ -2,24 +2,23 @@
 
 本仓库在 DiPlay 核心上增加 **Tesla 浏览器 CarPlay**：Android 设备负责 USB／无线 CarPlay，Tesla 在同一网络打开浏览器使用。新增 `tesla` APK 和独立 `browser` 模块；可选 `proxy/` 单独运行，核心连接不依赖 proxy。
 
-0.1.4 本地版增加 6 位短码配对、浏览器记住连接、停止手机重复视频解码，以及顶部横向菜单。[本地测试范围与版本说明](docs/RELEASE-NOTES-TESLA-0.1.4.md)。
+[下载完整连接版 0.1.10](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10) · **[从安装到车机使用的步骤](docs/TESLA-QUICKSTART.zh-CN.md)** · [English](docs/TESLA-QUICKSTART.md)
 
-0.1.10 提供“适配窗口（推荐）／低负载 720p／清晰 1080p／2K 清晰 1440p”四个预设，手动参数默认折叠。适配窗口新增 1/2（默认）、3/4、1× 缩放，保存后在本浏览器分别记住右侧和全屏的选择；宽高各减半后，像素量为四分之一。2K 最高 2560×1440，按实际浏览器窗口比例计算；右侧与全屏尺寸独立保存，下次连接生效。[屏幕资料、预设参数、语音路线说明及全部公开截图](docs/TESLA-DISPLAY-PRESETS.md)。以下界面图使用合成测试内容，不含真实车辆或账号数据。
+下载安装 `DiPlay-Tesla-0.1.10.apk` 到 Android 主机，开启主机热点，先在 DiPlay 连接 iPhone。让 Tesla 连接该热点，在 Android **设置 → 连接 → Tesla 浏览器（实验性）**查看入口和 6 位配对码，然后在车机浏览器打开入口并配对。后续浏览器会记住连接；配对码有效五分钟，过期后重新打开 Android 连接页获取。
 
-新增独立的 [Android 本机 HTTPS 入口配置](proxy/android-root/README.md)，适用于已 root 的热点主机。真实域名、路由地址与证书配置放在本地忽略目录；仓库只提供模板和生成器，APK 不打包这些数据。
-Android 连接页可读取私有的 HTTPS 入口元数据，并优先显示和复制域名链接。车辆经 Android 热点默认网关访问，部署不要求 Windows 路由配置。
+完整连接 APK 包含明确配置的实验性 CarPlay 配件身份，可以本地认证 iPhone，无需用户自己编译。它不是 Apple 为 DiPlay 新签发的身份，APK 接收者可提取该配件私钥；[资产来源与范围](docs/THIRD_PARTY_NOTICES.md#experimental-authentication-data)有单独说明。源码和 proxy 不包含该身份，Android 签名私钥留在本地。
 
-![网页适配缩放](docs/testing/tesla/browser-017-scale-full-font130.jpg)
+**HTTPS 由用户单独配置。** APK 和公开文件不包含用户的域名、HTTPS 证书／私钥、热点密码或设备路由配置。首次部署请准备自己的域名和证书，参考 [Android 本机 HTTPS 入口](proxy/android-root/README.md)（需要 root）或[独立 proxy](proxy/README.md)。Android 连接页可显示自行配置的 HTTPS 入口；车机经热点默认网关访问，配置在 Android／网关端完成。
 
-0.1.9 本地版修复网页松开触摸时丢失坐标、快速点按可能被覆盖的问题。用户已确认 HTTPS 页面上图标切换正常，画面和声音连续。
+0.1.10 浏览器音频默认开启并记住手动关闭；浏览器要求手势时点一下页面。菜单改为顶部中央小把手，闲置约两秒收起，虚拟按键默认隐藏。包含 0.1.9 的触摸修复：左侧应用图标和主页按键正常切换，快速点按按顺序发送。温度按可读的命名热传感器显示，移除了没有物理电池的主机上误导性的电池温度字段。
 
-0.1.10 默认开启浏览器音频，并记住手动关闭；浏览器限制自动播放时，点一下页面即可启动。菜单改为顶部中央小把手，闲置两秒收起，仅露出顶边 12 px。移除电池温度字段，避免把供电设备固件的电池广播误认为真实电池读数；摘要保留 SoC，详细诊断保留各热传感器来源名称。[验证记录及合成截图](docs/testing/tesla/README.md#0110-default-audio-and-retracting-menu--2026-10-11)已更新。
+显示提供“适配窗口／720p／1080p／2K 清晰 1440p”预设，以及适配 1/2、3/4、1× 缩放。右侧和全屏分别保存尺寸；保存后下次连接生效，或明确选择“应用并重新连接”。H.264 WebRTC 默认优先，失败时自动回退 JPEG；菜单合并显示实际路线、分辨率、fps 与 SoC 温度。[详细预设与屏幕资料](docs/TESLA-DISPLAY-PRESETS.md)包含公开界面图。
 
-0.1.2 将画面铺满浏览器可用区域，虚拟按键默认隐藏，增加实时诊断和静止画面保护。保留 H.264 WebRTC 与自动 JPEG 回退，以及可选浏览器音频和 80/200/400 ms 缓冲。右侧与全屏分辨率独立配置；实车性能仍待验证。
+![顶部菜单与诊断摘要（合成测试内容）](docs/testing/tesla/browser-0.1.10-menu-compact-font130.jpg)
 
-支持右侧窗口／全屏各自保存分辨率、双指触控、Siri 与媒体快捷键。分辨率保存后在下次连接生效，也可明确选择“应用并重新连接”。结合 DiPlay-CN 的中文默认策略、连接阶段提示与无变化不重连原则。
+0.1.10 已在 V50 配合无线 iPhone 验证，用户确认 HTTPS 默认有声音、把手正常收起；0.1.9 的同一路线已确认图标切换与连续画面／声音。通话、Siri 语音和麦克风仍走 Android，网页目前不采集麦克风；不同 Tesla 固件、目标 Model Y 的长时间 2K 性能及语音仍需停车测试。[版本说明](docs/RELEASE-NOTES-TESLA-0.1.10.md) · [验证记录](docs/testing/tesla/README.md#0110-default-audio-and-retracting-menu--2026-10-11)
 
-[最新公开 APK：Tesla 0.1.1](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.1) · [Tesla 构建、连接与功能边界](docs/TESLA.zh-CN.md) · [独立 proxy](proxy/README.md)。0.1.2 Release 仍是草稿，含此前配置的实验性 MFi 身份的签名 APK 仅保存在本地。0.1.3 已在 V50 上通过 iPhone 无线认证并收到真实 WebRTC 画面，持续音频与 Tesla 实车表现仍待验证。独立 proxy 支持配置证书的 HTTPS 入口；Android 浏览器服务为 HTTP。0.1.3 本地测试版在端口被固件占用时依次尝试 8080–8089，连接页显示实际地址；proxy 的上游应使用该实际端口。源码构建 `./gradlew :tesla:assembleDebug`；独立连接版本需提供获授权的外部认证资产。下面保留原版 DiPlay 的说明。
+[源码构建与模块边界](docs/TESLA.zh-CN.md) · [独立 proxy](proxy/README.md)。普通源码构建不含 CarPlay 认证资产，独立连接构建需自行提供获授权的外部资产。下面保留上游 DiPlay 的说明；Tesla 端口请优先阅读上面的使用指南。
 
 为兼容的比亚迪安卓车机提供有线及无线 CarPlay，采用 DiAuto 风格界面。
 
