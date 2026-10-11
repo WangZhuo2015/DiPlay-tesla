@@ -13,12 +13,12 @@ import {streamSummary} from './stream-summary.js';
     fitWindow:['适配窗口（推荐）','Fit window (recommended)'], fitHint:['先在 Tesla 选好窗口，再点预设。只修改所选尺寸；两种窗口共用帧率。','Choose the window in Tesla first, then a preset. Only the selected size changes; both windows share frame rate.'],
     fitScale:['适配缩放','Fit scale'], scaleHalf:['1/2（推荐）','1/2 (recommended)'], scaleThreeQuarters:['3/4','3/4'], scaleFull:['1×','1×'], scaleHint:['缩放宽和高；1/2 的像素量为 1/4。小窗口最低保留 320×240，实际尺寸见下方。保存后下次连接生效。','Scales width and height; 1/2 uses one quarter of the pixels. Small windows stop at 320×240 minimum; see the actual size below. Save for the next connection.'],
     presets:['画面预设','Picture presets'], presetLight:['低负载 · 720p','Low load · 720p'], presetClear:['清晰 · 1080p','Clear · 1080p'], presetQhd:['2K 清晰 · 1440p','2K clear · 1440p'], qhdHint:['2K 按窗口比例适配，最高 2560×1440，负载高于 1080p。','2K follows the window shape, up to 2560×1440, with higher load than 1080p.'], manualDisplay:['手动调整','Manual adjustments'],
-    unknown:['未知','Unknown'], stale:['未更新','Not updated'], resolution:['实际视频尺寸','Actual video size'], decoded:['实际解码帧率','Decoded frame rate'], dropped:['丢帧','Dropped frames'], queue:['实际音频缓冲','Queued audio'], underruns:['音频重新缓冲次数','Audio rebuffer count'], memory:['可用内存','Available memory'], battery:['电池温度','Battery temperature'], thermal:['系统热状态','System thermal status'], sampleAge:['设备采样时间','Device sample age'],
+    unknown:['未知','Unknown'], stale:['未更新','Not updated'], resolution:['实际视频尺寸','Actual video size'], decoded:['实际解码帧率','Decoded frame rate'], dropped:['丢帧','Dropped frames'], queue:['实际音频缓冲','Queued audio'], underruns:['音频重新缓冲次数','Audio rebuffer count'], memory:['可用内存','Available memory'], thermal:['系统热状态','System thermal status'], sampleAge:['设备采样时间','Device sample age'],
     settings:['显示设置','Display settings'], expand:['全屏','Fullscreen'], theme:['日夜','Day / night'],
     pair:['连接 DiPlay','Connect DiPlay'], pairHint:['在手机“连接 → Tesla 浏览器”查看 6 位码，5 分钟有效。配对后自动记住；失效时重新打开手机连接页获取新码。','Find the six-digit code in Connection → Tesla browser on the phone. It lasts five minutes. This browser remembers the connection; reopen the phone connection page for a new code if needed.'],
     code:['6 位配对码','6-digit pairing code'], connect:['连接','Connect'], home:['主页','Home'], back:['返回','Back'], previous:['上一曲','Previous'], play:['播放 / 暂停','Play / pause'], next:['下一曲','Next'],
     audio:['网页音频用于音乐与导航；通话、Siri 语音和麦克风目前由 Android 主机处理。','Browser audio plays music and navigation; calls, Siri voice and the microphone currently use the Android host.'],
-    browserAudio:['浏览器音频（实验性）','Browser audio (experimental)'], audioOn:['浏览器音频已开启（实验性）','Browser audio enabled (experimental)'],
+    browserAudio:['浏览器音频（实验性）','Browser audio (experimental)'], audioOn:['浏览器音频已开启（实验性）','Browser audio enabled (experimental)'],audioPending:['浏览器音频 · 点按启动（实验性）','Browser audio · Tap to start (experimental)'],
     buffer:['音频缓冲','Audio buffer'], transport:['视频传输','Video transport'], auto:['自动 WebRTC / JPEG','Automatic WebRTC / JPEG'],
     audioBlocked:['请再次点按允许声音；已恢复 Android 音频。','Tap again to allow sound; Android playback restored.'],
     displayHint:['右侧与全屏尺寸独立保存，下次连接生效。','Right and full sizes are saved independently for the next connection.'],
@@ -36,15 +36,16 @@ import {streamSummary} from './stream-summary.js';
     fitWindow:'ملاءمة النافذة (موصى به)',fitHint:'اختر النافذة في Tesla أولًا، ثم إعدادًا مسبقًا. تتغير الأبعاد المحددة فقط؛ معدل الإطارات مشترك.',
     fitScale:'مقياس الملاءمة',scaleHalf:'1/2 (موصى به)',scaleThreeQuarters:'3/4',scaleFull:'1×',scaleHint:'يُغيّر العرض والارتفاع؛ يستخدم النصف ربع عدد البكسلات. الحد الأدنى للنوافذ الصغيرة هو \u2066320×240\u2069؛ تظهر الأبعاد الفعلية أدناه. احفظ للاتصال التالي.',
     presets:'إعدادات الصورة المسبقة',presetLight:'حمل منخفض · 720p',presetClear:'وضوح · 1080p',presetQhd:'وضوح 2K · 1440p',qhdHint:'تتبع أبعاد 2K نسبة النافذة حتى \u20662560×1440\u2069، بحمل أعلى من 1080p.',manualDisplay:'ضبط يدوي',
-    unknown:'غير معروف',stale:'لم تُحدّث',resolution:'أبعاد الفيديو الفعلية',decoded:'معدل فك الترميز الفعلي',dropped:'الإطارات المفقودة',queue:'الصوت المخزن مؤقتًا',underruns:'مرات إعادة تخزين الصوت',memory:'الذاكرة المتاحة',battery:'حرارة البطارية',thermal:'الحالة الحرارية للنظام',sampleAge:'عمر عينة الجهاز',
+    unknown:'غير معروف',stale:'لم تُحدّث',resolution:'أبعاد الفيديو الفعلية',decoded:'معدل فك الترميز الفعلي',dropped:'الإطارات المفقودة',queue:'الصوت المخزن مؤقتًا',underruns:'مرات إعادة تخزين الصوت',memory:'الذاكرة المتاحة',thermal:'الحالة الحرارية للنظام',sampleAge:'عمر عينة الجهاز',
     settings:'إعدادات العرض',expand:'ملء الشاشة',theme:'نهار / ليل',pair:'اتصال DiPlay',pairHint:'اعرض الرمز المكوّن من ستة أرقام في الاتصال ← متصفح Tesla على الهاتف. صالح لخمس دقائق. يتذكر المتصفح الاتصال؛ أعد فتح صفحة الاتصال على الهاتف للحصول على رمز جديد عند الحاجة.',code:'رمز الاقتران من 6 أرقام',connect:'اتصال',home:'الرئيسية',back:'رجوع',previous:'السابق',play:'تشغيل / إيقاف مؤقت',next:'التالي',
-    audio:'يشغّل المتصفح الموسيقى وإرشادات الملاحة؛ تستخدم المكالمات وصوت Siri والميكروفون جهاز Android المضيف حاليًا.',browserAudio:'صوت المتصفح (تجريبي)',audioOn:'صوت المتصفح مفعّل (تجريبي)',buffer:'تخزين الصوت مؤقتًا',transport:'نقل الفيديو',auto:'WebRTC / JPEG تلقائي',audioBlocked:'اضغط مجددًا للسماح بالصوت؛ استُعيد صوت Android.',
+    audio:'يشغّل المتصفح الموسيقى وإرشادات الملاحة؛ تستخدم المكالمات وصوت Siri والميكروفون جهاز Android المضيف حاليًا.',browserAudio:'صوت المتصفح (تجريبي)',audioOn:'صوت المتصفح مفعّل (تجريبي)',audioPending:'صوت المتصفح · اضغط للتشغيل (تجريبي)',buffer:'تخزين الصوت مؤقتًا',transport:'نقل الفيديو',auto:'WebRTC / JPEG تلقائي',audioBlocked:'اضغط مجددًا للسماح بالصوت؛ استُعيد صوت Android.',
     displayHint:'تُحفظ أبعاد النافذة اليمنى والكاملة بشكل مستقل للاتصال التالي.',transportHint:'يتغير نقل الفيديو فورًا بعد الحفظ.',mode:'إعداد النافذة',right:'النافذة اليمنى',full:'ملء الشاشة',rightWidth:'عرض النافذة اليمنى',rightHeight:'ارتفاع النافذة اليمنى',fullWidth:'عرض ملء الشاشة',fullHeight:'ارتفاع ملء الشاشة',fps:'معدل الإطارات (5–30)',quality:'جودة JPEG (40–95)',cancel:'إلغاء',save:'حفظ للاتصال التالي',pending:'تسري الإعدادات الجديدة عند الاتصال التالي',reconnect:'تطبيق وإعادة الاتصال',confirm:'تطبيق الإعدادات المحفوظة وإعادة اتصال CarPlay الآن؟',waiting:'بانتظار CarPlay',disconnected:'انقطع الاتصال؛ تجري إعادة المحاولة…',invalid:'تحقق من رمز الاقتران والأبعاد واتصال الشبكة.',unavailable:'ملء الشاشة غير متاح؛ استخدم عناصر التحكم في Tesla.'
   };
   const t = key => ar?arabic[key]:copy[key][zh ? 0 : 1];
   document.documentElement.lang = ar?'ar':zh?'zh-CN':'en';
   document.documentElement.dir = ar?'rtl':'ltr';
   document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
+  $('menuButton').setAttribute('aria-label',t('menu'));$('menuButton').title=t('menu');
   function rememberToken(value) { token=value; localStorage.setItem('diplay-token',value); sessionStorage.removeItem('diplay-token'); }
   let token = localStorage.getItem('diplay-token') || sessionStorage.getItem('diplay-token') || '';
   if (!/^[a-f0-9]{32}$/.test(token)) token='';
@@ -57,7 +58,13 @@ import {streamSummary} from './stream-summary.js';
   const canvas = $('picture'), drawing = canvas.getContext('2d');
   const screen = $('screen'), video = $('video');
   let videoMetrics = {};
-  const closeMenu = () => { $('menuPanel').hidden=true; $('menuButton').setAttribute('aria-expanded','false'); $('menuButton').focus(); };
+  let menuPeekTimer;
+  function peekMenu() {
+    clearTimeout(menuPeekTimer);$('menuButton').classList.add('menuPeek');
+    menuPeekTimer=setTimeout(()=>$('menuButton').classList.remove('menuPeek'),2000);
+  }
+  $('menuButton').addEventListener('pointerenter',peekMenu);peekMenu();
+  const closeMenu = () => { $('menuPanel').hidden=true; $('menuButton').setAttribute('aria-expanded','false'); peekMenu();$('menuButton').focus(); };
   $('menuButton').addEventListener('click',()=>{ releaseTouches(); $('menuPanel').hidden=false; $('menuButton').setAttribute('aria-expanded','true'); $('closeMenu').focus(); });
   $('closeMenu').addEventListener('click',closeMenu);
   $('menuPanel').addEventListener('click',event=>{if(event.target===$('menuPanel'))closeMenu();});
@@ -72,14 +79,19 @@ import {streamSummary} from './stream-summary.js';
   const media = createMedia({video,getToken:()=>token,
     onTransport:mode=>{canvas.hidden=mode==='webrtc';},
     onStats:metrics=>{videoMetrics=metrics;},
-    onAudio:state=>{const button=$('audioButton'),label=state.enabled?t('audioOn'):t('browserAudio');if(button.textContent!==label)button.textContent=label;button.setAttribute('aria-pressed',String(state.enabled));}
+    onAudio:state=>{const button=$('audioButton'),label=t(state.enabled?'audioOn':media.audioPreference.wanted?'audioPending':'browserAudio');if(button.textContent!==label)button.textContent=label;button.setAttribute('aria-pressed',String(state.enabled));}
   });
   $('audioBuffer').value=localStorage.getItem('diplay-audio-buffer')||'200';
   media.audio.setBuffer(Number($('audioBuffer').value));
   $('audioButton').addEventListener('click',async()=>{
-    if(media.audio.enabled)media.audio.disable();
-    else if(!await media.audio.enable())$('status').textContent=t('audioBlocked');
+    const enabled=await media.audioPreference.toggle();
+    if(!enabled && media.audioPreference.wanted)$('status').textContent=t('audioBlocked');
   });
+  const startPreferredAudio=event=>{
+    if(event.isTrusted && !(event.target instanceof Element && event.target.closest('#audioButton')))media.audioPreference.start();
+  };
+  document.addEventListener('pointerup',startPreferredAudio,true);
+  document.addEventListener('keydown',event=>{if(!event.repeat)startPreferredAudio(event);},true);
   $('audioBuffer').addEventListener('change',()=>{localStorage.setItem('diplay-audio-buffer',$('audioBuffer').value);media.audio.setBuffer(Number($('audioBuffer').value));});
   let current = null, sequence = -1, live = false, failures = 0, streamEpoch = 0;
   const fingers = new Map();
@@ -122,7 +134,7 @@ import {streamSummary} from './stream-summary.js';
     const add=(name,value)=>rows.push([name,String(value)]);
     const width=media.displayed?video.videoWidth:sequence>=0?canvas.width:0;
     const height=media.displayed?video.videoHeight:sequence>=0?canvas.height:0;
-    $('transportStatus').replaceChildren(...streamSummary({transport:media.displayed?'H.264 / WebRTC':'JPEG',width,height,fps,device},{battery:t('battery'),stale:t('stale')}).flatMap((part,index)=>{
+    $('transportStatus').replaceChildren(...streamSummary({transport:media.displayed?'H.264 / WebRTC':'JPEG',width,height,fps,device},{stale:t('stale')}).flatMap((part,index)=>{
       const span=document.createElement('span');span.dir=/^(?:H\.264|JPEG|SoC|\d)/.test(part)?'ltr':'auto';span.textContent=part;
       return index?[document.createTextNode(' · '),span]:[span];
     }));
@@ -133,7 +145,6 @@ import {streamSummary} from './stream-summary.js';
     add(t('underruns'),audio.underruns);
     add(t('sampleAge'),device?Math.round(device.ageMs/1000)+' s':unknown);
     add(t('memory'),fresh?Math.round(device.availableBytes/1048576)+' MiB':stale);
-    add(t('battery'),fresh && Number.isFinite(device.batteryCelsius)?device.batteryCelsius.toFixed(1)+' °C':fresh?unknown:stale);
     add(t('thermal'),fresh && device.thermalStatus>=0?device.thermalStatus:fresh?unknown:stale);
     for(const sensor of device?.thermalSensors||[])add(sensor.name,fresh?sensor.celsius.toFixed(1)+' °C':stale);
     for(const cpu of device?.cpuPolicies||[]) {

@@ -2,9 +2,6 @@ package com.diplay.browser
 
 import android.app.ActivityManager
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.os.BatteryManager
 import android.os.Build
 import android.os.PowerManager
 import android.os.SystemClock
@@ -26,11 +23,8 @@ class BrowserDiagnostics(context: Context) : Closeable {
     }
     private fun sample() {
         val memory = ActivityManager.MemoryInfo().also { app.getSystemService(ActivityManager::class.java).getMemoryInfo(it) }
-        val battery = app.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
-        val temperature = battery?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, Int.MIN_VALUE) ?: Int.MIN_VALUE
         val data = JSONObject().put("elapsedMs", SystemClock.elapsedRealtime())
             .put("availableBytes", memory.availMem).put("totalBytes", memory.totalMem)
-            .put("batteryCelsius", if (temperature in -200..1500) temperature / 10.0 else JSONObject.NULL)
             .put("thermalStatus", if (Build.VERSION.SDK_INT >= 29) app.getSystemService(PowerManager::class.java).currentThermalStatus else -1)
             .put("thermalSensors", thermalSensors(File("/sys/class/thermal")))
             .put("cpuPolicies", cpuPolicies(File("/sys/devices/system/cpu/cpufreq")))

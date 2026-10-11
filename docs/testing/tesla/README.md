@@ -4,6 +4,53 @@ Build checks run on Windows with JDK 25 and Android SDK 37. Historical 0.1.0/0.1
 device checks used a dedicated Android 10/API 29 emulator without an iPhone or Tesla.
 The local V50/iPhone tests are recorded separately below.
 
+## 0.1.10 default audio and retracting menu — 2026-10-11
+
+The complete AGENTS.md Android CI command, including the browser/Tesla modules,
+passed: **2271 unit tests, zero failures/errors**, with all required lint/debug builds.
+All **29 Node tests** passed. New audio preference tests cover default-on playback,
+manual off across reload/route loss and a gesture unlocking an autoplay resume that is
+still pending. Release lint, signed standalone build, signature and asset comparisons passed.
+
+Production browser assets were served by an isolated synthetic fixture with silent PCM
+packets. Pairing started audio without pressing its toggle; the browser acknowledged PCM.
+Turning audio off and reloading kept it off, including after opening the menu. Turning it
+back on resumed playback. This verifies browser policy/preference handling and packet
+processing, not audible quality. Real continuous HTTPS playback was confirmed by the
+owner on 0.1.9; actual default playback after the 0.1.10 update is pending confirmation.
+
+The menu entry is centered at the top and retracts after two seconds. Its idle DOM bounds
+are 72 px wide with only 12 px inside the viewport; the remaining button is offscreen.
+Clicking the retracted handle opens the menu. Keyboard focus reveals the complete 48 px
+button. Menu changes do not resize the media surface or alter touch mapping. Screenshots
+use 130% fonts, synthetic grids and a named synthetic SoC sample only:
+[full menu](browser-0.1.10-menu-full-font130.jpg),
+[full handle](browser-0.1.10-handle-full-font130.jpg),
+[compact menu](browser-0.1.10-menu-compact-font130.jpg),
+[compact handle](browser-0.1.10-handle-compact-font130.jpg),
+[Arabic menu](browser-0.1.10-menu-ar-font130.jpg),
+[narrow Arabic](browser-0.1.10-menu-narrow-ar-font130.jpg).
+At 360×740, page width/scroll width are both 360 px and panel width/scroll width are both
+327 px. Menu controls have equal 48 px heights; numeric size order remains correct in RTL.
+Android Settings layout is unchanged.
+
+BatteryManager broadcasts were removed from diagnostics and from the browser summary.
+Some powered host firmware exposes battery temperature/presence fields without a physical
+battery, so these fields do not establish a real battery measurement. Named thermal zones
+remain available; the SoC summary uses only a matching named thermal zone. No guessed
+physical battery/CPU identity is assigned to power readings.
+
+The local APK installed on the V50 as versionCode 11, versionName 0.1.10. Saved display
+profiles survived. Trusted device-side HTTPS returned current APK assets and WSS upgraded
+with 101. The real diagnostic response no longer includes battery temperature and retains
+named thermal zones. The signing certificate is unchanged; provisioned authentication
+assets match their inputs. Customer HTTPS metadata/certificate/configuration remains local
+and is absent from the APK/public source. The iPhone was disconnected before this update;
+the owner has been asked to reconnect and check default audio and the menu handle.
+
+Local APK SHA-256:
+`605c2dd283889db9581ac4fd3df78b8522ab6a4d3e6637d04ae38e43e5c2f612`.
+
 ## 0.1.9 browser touch and stream summary — 2026-10-11
 
 The complete AGENTS.md Android CI command, including the browser/Tesla modules,
@@ -47,8 +94,10 @@ the iPhone stayed connected, the video route remained WebRTC and the browser aud
 remained active, with no reported session or status-request errors. Established HTTPS
 connections came from a hotspot client, with loopback gateway-to-app traffic. These state
 observations do not prove audible continuity or identify the physical client as a Tesla.
-After 0.1.9 installation, the owner still needs to reload the HTTPS page and confirm dock
-activation, visible video and continuous sound before a Release is published.
+After reloading the 0.1.9 HTTPS page, the owner confirmed normal dock activation and
+continuous picture/audio in response to the requested two-minute smoke test. No real
+CarPlay screenshot or audio recording was published. This does not establish sustained
+performance or identify the physical browser client as the target Tesla.
 
 Local APK SHA-256:
 `645c5124532febbaa68edb5192f33349534547bbcb193547c3c0ca10df01d0a1`.

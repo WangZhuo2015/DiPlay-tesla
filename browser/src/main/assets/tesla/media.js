@@ -1,4 +1,4 @@
-import {createBrowserAudio} from './browser-audio.js';
+import {createBrowserAudio,createAudioPreference} from './browser-audio.js';
 import {createRtcHealth} from './rtc-health.js';
 
 export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},onStats=()=>{}}) {
@@ -9,6 +9,8 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     socket.send(JSON.stringify(data)); return true;
   };
   const audio = createBrowserAudio({send,onState:onAudio});
+  const audioPreference=createAudioPreference({audio,storedValue:localStorage.getItem('diplay-browser-audio'),
+    save:value=>localStorage.setItem('diplay-browser-audio',value)});
   function stopRtc() {
     displayed=false; onTransport('jpeg'); onStats({}); health=null;
     const old=peer; peer=null;
@@ -69,7 +71,10 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     connecting=true; const ticket=++generation;
     const ws=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/api/media`);
     socket=ws; ws.binaryType='arraybuffer';
-    ws.onopen=()=>{connecting=false;send({type:'hello',token:getToken(),rtc:localStorage.getItem('diplay-video')!=='jpeg' && typeof RTCPeerConnection==='function'});};
+    ws.onopen=()=>{
+      connecting=false;send({type:'hello',token:getToken(),rtc:localStorage.getItem('diplay-video')!=='jpeg' && typeof RTCPeerConnection==='function'});
+      audioPreference.start();
+    };
     ws.onmessage=event=>{
       if (socket!==ws) return;
       if (event.data instanceof ArrayBuffer) { audio.receive(event.data); return; }
@@ -91,7 +96,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     const old=socket;socket=null; if(old){old.onclose=null;old.close();}
     audio.disable();stopRtc();
   }
-  return {open,close,audio,
+  return {open,close,audio,audioPreference,
     useVideo(mode){localStorage.setItem('diplay-video',mode);close();open();},
     get displayed(){return displayed;},
     dispose(){close();clearInterval(timer);audio.close();}

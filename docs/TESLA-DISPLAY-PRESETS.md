@@ -45,7 +45,7 @@
 
 ## 网页音频与语音的区别
 
-开启浏览器音频后，现有 PCM 通道转发音乐与导航播放。通话、Siri 语音和麦克风目前仍由 Android 主机处理；网页上的 Siri 按键可以发起 Siri，但不提供网页语音通道。这里的 Android 指安装 DiPlay 的主机，不是要求更换 iPhone。
+0.1.10 默认开启浏览器音频，现有 PCM 通道转发音乐与导航播放；浏览器要求用户手势时，点一下页面会尝试启动声音。手动关闭会被本浏览器记住。通话、Siri 语音和麦克风目前仍由 Android 主机处理；网页上的 Siri 按键可以发起 Siri，但不提供网页语音通道。这里的 Android 指安装 DiPlay 的主机，不是要求更换 iPhone。
 
 当前网页没有麦克风采集或音频回传实现，Android 的麦克风采集和 CarPlay 上行仍走原有路线。网页播放声音不需要麦克风权限；采集声音则需要受信任的 HTTPS 等安全上下文、浏览器支持和用户授权。[MDN getUserMedia 文档](https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia)列出了这些条件。电脑的 localhost/127.0.0.1 是安全上下文特例，不能证明车内局域网 HTTP 地址也可以采集麦克风。HTTPS 是前提之一，是否能使用 Tesla 车内麦克风仍需实车验证。
 
@@ -57,9 +57,11 @@
 
 ![全屏适配缩放](testing/tesla/browser-017-scale-full-font130.jpg)
 ![右侧窗口适配缩放](testing/tesla/browser-017-scale-compact-font130.jpg)
-![顶部菜单与诊断摘要](testing/tesla/browser-019-status-full-font130.jpg)
-![紧凑菜单与诊断摘要](testing/tesla/browser-019-status-compact-font130.jpg)
-![阿拉伯语诊断摘要](testing/tesla/browser-019-status-ar-font130.jpg)
-![阿拉伯语窄窗口诊断摘要](testing/tesla/browser-019-status-narrow-ar-font130.jpg)
+![顶部菜单与诊断摘要](testing/tesla/browser-0.1.10-menu-full-font130.jpg)
+![收起的顶部把手](testing/tesla/browser-0.1.10-handle-full-font130.jpg)
+![紧凑菜单与诊断摘要](testing/tesla/browser-0.1.10-menu-compact-font130.jpg)
+![紧凑窗口收起把手](testing/tesla/browser-0.1.10-handle-compact-font130.jpg)
+![阿拉伯语诊断摘要](testing/tesla/browser-0.1.10-menu-ar-font130.jpg)
+![阿拉伯语窄窗口诊断摘要](testing/tesla/browser-0.1.10-menu-narrow-ar-font130.jpg)
 ![阿拉伯语右侧窗口](testing/tesla/browser-017-scale-ar-font130.jpg)
 ![阿拉伯语窄窗口](testing/tesla/browser-017-scale-narrow-ar-font130.jpg)

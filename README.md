@@ -4,7 +4,7 @@ This fork adds a Tesla browser output to the existing Android CarPlay receiver. 
 `tesla` APK composes the core with the `browser` library; the optional Node.js `proxy/`
 process is deployed independently. Tesla and the Android host share a local network.
 
-Version 0.1.9 offers Fit window, Low load (720p), Clear (1080p) and 2K clear (1440p)
+Version 0.1.10 offers Fit window, Low load (720p), Clear (1080p) and 2K clear (1440p)
 presets, with manual parameters collapsed by default. Presets use the
 actual viewport aspect ratio, retain the other window's dimensions and apply on the
 next connection. [Screen sources, preset values and public screenshots](docs/TESLA-DISPLAY-PRESETS.md)
@@ -24,8 +24,16 @@ part of deployment.
 The 0.1.9 local build preserves touch release coordinates and queues press/release
 events in order, fixing the browser path that could show a pressed dock icon without
 activating it. The menu now groups video transport, actual frame dimensions, decoded
-frame rate and available SoC/battery temperatures. [Validation and synthetic screenshots](docs/testing/tesla/README.md#019-browser-touch-and-stream-summary--2026-10-11)
-record the automated checks; real HTTPS touch and audible playback confirmation remain pending.
+frame rate and available SoC temperature. [Validation and synthetic screenshots](docs/testing/tesla/README.md#019-browser-touch-and-stream-summary--2026-10-11)
+record the automated checks. The owner confirmed working dock activation and continuous
+HTTPS picture/audio in the 0.1.9 local test.
+
+The 0.1.10 local build defaults browser audio on and remembers manual disabling. Browsers
+that require user interaction start audio on the next tap. The menu uses a top-center
+handle that retracts after two seconds, keeping only a 12 px strip visible. Diagnostics
+no longer label Android battery broadcasts as physical battery temperatures on powered hosts.
+Actual named thermal sensors remain visible. [Current checks and screenshots](docs/testing/tesla/README.md#0110-default-audio-and-retracting-menu--2026-10-11)
+include the default-on and saved-off behavior.
 
 Version 0.1.2 adds a full-viewport browser surface, hidden-by-default virtual keys, live diagnostics and static-screen protection. It retains H.264 WebRTC with automatic JPEG fallback and optional browser PCM
 audio with 80/200/400 ms buffering. Right/full resolutions remain independent. Vehicle

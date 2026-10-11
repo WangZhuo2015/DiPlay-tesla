@@ -8,8 +8,8 @@ android {
         applicationId = "com.diplay.tesla"
         minSdk = 25
         targetSdk = 37
-        versionCode = 10
-        versionName = "0.1.9"
+        versionCode = 11
+        versionName = "0.1.10"
     }
     localAuthenticationAssets?.let { sourceSets.getByName("main").assets.srcDir(it) }
     compileOptions {

@@ -1,6 +1,6 @@
 # DiPlay Tesla port
 
-Version 0.1.9 offers Fit window, Low load (720p), Clear (1080p) and 2K clear (1440p) browser display
+Version 0.1.10 offers Fit window, Low load (720p), Clear (1080p) and 2K clear (1440p) browser display
 presets, with manual parameters collapsed by default. Select the actual window mode
 in Tesla first. Presets preserve the viewport aspect ratio and change only the selected
 profile's size; frame rate and JPEG quality are shared. Saving waits for the next
@@ -123,8 +123,8 @@ can extract the accessory private key from such an APK. The APK signing key rema
    This browser stores the resulting session credential and reconnects without re-entering the code.
 4. Start the existing USB/wireless connection from DiPlay. Keep the app/session service
    running; Tesla video is rendered only in the browser, without a second Android video decoder.
-5. Audio defaults to the existing Android/car Bluetooth route. Optionally click
-   **Browser audio (experimental)** to play music and navigation PCM in the browser.
+5. Browser audio defaults on for music and navigation PCM. If autoplay is blocked,
+   pairing or tapping the page starts playback. The menu toggle remembers manual disabling.
    Choose an 80/200/400 ms buffer (200 ms default). Hidden pages, suspended audio contexts,
    expired readiness and backpressure release the route to Android. Calls, Siri and
    microphone capture remain local; the browser never captures a microphone.
@@ -136,8 +136,13 @@ the host releases a lost contact after one second without a heartbeat.
 From 0.1.9, normal releases retain the finger's final coordinates. Press and release
 boundaries are sent in order even when a previous request is pending; only intermediate
 motion may be coalesced. The menu summary groups the active video transport, actual
-received frame size, decoded frame rate and available SoC/battery temperatures.
+received frame size, decoded frame rate and available SoC temperature.
 Stale device samples remain marked as stale. Detailed diagnostics retain all sensor names.
+Version 0.1.10 removes the battery broadcast reading: powered hosts can report a battery
+that does not physically exist. The top-center menu handle retracts after two seconds,
+leaving a 12 px strip. Clicking it opens the menu; keyboard focus reveals the full button.
+Browser audio defaults on, starts at the next gesture if autoplay is blocked and remembers
+manual disabling per browser origin. Reconnection preserves that preference.
 
 ## Right window and full window
 
@@ -193,11 +198,12 @@ with an appropriate stable signing key before using this update flow.
 ## Browser protocol and boundaries
 
 Public GET routes: `/`, `/index.html`, `/app.js`, `/media.js`, `/browser-audio.js`,
-`/style.css`, `/rtc-licenses.txt`. HTTP API routes require `Authorization: Bearer PAIRING_CODE`.
+`/rtc-health.js`, `/display-presets.js`, `/browser-touch.js`, `/stream-summary.js`,
+`/style.css`, `/rtc-licenses.txt`. HTTP API routes require `Authorization: Bearer ACCESS_TOKEN`.
 WebSocket `/api/media` requires a same-host Origin and a first `hello` message containing
-the pairing code; only one authenticated media viewer owns the session. Foreign Origins are rejected;
+the access token; only one authenticated media viewer owns the session. Foreign Origins are rejected;
 the client never places the token in an API URL. A copied fragment token is removed from
-the browser address bar after loading and saved only in that tab's session storage.
+the browser address bar after loading and saved in this browser origin's local storage.
 
 | Endpoint | Method | Payload / result |
 | --- | --- | --- |
@@ -286,9 +292,9 @@ touch release, cropped/strided YUV conversion, API pairing/origin checks, update
 selection and independent proxy forwarding. Real iPhone authentication, sustained decoder
 performance, Tesla browser access and Bluetooth call routing require physical hardware.
 
-## Browser screen and diagnostics in 0.1.2
+## Browser screen and diagnostics
 
-The media surface occupies the complete viewport. A corner Menu button opens controls;
+The media surface occupies the complete viewport. A retracting top-center handle opens controls;
 virtual keys default to hidden, with an explicit toggle persisted in that browser.
 Visible keys float over the image and do not resize it or change touch coordinates.
 The image keeps its aspect ratio. **Use current window size** fills only the selected
@@ -296,7 +302,7 @@ right/full profile, proportionally bounds it to 2560×1440 and rounds to even di
 Saving does not interrupt CarPlay; reconnect requires confirmation inside the page.
 
 Live diagnostics in the menu show measured decoded FPS, dropped frames, queued audio
-and rebuffer counts. Android memory, battery/available thermal sensor temperatures and
+and rebuffer counts. Android memory, available named thermal sensor temperatures and
 CPU policies are sampled every two seconds on a separate browser worker. A snapshot
 older than six seconds is labeled stale; unavailable fields are unknown. Sensor names
 are preserved; policy limits are not interpreted as proof of thermal throttling.

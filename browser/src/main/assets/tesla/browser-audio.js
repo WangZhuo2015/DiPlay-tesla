@@ -7,6 +7,25 @@ export function decodeAudioPacket(buffer) {
   return {stream:header.getInt32(4,true),rate,channels,sequence:header.getUint32(16,true),pcm:new Int16Array(buffer,20)};
 }
 
+// A playback preference survives temporary route loss; only the driver's toggle saves it.
+export function createAudioPreference({audio,storedValue=null,save=()=>{}}) {
+  let wanted=storedValue!=='false';
+  return {
+    get wanted(){return wanted;},
+    start(){
+      if(!wanted)return Promise.resolve(false);
+      if(audio.enabled){audio.heartbeat();return Promise.resolve(true);}
+      // Do not suppress a user gesture behind a resume() awaiting autoplay permission.
+      return audio.enable();
+    },
+    toggle(){
+      wanted=!audio.enabled;save(String(wanted));
+      if(!wanted){audio.disable();return Promise.resolve(false);}
+      return audio.enable();
+    }
+  };
+}
+
 export function createBrowserAudio({send,onState=()=>{},createContext=()=>new (window.AudioContext||window.webkitAudioContext)({latencyHint:'playback'})}) {
   let context = null, enabled = false, generation = 0, bufferMs = 200;
   const streams = new Map(), nodes = new Set();
