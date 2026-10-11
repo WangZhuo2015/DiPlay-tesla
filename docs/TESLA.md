@@ -50,17 +50,25 @@ provide your external runtime authentication assets as in BUILD.md and use
 
 ### Signed releases and authentication
 
-The [Tesla 0.1.2 preview](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.2)
-contains a signed APK, a separate proxy archive and `SHA256SUMS.txt`. Install the APK
+The latest public download is the [Tesla 0.1.1 preview](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.1).
+The 0.1.2 Release remains a draft; its signed credential-bearing APK is local only. Install a local APK
 on the Android host. Its package is `com.diplay.tesla`; it installs separately from the
 `.debug` build. Keep the same APK signing key for subsequent release updates.
 
-**The 0.1.2 release APK includes the explicitly provisioned experimental MFi identity**
+**The local 0.1.2 standalone APK includes the explicitly provisioned experimental MFi identity**
 from the referenced local task, with package entries verified against those inputs.
 The identity stays outside Git; normal source builds remain credential-free.
 Actual iPhone authentication and Tesla vehicle behavior have not been tested for this version.
 APK signing and HTTPS certificates are separate from MFi authentication.
 See [the provenance notices](THIRD_PARTY_NOTICES.md#experimental-authentication-data).
+
+The 0.1.3 local test build tries ports 8080–8089 if a firmware service already occupies
+the preferred port. Connection settings show the actual URL; use that port for the
+independent proxy upstream as well. Other startup errors do not trigger port retries.
+It also recognizes a hotspot's actual Wi-Fi bridge membership. The
+[local V50 test](testing/tesla/README.md#013-v50-local-test--2026-10-11) authenticated
+an iPhone wirelessly and decoded real H.264 / WebRTC video in a computer browser;
+sustained audio and Tesla vehicle behavior remain unverified.
 
 For a signed build, set the four signing variables in
 [BUILD.md](BUILD.md#build-a-release-apk), then run:

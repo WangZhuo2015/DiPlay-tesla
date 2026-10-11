@@ -11,6 +11,7 @@ import java.io.Closeable
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 
 /** Encoded video and JPEG fallback live entirely inside the browser module. */
 class BrowserVideoOutput internal constructor(
@@ -108,7 +109,9 @@ class BrowserVideoOutput internal constructor(
             require(sps.size >= 4 && pps.isNotEmpty())
             parameters = START + sps + START + pps
             val profile = sps.sliceArray(1..3).joinToString("") { "%02x".format(it.toInt() and 255) }
-            val generation = ++id
+            // A reconnect creates a new output while the old worker may still
+            // send rtc-stop. Keep IDs unique across outputs on this WebSocket.
+            val generation = OFFER_IDS.incrementAndGet().also { id = it }
             origin = -1; sentFrames = 0; health = RtcHealth(System.nanoTime())
             peer = peerFactory { kind, value -> execute {
                 if (id == generation && peer != null) when (kind) {
@@ -165,5 +168,9 @@ class BrowserVideoOutput internal constructor(
         worker.shutdown()
         closeJpeg()
     }
-    companion object { private const val MAIN_SCREEN = 110; private val START = byteArrayOf(0,0,0,1) }
+    companion object {
+        private const val MAIN_SCREEN = 110
+        private val START = byteArrayOf(0,0,0,1)
+        private val OFFER_IDS = AtomicLong()
+    }
 }

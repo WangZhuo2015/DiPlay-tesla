@@ -1,7 +1,79 @@
 # Tesla port verification — 2026-10-11
 
-Checked on Windows with JDK 25, Android SDK 37 and a dedicated Android 10/API 29 emulator.
-The APK was installed only on that emulator. No iPhone or Tesla vehicle was connected.
+Build checks run on Windows with JDK 25 and Android SDK 37. Historical 0.1.0/0.1.1
+device checks used a dedicated Android 10/API 29 emulator without an iPhone or Tesla.
+The 0.1.3 local V50/iPhone test is recorded separately below.
+
+## 0.1.3 V50 local test — 2026-10-11
+
+The complete AGENTS.md CI command, browser/Tesla checks and signed standalone Release
+build passed for the initial port fix. The final bridge fix also passed the full CI,
+bringing unit totals to 2259 tests. The later WebRTC reconnect fix passed the complete
+CI again, for **2260 tests, zero failures/errors**. The two
+new socket tests cover an occupied listening port, cleanup of failed server attempts,
+the returned active port and stopping immediately on an unrelated startup failure.
+
+The credential-bearing APK installed on the owner's V50 (`MU3351`, Android 13,
+arm64-v8a) with versionCode 4 and the unchanged signing certificate. tepla
+(`local.carplay.tepla`) was temporarily uninstalled at the owner's request, retaining
+its data. The V50 firmware's `com.zte.web` service still owns port 8080. DiPlay now
+tries 8080–8089 after a bind failure and displays the successful port in Connection
+settings; unrelated startup failures retain their original error.
+
+On the actual V50, DiPlay started at port **8081**. The bundled identity passed the
+application's bootstrap validation; the private app directory contains the expected
+67-byte identity and 607-byte certificate with owner-only permissions. No authentication
+setup or AndroidRuntime startup error was observed. An ADB loopback forward returned
+the actual production page and authenticated status with no browser-server error.
+Live device diagnostics returned named thermal sensors and CPU policies; unavailable
+policy 0 limits remain unknown. The browser menu and hidden-key default were checked
+on this real service. The owner's previously selected iPhone and manual hotspot
+settings were copied locally for the wireless test, excluding old identities and
+pair records. The iPhone accepted iAP2 identification and MFi authentication, and the
+Wi-Fi configuration/start-session exchange completed. No video frame arrived: the
+listener used the radio's link-local IPv6 address while the actual IPv4 AP endpoint
+was on `br0`, whose sysfs bridge members include `wlan1`.
+
+The bridge fix uses observed member relationships and AP/upstream evidence, without
+assigning eligibility from interface names. Tests retain rejection of upstream,
+unknown and explicitly absent AP ownership. The initial full CI rerun failed three
+existing shell fixtures because Windows PATH lacked Git Bash; adding the installed
+Git Bash path and rerunning the complete CI passed. The final signed standalone
+Release build and lint also passed. After installing the bridge fix, the listener
+used the hotspot bridge's IPv4 address at port 7000. The real iPhone authenticated
+and connected; the computer browser decoded **1024×768 H.264 / WebRTC** CarPlay.
+A stationary page retained WebRTC with zero dropped frames, while changing screens
+produced new decoded frames. The browser Home action and touching the Music app
+were checked. Virtual keys were then hidden again. Browser audio was enabled, but
+no actual music buffer or sustained listening result had yet been verified.
+Saving a FULL profile and cancelling its reconnect dialog kept the original
+session running. Confirming reconnect applied 1920×1080 and retained RIGHT at
+1024×768. Video initially fell back to JPEG at about 14 fps; reloading the page
+established 1920×1080 WebRTC at about 16–21 fps with zero reported dropped frames.
+That run exposed reused RTC offer IDs across output instances. Offer IDs now remain
+unique across instances, so old stop/feedback/fallback messages cannot refer to the
+new video. A regression test injects an old fallback into a ready replacement and
+confirms the replacement stays on WebRTC. The final signed build was installed
+on the V50 and tested through FULL → RIGHT → FULL, confirming **1024×768 and
+1920×1080 WebRTC without a browser reload after either reconnect**. Observed frame
+rates during these screen transitions were about 21–23 fps, with zero reported
+dropped frames. The full profile fits the 1280×720 computer viewport without
+letterboxing. Both saved resolutions remain unchanged. Touching the Music app
+opened it in the full profile; the Home action also worked and keys were hidden
+again. Browser audio was enabled with the default 200 ms target. Music remained
+paused and the measured queue was zero; no sustained listening result is claimed.
+Actual phone screens and logs stay in the ignored local test directory, outside
+Git. Sustained music and an actual Tesla browser remain pending.
+
+Final local-only APK SHA-256:
+`7b09e0e254a33fe04a8784796dab26c2809d60818b91837685b64fcd5c5e6e9a`.
+
+Bridge-fix APK before the RTC reconnect fix (saved as `DiPlay-Tesla-0.1.3-before-reconnect.apk`):
+`486e4642fe1a9a1dcf97992437a631e2f10a28cc3f3d62d58484cf0a36df1a7d`.
+
+Initial port-fix local-only APK SHA-256 (saved as `DiPlay-Tesla-0.1.3-before-bridge.apk`):
+`98c5830825386f7b57b23a532f1734b1ac4f5c4ae29a587a79e069493d19c188`.
+The APK remains local; no credential-bearing APK was publicly uploaded.
 
 ## 0.1.2 screen, health and authentication checks — 2026-10-11
 
@@ -37,11 +109,20 @@ immediately reconnecting.
 - [Compact settings](browser-012-settings-compact-font130.jpg), [full settings](browser-012-settings-full-font130.jpg)
 - [Arabic compact](browser-012-menu-ar-compact-font130.jpg), [Arabic full](browser-012-menu-ar-full-font130.jpg)
 - [Arabic 360×640 narrow view](browser-012-menu-ar-narrow-font130.jpg)
+- [Inline reconnect confirmation, full view](browser-012-reconnect-full-font130.jpg)
+- [Expanded diagnostics, full view](browser-012-diagnostics-full-font130.jpg)
 
 The original browser-native reconnect confirmation blocked the automation session.
-It was replaced with an explicit inline confirmation dialog; automated click rechecking
-remains incomplete. Subsequent menu/RTL screenshots use a fixture that initializes the
-menu as visible; they verify rendering rather than interaction. At 360×640 the panel
+It was replaced with an explicit inline confirmation dialog. The earlier menu/RTL
+screenshots use a fixture that initializes the menu as visible; those screenshots verify
+rendering rather than interaction. After the blocked temporary tab closed, a fresh tab
+using the normal initial page passed actual browser click checks: open Menu, select FULL,
+fill current window dimensions and save, cancel reconnect, then confirm reconnect.
+Saving and cancelling retained the active 1024×768 surface and pending changes; confirming
+changed the fixture surface to 1920×1080 and cleared the pending state. Showing and hiding
+virtual keys retained the entire 1920×1080 surface. Expanding diagnostics also passed.
+These are local fixture interactions, not an iPhone or vehicle reconnection test.
+At 360×640 the panel
 scroll width equals its client width (327 px), with vertical scrolling for large fonts.
 The host sampler is tested against synthetic sysfs fixtures: invalid/NaN temperatures
 are omitted, actual names are retained, and unavailable CPU limits remain unknown.
@@ -178,9 +259,17 @@ Real iPhone authentication, Tesla browser/network restrictions, sustained WebRTC
 thermal behavior, Bluetooth audio, microphone/Siri/calls and reconnection require a parked
 vehicle and actual host. The source-only APK contains no accessory identity.
 
-## 0.1.2 release checksums
+## 0.1.2 local credential-bearing build checksums
 
 ```text
 2ae842b8776a7bd99a40cfcacf70160bee540be25c56ca8d5a66ae23e5bf058c  DiPlay-Tesla-0.1.2.apk
 219abbc69a6c51edaed6085a76be601c373571c1d33a52fdff970d49f21f16e3  DiPlay-Tesla-Proxy-0.1.2.zip
 ```
+
+Public APK upload was blocked by automatic approval review. A separate signed
+`DiPlay-Tesla-0.1.2-source-only.apk` was built with `DIPLAY_AUTH_ASSETS_DIR` unset;
+`:tesla:lintRelease :tesla:assembleRelease` passed. ZIP inspection confirmed that it
+contains no `assets/offline-mfi/` or credential containers in its assets. Its signing
+certificate is the same as above, and its SHA-256 is
+`d2554ada91df1505518cf5346867b4b7086d6f069a8fc5a46ff38a7379c2c205`.
+This candidate does not supply an accessory identity for standalone iPhone authentication.

@@ -11,6 +11,7 @@ internal data class HotspotInterfaceSnapshot(
     val up: Boolean,
     val addresses: List<InetAddress>,
     val wireless: Boolean,
+    val bridgeMembers: Set<String> = emptySet(),
 )
 
 internal data class HotspotNetworkSnapshot(
@@ -39,14 +40,28 @@ internal fun selectHotspotInterface(snapshot: HotspotNetworkSnapshot, log: (Stri
         val address = wirelessHostAddress(iface.addresses.filter {
             it is Inet6Address && it.isLinkLocalAddress || it is Inet4Address && it.isSiteLocalAddress
         }, iface.index)
+        // Some firmware puts the AP's IPv4 endpoint on a bridge, leaving its radio
+        // with only link-local IPv6. Require actual membership and AP evidence.
+        val apMembers = snapshot.interfaces.filter { member ->
+            member.name in iface.bridgeMembers && member.up && member.index > 0 && member.wireless &&
+                (snapshot.apInterfaces?.contains(member.name) == true ||
+                    snapshot.apInterfaces == null && snapshot.wifiUpstreams != null &&
+                    member.name !in snapshot.wifiUpstreams && member.name != snapshot.defaultInterface)
+        }
+        val bridgeAp = address is Inet4Address && apMembers.isNotEmpty() &&
+            !upstream && iface.name != snapshot.defaultInterface &&
+            iface.bridgeMembers.none { it in snapshot.wifiUpstreams.orEmpty() || it == snapshot.defaultInterface }
+        val observedBridgeAp = bridgeAp && apMembers.any { it.name in snapshot.apInterfaces.orEmpty() }
         val reason = when {
             !iface.up || iface.index <= 0 -> "interface_down"
             address == null -> "address_unavailable"
             owned -> "platform_ap"
+            observedBridgeAp -> "platform_ap_bridge"
             snapshot.apInterfaces != null -> "not_platform_ap"
             upstream -> "wifi_upstream"
             snapshot.defaultInterface == iface.name -> "default_network_without_ap_evidence"
             snapshot.wifiUpstreams == null -> "upstream_unobservable"
+            bridgeAp -> "wireless_ap_bridge"
             !iface.wireless -> "no_ap_evidence"
             else -> "wireless_non_upstream"
         }
@@ -55,8 +70,14 @@ internal fun selectHotspotInterface(snapshot: HotspotNetworkSnapshot, log: (Stri
             "scope=${(address as? Inet6Address)?.scopeId ?: 0} evidence=$reason " +
             "ap=${snapshot.apInterfaces?.let { if (owned) "yes" else "no" } ?: "unobservable"} " +
             "defaultConflict=${owned && (upstream || snapshot.defaultInterface == iface.name)}")
-        if (reason != "platform_ap" && reason != "wireless_non_upstream") null
-        else (if (owned) 100 else 0) to HotspotSelection(iface.name, iface.index, address!!)
+        val score = when (reason) {
+            "platform_ap_bridge" -> 200
+            "platform_ap" -> 100
+            "wireless_ap_bridge" -> 50
+            "wireless_non_upstream" -> 0
+            else -> return@mapNotNull null
+        }
+        score to HotspotSelection(iface.name, iface.index, address!!)
     }.sortedWith(compareByDescending<Pair<Int, HotspotSelection>> { it.first }.thenBy { it.second.name })
         .firstOrNull()?.second
 }

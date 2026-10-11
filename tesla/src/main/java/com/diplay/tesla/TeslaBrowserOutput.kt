@@ -58,13 +58,17 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
     @Volatile private var stage: String = context.getString(R.string.settings_browser_waiting)
     private var decoder: BrowserVideoOutput? = null
     private var server: BrowserServer? = null
+    @Volatile private var serverPort: Int? = null
 
     fun start() {
         Thread({
             try {
-                val next = BrowserServer(PORT, context.assets, token, frames, this, media)
-                try { next.start(5000, true); server = next }
-                catch (failure: Exception) { next.close(); throw failure }
+                val (port, next) = startBrowserServer(
+                    create = { BrowserServer(it, context.assets, token, frames, this, media) },
+                    start = { it.start(5000, true) },
+                )
+                server = next
+                serverPort = port
             } catch (failure: Exception) { serverError = "${failure.javaClass.simpleName}: ${failure.message}" }
         }, "tesla-browser-start").apply { isDaemon = true; start() }
     }
@@ -131,7 +135,7 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
         .put("transport", media.transport)
         .put("device", diagnostics.snapshot() ?: JSONObject.NULL)
 
-    override fun connectionSummary(): String = serverError ?: addresses().firstOrNull()?.let { "http://$it:$PORT" }
+    override fun connectionSummary(): String = serverError ?: links().firstOrNull()
         ?: context.getString(R.string.settings_browser_waiting)
     override fun displaySummary(): String {
         val localized = AppLocale.wrap(context)
@@ -140,7 +144,7 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
         return "${modeLabel(localized, display.mode)} · $dimensions"
     }
     override fun showConnectionSettings(activity: Activity, saved: () -> Unit) {
-        val links = addresses().map { "http://$it:$PORT" }
+        val links = links()
         val link = links.firstOrNull()?.let { "$it/#token=$token" }.orEmpty()
         val info = TextView(activity).apply {
             text = activity.getString(R.string.settings_browser_pairing_hint) + "\n\n" +
@@ -206,6 +210,7 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
         }
         dialog.show()
     }
+    private fun links(): List<String> = serverPort?.let { port -> addresses().map { "http://$it:$port" } }.orEmpty()
     private fun addresses(): List<String> = runCatching {
         Collections.list(NetworkInterface.getNetworkInterfaces()).filter { it.isUp && !it.isLoopback }
             .flatMap { Collections.list(it.inetAddresses) }
@@ -216,7 +221,6 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
         if (mode == BrowserMode.RIGHT) R.string.settings_browser_right else R.string.settings_browser_full)
     private fun dp(context: Context, value: Int) = (context.resources.displayMetrics.density * value).toInt()
     companion object {
-        const val PORT = 8080
         private const val PANEL_PADDING_DP = 24
         private const val CONTROL_HEIGHT_DP = 48
     }

@@ -41,6 +41,7 @@ internal class ManualHotspotInterfaces(
                     if (iface.isLoopback) null else HotspotInterfaceSnapshot(
                         iface.name, iface.index, iface.isUp, Collections.list(iface.inetAddresses),
                         wirelessInterfaceName(iface.name) || File("/sys/class/net/${iface.name}/wireless").isDirectory,
+                        File("/sys/class/net/${iface.name}/brif").list()?.toSet().orEmpty(),
                     )
                 }.getOrNull()
             }

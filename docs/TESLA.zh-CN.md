@@ -29,9 +29,12 @@ $env:ANDROID_HOME = 'G:\Android' # 改为你的 SDK 路径
 
 ### Release APK 与认证
 
-[Tesla 0.1.2 预览版](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.2) 提供签名 APK、独立 proxy 压缩包和 `SHA256SUMS.txt`。APK 安装在 Android 主机上，包名为 `com.diplay.tesla`；它与 `.debug` 测试包分别安装。后续更新须保留相同签名密钥。
+[最新公开版为 Tesla 0.1.1](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.1)。0.1.2 Release 仍为草稿，含认证资产的签名 APK 仅保存在本地。APK 安装在 Android 主机上，包名为 `com.diplay.tesla`；它与 `.debug` 测试包分别安装。后续更新须保留相同签名密钥。
 
-**0.1.2 发布 APK 已使用本地配置的实验性 MFi 资产打包。** 资产沿用“检查 ADB 连接”任务为本项目准备的同一份身份；已核对 APK 内文件与输入一致。认证资产没有进入 Git，普通源码构建仍需自行配置 `DIPLAY_AUTH_ASSETS_DIR`。尚未用这个新版进行实际 iPhone 认证或 Tesla 实车验证。
+**0.1.2 本地独立连接 APK 已使用此前配置的实验性 MFi 资产打包。** 资产沿用“检查 ADB 连接”任务为本项目准备的同一份身份；已核对 APK 内文件与输入一致。认证资产没有进入 Git，普通源码构建仍需自行配置 `DIPLAY_AUTH_ASSETS_DIR`。实际 iPhone 认证或 Tesla 实车验证仍需单独记录。
+
+0.1.3 本地测试版在系统服务占用默认端口时依次尝试 8080–8089，连接页显示实际地址。独立 proxy 的上游也应填写实际端口；其他启动错误不会触发端口重试。
+它也根据实际 Wi-Fi 网桥成员选择热点地址。[V50 本地测试](testing/tesla/README.md#013-v50-local-test--2026-10-11)已通过 iPhone 无线认证，并在电脑浏览器解码真实 H.264 / WebRTC CarPlay 画面；持续音频与 Tesla 实车表现仍待验证。
 
 DiPlay 和 DiPlay-CN 的[公开公告](THIRD_PARTY_NOTICES.md#experimental-authentication-data)说明实验身份的固件来源。这不是 Apple 为本项目新签发的身份，Android APK 签名和 HTTPS 证书也各自独立。
 

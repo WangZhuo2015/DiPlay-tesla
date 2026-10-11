@@ -14,10 +14,15 @@ or an explicit Apply and reconnect. Selected DiPlay-CN locale, connection-hint a
 behaviors are adapted for this output.
 
 See [Tesla setup and boundaries](docs/TESLA.md) and [optional proxy](proxy/README.md).
-Download the [Tesla 0.1.2 signed preview](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.2).
-The independent proxy accepts TLS certificates for HTTPS; Android:8080 remains HTTP.
-The 0.1.2 release APK explicitly bundles the locally provisioned experimental MFi identity.
-Actual iPhone authentication and Tesla vehicle performance still require testing.
+The latest public APK is the [Tesla 0.1.1 signed preview](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.1).
+The 0.1.2 Release remains a draft; its credential-bearing APK is available locally only.
+The independent proxy accepts TLS certificates for HTTPS; the Android browser service uses HTTP.
+The 0.1.3 local test build tries ports 8080–8089 when firmware already owns 8080;
+the Connection settings show the actual URL. Set the proxy upstream to that actual port.
+Local standalone APKs bundle the explicitly provisioned experimental MFi identity.
+The 0.1.3 [local V50 test](docs/testing/tesla/README.md#013-v50-local-test--2026-10-11)
+authenticated an iPhone wirelessly and displayed real H.264 / WebRTC CarPlay.
+Sustained audio and Tesla vehicle performance still require testing.
 Build with `./gradlew :tesla:assembleDebug`; source-only APKs still require externally
 provisioned CarPlay authentication assets to connect an iPhone. The original DiPlay
 documentation follows.
@@ -85,4 +90,4 @@ This repository starts with a clean public source snapshot. Local research, test
 
 ## Local release packaging
 
-The release APK intentionally contains the experimental accessory identity. The Git repository and source archive exclude all accessory and Android signing keys; tests generate synthetic identities at runtime. Source/CI builds omit runtime identity assets by default. Local release builds explicitly select an external asset directory. Publishing the APK makes its bundled identity extractable; building locally does not preserve that identity's confidentiality.
+Local standalone builds explicitly select an external asset directory and contain the experimental accessory identity. The public Tesla 0.1.0/0.1.1 APKs and source/CI builds omit it. The Git repository and source archive exclude all accessory and Android signing keys; tests generate synthetic identities at runtime. Recipients of a credential-bearing APK can extract its identity.

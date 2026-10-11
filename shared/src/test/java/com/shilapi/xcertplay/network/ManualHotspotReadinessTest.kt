@@ -42,6 +42,26 @@ class ManualHotspotReadinessTest {
         }
     }
 
+    @Test fun bridgedApUsesItsIpv4EndpointInsteadOfUnrelatedRadioLinkLocalAddresses() {
+        val bridge = iface("br0", 36).copy(bridgeMembers = setOf("wlan1", "sipa_usb0"))
+        val radios = listOf(iface("wlan0", 30, addresses = listOf(ipv6)),
+            iface("wlan1", 31, addresses = listOf(ipv6)))
+        for (ap in listOf(null, setOf("wlan1"))) {
+            val selected = select(snapshot(bridge, *radios.toTypedArray(), ap = ap))!!
+            assertEquals("br0", selected.name)
+            assertEquals(ipv4, selected.address)
+        }
+    }
+
+    @Test fun bridgeMembershipCannotAuthorizeAnUpstreamOrUnknownRadio() {
+        val bridge = iface("br0").copy(bridgeMembers = setOf("wlan0"))
+        assertNull(select(snapshot(bridge)))
+        assertNull(select(snapshot(bridge, iface(), wifi = setOf("wlan0"), default = "wlan0")))
+        assertNull(select(snapshot(bridge, iface(), wifi = null)))
+        assertNull(select(snapshot(bridge, iface(), ap = emptySet())))
+        assertEquals("wlan0", select(snapshot(bridge, iface(), default = "br0"))?.name)
+    }
+
     @Test fun staApConcurrencyRejectsWifiUpstream() {
         for (ap in listOf("wlan1", "ap0", "swlan0")) {
             assertEquals(ap, select(snapshot(iface(), iface(ap), wifi = setOf("wlan0"), default = "wlan0"))?.name)

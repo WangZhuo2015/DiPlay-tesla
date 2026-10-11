@@ -6,7 +6,7 @@
 
 支持右侧窗口／全屏各自保存分辨率、双指触控、Siri 与媒体快捷键。分辨率保存后在下次连接生效，也可明确选择“应用并重新连接”。结合 DiPlay-CN 的中文默认策略、连接阶段提示与无变化不重连原则。
 
-[Tesla 0.1.2 签名预览 APK](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.2) · [Tesla 构建、连接与功能边界](docs/TESLA.zh-CN.md) · [独立 proxy](proxy/README.md)。独立 proxy 支持配置证书的 HTTPS 入口；Android 8080 仍为 HTTP。0.1.2 发布 APK 已内置此前配置的实验性 MFi 身份；新版实际 iPhone 认证和实车表现仍需验证。源码构建 `./gradlew :tesla:assembleDebug`；独立连接版本需提供获授权的外部认证资产。下面保留原版 DiPlay 的说明。
+[最新公开 APK：Tesla 0.1.1](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.1) · [Tesla 构建、连接与功能边界](docs/TESLA.zh-CN.md) · [独立 proxy](proxy/README.md)。0.1.2 Release 仍是草稿，含此前配置的实验性 MFi 身份的签名 APK 仅保存在本地。0.1.3 已在 V50 上通过 iPhone 无线认证并收到真实 WebRTC 画面，持续音频与 Tesla 实车表现仍待验证。独立 proxy 支持配置证书的 HTTPS 入口；Android 浏览器服务为 HTTP。0.1.3 本地测试版在端口被固件占用时依次尝试 8080–8089，连接页显示实际地址；proxy 的上游应使用该实际端口。源码构建 `./gradlew :tesla:assembleDebug`；独立连接版本需提供获授权的外部认证资产。下面保留原版 DiPlay 的说明。
 
 为兼容的比亚迪安卓车机提供有线及无线 CarPlay，采用 DiAuto 风格界面。
 

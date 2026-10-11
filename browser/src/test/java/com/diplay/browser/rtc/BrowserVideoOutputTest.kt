@@ -12,6 +12,58 @@ import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class) @Config(sdk=[29])
 class BrowserVideoOutputTest {
+    @Test fun staleCommandsFromPreviousOutputCannotStopReconnectedVideo() {
+        val oldOffer = CountDownLatch(1)
+        val newOffer = CountDownLatch(1)
+        val commandsDrained = CountDownLatch(1)
+        var oldId = 0L
+        var newId = 0L
+        fun output() = BrowserVideoOutput(object : MediaSink {}, {}) { event ->
+            object : RtcPeer {
+                override fun start(profile: String) {
+                    event("offer", "test")
+                    event("connected", "")
+                }
+                override fun answer(sdp: String) { commandsDrained.countDown() }
+                override fun send(frame: ByteArray, timestamp: Long) = true
+                override fun close() {}
+            }
+        }
+        val old = output()
+        val next = output()
+        val config = byteArrayOf(1,0x42,0,0x1f,-1,-31,0,4,0x67,0x42,0,0x1f,1,0,2,0x68,0)
+        try {
+            old.onVideoConfig(110, config)
+            old.attach(true) { data ->
+                if (data.getString("type") == "rtc-offer") {
+                    oldId = data.getLong("id")
+                    oldOffer.countDown()
+                }
+                true
+            }
+            assertTrue(oldOffer.await(2, TimeUnit.SECONDS))
+            next.onVideoConfig(110, config)
+            next.attach(true) { data ->
+                if (data.getString("type") == "rtc-offer") {
+                    newId = data.getLong("id")
+                    newOffer.countDown()
+                }
+                true
+            }
+            assertTrue(newOffer.await(2, TimeUnit.SECONDS))
+            assertNotEquals(oldId, newId)
+            old.close()
+            next.command(JSONObject().put("type", "rtc-ready").put("id", newId))
+            next.command(JSONObject().put("type", "rtc-fallback").put("id", oldId))
+            next.command(JSONObject().put("type", "rtc-answer").put("id", newId).put("sdp", "test"))
+            assertTrue(commandsDrained.await(2, TimeUnit.SECONDS))
+            assertEquals("webrtc", next.transport)
+        } finally {
+            old.close()
+            next.close()
+        }
+    }
+
     @Test fun videoSwitchWaitsForBrowserReadinessAndRetainsEncodedFrames() {
         val sent=CountDownLatch(1);val offer=CountDownLatch(1);var id=0L;var jpegFrames=0
         val jpeg=object:MediaSink{override fun onVideoFrame(type:Int,naluBytes:ByteArray){jpegFrames++}}
