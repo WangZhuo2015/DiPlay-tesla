@@ -52,6 +52,16 @@ then reconnected; the owner confirmed default audio and the menu handle through 
 Local APK SHA-256:
 `605c2dd283889db9581ac4fd3df78b8522ab6a4d3e6637d04ae38e43e5c2f612`.
 
+Public upload of this credential-bearing APK was rejected by automatic approval review,
+even after explicit owner authorization and the completed local checks. No APK upload
+executed; the 0.1.10 Release remains a draft with the independent proxy/checksum assets.
+A separate signed source-only candidate was built with authentication assets unset.
+Release lint/build and signature verification passed; ZIP/assets checks confirm no
+offline-MFi or credential containers and no private HTTPS configuration. Its SHA-256 is
+`5c9a6f68d90c5f58ebcb9a034993a373cd47ce6a459c3edfe04e7bc10d939594`.
+It cannot provide standalone iPhone authentication. The installed V50 build is the
+credential-bearing, owner-tested build; it was not replaced by the source-only candidate.
+
 ## 0.1.9 browser touch and stream summary — 2026-10-11
 
 The complete AGENTS.md Android CI command, including the browser/Tesla modules,

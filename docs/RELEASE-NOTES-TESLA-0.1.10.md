@@ -14,4 +14,6 @@
 
 包名 `com.diplay.tesla`，versionCode 11，版本 `0.1.10`，沿用原签名。独立连接 APK 包含此前明确配置的实验性 MFi 资产，文件与输入一致；接收者可从 APK 提取这份认证私钥。认证资产没有进入源码，普通源码构建仍需自行配置。具体 HTTPS 域名、证书和设备路由数据不随 APK 分发。
 
+公开上传含凭证 APK 被自动审批拒绝，上传没有执行。Release 目前保留草稿，含认证的可连接版仅在本地；无认证的签名预览候选包也已检查完成，但尚未发布，不能独立认证 iPhone。
+
 详细记录与图片见[验证记录](testing/tesla/README.md#0110-default-audio-and-retracting-menu--2026-10-11)。

@@ -46,7 +46,7 @@ behaviors are adapted for this output.
 
 See [Tesla setup and boundaries](docs/TESLA.md) and [optional proxy](proxy/README.md).
 The latest public APK is the [Tesla 0.1.1 signed preview](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.1).
-The 0.1.2 Release remains a draft; its credential-bearing APK is available locally only.
+The 0.1.2 and 0.1.10 Releases remain drafts; credential-bearing APKs are available locally only.
 The independent proxy accepts TLS certificates for HTTPS; the Android browser service uses HTTP.
 The 0.1.3 local test build tries ports 8080–8089 when firmware already owns 8080;
 the Connection settings show the actual URL. Set the proxy upstream to that actual port.
