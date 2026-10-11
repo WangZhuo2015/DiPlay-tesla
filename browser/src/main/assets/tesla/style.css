@@ -16,7 +16,7 @@ header { display:flex; align-items:center; justify-content:space-between; gap:va
 header h1 { margin:0; }
 .menuActions { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr)); grid-auto-rows:1fr; gap:var(--gap); margin-bottom:var(--gap); }
 .menuActions button { white-space:normal; }
-.presetActions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); grid-auto-rows:1fr; gap:var(--gap); }
+.presetActions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-auto-rows:1fr; gap:var(--gap); }
 .presetActions button { white-space:normal; }
 .presetActions button[aria-pressed=true] { border-color:var(--accent); outline:1px solid var(--accent); }
 .displaySummary { font-variant-numeric:tabular-nums; }

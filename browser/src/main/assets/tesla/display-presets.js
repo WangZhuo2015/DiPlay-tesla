@@ -4,7 +4,8 @@ export function displayPreset(kind, width, height, density = 1) {
   const options = {
     fit: {width:1920,height:1080,fps:20,jpegQuality:80,upscale:false},
     light: {width:1280,height:720,fps:15,jpegQuality:70,upscale:false},
-    clear: {width:1920,height:1080,fps:20,jpegQuality:85,upscale:true}
+    clear: {width:1920,height:1080,fps:20,jpegQuality:85,upscale:true},
+    qhd: {width:2560,height:1440,fps:20,jpegQuality:85,upscale:true}
   }[kind];
   if (!options) return null;
   const pixels = Math.min(density, 2);

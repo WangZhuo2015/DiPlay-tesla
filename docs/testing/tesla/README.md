@@ -4,6 +4,44 @@ Build checks run on Windows with JDK 25 and Android SDK 37. Historical 0.1.0/0.1
 device checks used a dedicated Android 10/API 29 emulator without an iPhone or Tesla.
 The local V50/iPhone tests are recorded separately below.
 
+## 0.1.6 2K preset and audio explanation — 2026-10-11
+
+The complete AGENTS.md Android CI command, browser/Tesla tests and debug lint/build
+passed on the final assets: **2264 unit tests, zero failures/errors**. All **16 Node
+audio/RTC/preset/proxy tests** passed. The new 2K test checks 16:9 full, 4:3 right,
+8:9 right and wide viewports. The existing density/bounds test now includes 2K.
+One intermediate CI run hit a BindException in the existing startup test, which
+assumes a free port adjacent to an ephemeral port. The subsequent complete run passed.
+The initial sandboxed Node run could not connect to loopback test servers; the normal
+host run passed. No production startup or audio routing code changed in this update.
+
+Production browser assets with a synthetic local fixture verified 2560×1440 full and
+1920×1440 compact 2K drafts, equal-height preset buttons, preservation of the other
+profile, cancellation, persistence and the pending-reconnect flow. The fixture uses
+existing grid images; it does not verify negotiated 2K video. Chinese, English and
+Arabic copy rendered. Full 1920×1080, compact 1024×768 and Arabic 360×740 screenshots
+use 130% font size. The narrow RTL panel scrolls vertically without horizontal
+overflow (`scrollWidth == clientWidth`, 327 px). All five public JPEGs have no EXIF
+fields and contain only synthetic content. See [the guide](../../TESLA-DISPLAY-PRESETS.md).
+
+The signed local 0.1.6 standalone APK passed Release lint/build and archive integrity
+checks. Its final browser files and authentication assets matched the provisioned
+inputs; the signing certificate is unchanged. It installed on the V50 as versionCode 7.
+Immediately after the update, the status API confirmed the iPhone connected, with the
+original RIGHT 1024×768, FULL 1920×1080, 20 fps and JPEG quality 80 settings retained.
+The actual production page showed the new 2K preset and clarified audio explanation.
+The user then operated the display settings, so those later selections were left to
+the user. Sustained 2K WebRTC and operation in the target Tesla remain unverified.
+
+The audio explanation describes the existing architecture: browser PCM playback
+handles music/navigation, while voice/call output and microphone capture remain on
+Android. Web microphone capture and its uplink are not implemented. On this V50,
+`media.audio_flinger` is unavailable, so the Android voice route is not validated as
+audible. This update does not add browser call/Siri audio or microphone support.
+
+Local APK SHA-256:
+`055a8036ea3cdadbf6a54e46fd429832f0b2dce050b433ec66f68b7c85f86ac8`.
+
 ## 0.1.5 display presets — 2026-10-11
 
 The complete AGENTS.md Android CI command, browser/Tesla tests and debug lint/build
