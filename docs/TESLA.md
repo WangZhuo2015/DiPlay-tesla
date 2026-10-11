@@ -1,6 +1,6 @@
 # DiPlay Tesla port
 
-Version 0.1.7 offers Fit window, Low load (720p), Clear (1080p) and 2K clear (1440p) browser display
+Version 0.1.8 offers Fit window, Low load (720p), Clear (1080p) and 2K clear (1440p) browser display
 presets, with manual parameters collapsed by default. Select the actual window mode
 in Tesla first. Presets preserve the viewport aspect ratio and change only the selected
 profile's size; frame rate and JPEG quality are shared. Saving waits for the next
@@ -17,6 +17,10 @@ For HTTPS on the hotspot host itself, use the independent
 [rooted Android gateway](../proxy/android-root/README.md). Domain, bind address, port,
 loopback upstream and device certificate paths are configurable in ignored local JSON.
 The APK and public repository do not contain customer HTTPS configuration or keys.
+The Android connection page can read a locally installed origin-only profile, showing
+and copying the HTTPS entry first. Certificate/proxy setup remains independent. The
+vehicle needs its normal hotspot default gateway; Windows route changes are not part
+of deployment. See the gateway guide for the metadata installer and Android-only checks.
 
 The 2K preset fits the current viewport inside 2560×1440: 2560×1440 for 16:9,
 1920×1440 for 4:3 and 1280×1440 for 8:9. It requires more processing than 1080p.

@@ -4,6 +4,46 @@ Build checks run on Windows with JDK 25 and Android SDK 37. Historical 0.1.0/0.1
 device checks used a dedicated Android 10/API 29 emulator without an iPhone or Tesla.
 The local V50/iPhone tests are recorded separately below.
 
+## 0.1.8 Android HTTPS entry and hotspot path — 2026-10-11
+
+The complete AGENTS.md Android CI command, including the browser/Tesla modules,
+passed: **2269 unit tests, zero failures/errors**, with all required lint/debug builds.
+All **20 Node tests** passed. Five new Android tests cover bounded private metadata,
+valid/invalid HTTPS origins, direct-address fallback and the actual Connection dialog's
+Copy link action producing an HTTPS URL with an owner-opened six-digit pairing code.
+Release lint and the signed standalone build passed. Browser/authentication assets
+matched their provisioned inputs; the signing certificate is unchanged. Neither the
+customer hostname nor HTTPS certificate/key is packaged in the APK.
+
+The local signed APK installed on the V50 as versionCode 9, versionName 0.1.8. Display
+profiles and private HTTPS entry metadata survived the update. The metadata file has
+the application's UID, mode 600 and matching SELinux app-data context. The root installer
+accepted generated origin-only metadata; an invalid HTTP entry was rejected without
+changing the existing file. This metadata changes only the existing Connection summary,
+address list and copied link; the Android proxy remains independent of CarPlay.
+
+The reference's rooted-host approach was checked against the current device: Android
+owns the local address alias and independent Caddy TLS listener. A temporary network
+namespace client was attached to the actual Android hotspot bridge, with only its normal
+hotspot default gateway. An explicit DNS query to the hotspot DNS server returned the
+configured entry address. Normal hostname-based HTTPS then returned 200 with trusted
+certificate verification and byte-identical APK page content; an unpaired API request
+returned 401 and a foreign Origin returned 403. No forced DNS override, destination host
+route, Windows configuration or certificate-warning bypass was used. The temporary client
+interfaces/process were removed. This verifies the Android bridge path with a simulated
+client, not the physical Tesla's Wi-Fi/browser behavior.
+
+The existing gateway configuration continues to serve current APK assets and WSS.
+The gateway was not restarted for this update; hotspot automation and firmware services
+were left running. Customer domain/address/certificate configuration remains in ignored
+local files and on the V50. The public [gateway guide](../../../proxy/android-root/README.md)
+contains templates and Android deployment instructions only. The iPhone was disconnected
+during these checks, so actual 0.1.8 HTTPS CarPlay video/audio and operation in the target
+Tesla remain to be tested. No screen layout changed in 0.1.8.
+
+Local APK SHA-256:
+`e81a0468954a0924a3b7f2bbe303a699cde2b4b3d6734e17b9778832b6969642`.
+
 ## 0.1.7 fit scaling and local HTTPS — 2026-10-11
 
 The complete AGENTS.md Android CI command passed: **2264 unit tests, zero failures/errors**,

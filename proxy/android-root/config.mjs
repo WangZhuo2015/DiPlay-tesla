@@ -77,7 +77,8 @@ mkdir -p "$BASE/state" "$BASE/config" || exit 1
 export XDG_DATA_HOME="$BASE/state" XDG_CONFIG_HOME="$BASE/config"
 "$BASE/caddy" start --config "$BASE/Caddyfile" --adapter caddyfile --pidfile "$BASE/caddy.pid" > "$BASE/caddy.log" 2>&1
 `;
-  return {caddyfile,boot};
+  const entry=JSON.stringify({version:1,url:`https://${c.authority}`},null,2)+'\n';
+  return {caddyfile,boot,entry};
 }
 
 if (process.argv[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
@@ -87,5 +88,6 @@ if (process.argv[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url)
   await mkdir(args[3],{recursive:true});
   await writeFile(resolve(args[3],'Caddyfile'),generated.caddyfile,{mode:0o600});
   await writeFile(resolve(args[3],'diplay-https.sh'),generated.boot,{mode:0o700});
-  console.log('Generated local Caddyfile and boot script; certificate files are not read or copied.');
+  await writeFile(resolve(args[3],'tesla-https-entry.json'),generated.entry,{mode:0o600});
+  console.log('Generated local gateway files and Android entry metadata; certificate files are not read or copied.');
 }

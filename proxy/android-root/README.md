@@ -6,6 +6,16 @@
 只在电脑生成配置。Caddy 自动转发 WebSocket；WebRTC 视频仍走车机与 Android 的
 直接 UDP 连接，音乐/导航 PCM 走 WSS。这里不提供 TURN 或互联网中继。
 
+车机只需连接 Android 热点并打开自己的域名，不需要修改车机路由或代理。
+地址别名建立在 Android 上；域名解析到该地址后，车机经热点的默认网关到达本机
+HTTPS 服务。电脑同时连接多个网络时，其请求可能走另一个网关；那属于电脑测试
+环境，不能作为车机部署步骤。本方案不要求 Windows 配置或管理员操作。
+
+参考实现有两种：root 主机用本机地址别名与独立 TLS 代理；无 root 主机可通过
+独立 VpnService 建立本地地址，再使用非特权 TLS 端口。VPN 地址接力依赖具体
+Android 固件，在其他设备上需要验证，也可能与 CarPlay 的 VPN 冲突。本目录提供
+的是 root 方案，不在已有 root 地址上再叠加 VPN。
+
 ## 先准备自己的域名和证书
 
 1. 准备自己控制的域名、覆盖该域名的有效证书链和私钥，车机必须信任签发机构。
@@ -35,6 +45,27 @@ node proxy/android-root/config.mjs --config .private/https-gateway/config.json -
 `http://127.0.0.1:PORT`；不能用这个入口请求任意地址。生成器不读取证书或私钥，
 生成文件只引用设备上的路径。真实 JSON、生成文件、证书、日志和 APK 都不提交 Git。
 公开仓库仅保存模板、生成器与说明，APK 不打包 HTTPS 证书或域名。
+
+## Android 连接页显示自己的 HTTPS 入口（0.1.8+）
+
+生成器同时输出 `tesla-https-entry.json`，仅含格式版本和 HTTPS 来源地址，
+不含证书、私钥、上游或设备路径。代理安装验证通过后，将该文件和安装脚本推到
+Android 临时目录：
+
+```powershell
+adb push .private/https-gateway/generated/tesla-https-entry.json /data/local/tmp/tesla-https-entry.json
+adb push proxy/android-root/install-entry.sh /data/local/tmp/diplay-install-entry.sh
+adb shell su -c 'sh /data/local/tmp/diplay-install-entry.sh com.diplay.tesla /data/local/tmp/tesla-https-entry.json'
+```
+
+多个 ADB 设备连接时为每条命令指定 `-s 目标设备`。脚本检查应用私有目录、UID、
+元数据格式与符号链接，将文件安装到该应用的 `no_backup` 目录，权限 600，
+不修改路由、代理、热点或 CarPlay。调试 APK 使用 `com.diplay.tesla.debug`。
+
+重新打开 Android“连接 → Tesla 浏览器”，摘要、地址列表和“复制链接”优先使用
+配置中的 HTTPS 域名。直接 HTTP 地址仍用于独立排障。移除私有目录中的该元数据
+文件即恢复原有地址显示。无效配置退回直接地址；不自动绕过证书校验或重连 iPhone。
+这个文件只改变入口显示，域名可达性与证书仍由独立 Android 代理负责。
 
 ## 验证后安装
 

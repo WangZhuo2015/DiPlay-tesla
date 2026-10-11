@@ -212,7 +212,9 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
         }
         dialog.show()
     }
-    private fun links(): List<String> = serverPort?.let { port -> addresses().map { "http://$it:$port" } }.orEmpty()
+    private fun links(): List<String> = serverPort?.let { port ->
+        BrowserEntryProfile.links(BrowserEntryProfile.load(context), addresses().map { "http://$it:$port" })
+    }.orEmpty()
     private fun addresses(): List<String> = runCatching {
         Collections.list(NetworkInterface.getNetworkInterfaces()).filter { it.isUp && !it.isLoopback }
             .flatMap { Collections.list(it.inetAddresses) }

@@ -109,6 +109,9 @@ node proxy/server.mjs
 [Android 本机 HTTPS 配置](../proxy/android-root/README.md)。域名、绑定地址、端口、
 本机 HTTP 上游与证书路径均由本地 JSON 配置；真实配置和证书不进入 APK 或 GitHub。
 Caddy 直接转发当前 APK 的页面与 WSS，WebRTC 仍在车辆与主机间直连。
+0.1.8 的 Android 连接页可读取本机私有入口元数据，优先显示和复制 HTTPS 域名。
+车辆只需连接 Android 热点，使用其默认网关，不需要配置电脑或车机路由。
+root 主机使用 Android 地址别名与独立 Caddy；无需再叠加 VPN 本地入口。
 
 0.1.0 APK 的 `8080` 端口只提供 HTTP，不能把地址直接改为 `https://`。从 0.1.1 起，独立 proxy 可以使用外部 TLS 证书提供 HTTPS：
 

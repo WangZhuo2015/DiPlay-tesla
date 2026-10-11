@@ -32,3 +32,8 @@ test('HTTPS authority and upstream origin remain distinct for standard and custo
   assert.ok(!boot.includes('ip addr add'));
   assert.ok(generateGateway({...local,addLoopbackAlias:true}).boot.includes("ip addr add '192.0.2.10/32' dev lo"));
 });
+test('Android entry metadata contains only the HTTPS origin, independently of TLS and CarPlay',()=>{
+  assert.deepEqual(JSON.parse(generateGateway(local).entry),{version:1,url:'https://carplay.example.invalid'});
+  assert.deepEqual(JSON.parse(generateGateway({...local,httpsPort:8443}).entry),{version:1,url:'https://carplay.example.invalid:8443'});
+  assert.ok(!generateGateway(local).entry.includes('/data/'));
+});
