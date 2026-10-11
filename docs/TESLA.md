@@ -1,5 +1,12 @@
 # DiPlay Tesla port
 
+Version 0.1.5 offers Fit window, Low load (720p) and Clear (1080p) browser display
+presets, with manual parameters collapsed by default. Select the actual window mode
+in Tesla first. Presets preserve the viewport aspect ratio and change only the selected
+profile's size; frame rate and JPEG quality are shared. Saving waits for the next
+connection. [Screen sources and public screenshots](TESLA-DISPLAY-PRESETS.md) use
+synthetic content without private vehicle or account data.
+
 ## What runs where
 
 Install **the Tesla APK on an Android 7.1+ device**, not on the Tesla or the iPhone.

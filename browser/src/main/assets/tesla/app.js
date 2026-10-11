@@ -1,4 +1,5 @@
 import {createMedia} from './media.js';
+import {displayPreset} from './display-presets.js';
 /* Local H.264/WebRTC with JPEG fallback; optional PCM playback is independent of video. */
 (() => {
   'use strict';
@@ -7,7 +8,8 @@ import {createMedia} from './media.js';
   const zh=language.startsWith('zh'), ar=language.startsWith('ar');
   const copy = {
     menu:['菜单','Menu'], close:['关闭','Close'], showKeys:['显示虚拟按键','Show virtual keys'], hideKeys:['隐藏按键','Hide keys'], diagnostics:['实时诊断','Live diagnostics'],
-    fitWindow:['使用当前窗口尺寸','Use current window size'], fitHint:['按当前可用区域填写所选配置，保存后下次连接生效；画面保持比例。','Fill the selected profile from the available window. Save for the next connection; the picture keeps its aspect ratio.'],
+    fitWindow:['适配窗口（推荐）','Fit window (recommended)'], fitHint:['先在 Tesla 选好窗口，再点预设。只修改所选尺寸；两种窗口共用帧率。','Choose the window in Tesla first, then a preset. Only the selected size changes; both windows share frame rate.'],
+    presets:['画面预设','Picture presets'], presetLight:['低负载 · 720p','Low load · 720p'], presetClear:['清晰 · 1080p','Clear · 1080p'], manualDisplay:['手动调整','Manual adjustments'],
     unknown:['未知','Unknown'], stale:['未更新','Not updated'], resolution:['实际视频尺寸','Actual video size'], decoded:['实际解码帧率','Decoded frame rate'], dropped:['丢帧','Dropped frames'], queue:['实际音频缓冲','Queued audio'], underruns:['音频重新缓冲次数','Audio rebuffer count'], memory:['可用内存','Available memory'], battery:['电池温度','Battery temperature'], thermal:['系统热状态','System thermal status'], sampleAge:['设备采样时间','Device sample age'],
     settings:['显示设置','Display settings'], expand:['全屏','Fullscreen'], theme:['日夜','Day / night'],
     pair:['连接 DiPlay','Connect DiPlay'], pairHint:['在手机“连接 → Tesla 浏览器”查看 6 位码，5 分钟有效。配对后自动记住；失效时重新打开手机连接页获取新码。','Find the six-digit code in Connection → Tesla browser on the phone. It lasts five minutes. This browser remembers the connection; reopen the phone connection page for a new code if needed.'],
@@ -16,7 +18,8 @@ import {createMedia} from './media.js';
     browserAudio:['浏览器音频（实验性）','Browser audio (experimental)'], audioOn:['浏览器音频已开启（实验性）','Browser audio enabled (experimental)'],
     buffer:['音频缓冲','Audio buffer'], transport:['视频传输','Video transport'], auto:['自动 WebRTC / JPEG','Automatic WebRTC / JPEG'],
     audioBlocked:['请再次点按允许声音；已恢复 Android 音频。','Tap again to allow sound; Android playback restored.'],
-    displayHint:['右侧窗口和全屏独立保存。分辨率与帧率在下次连接生效；视频传输立即切换。Tesla 窗口模式由车辆控制。','Right and full profiles are independent. Resolution and frame rate apply at the next connection; video transport switches immediately. Select the actual window mode in Tesla.'],
+    displayHint:['右侧与全屏尺寸独立保存，下次连接生效。','Right and full sizes are saved independently for the next connection.'],
+    transportHint:['视频传输在保存后立即切换。','Video transport switches immediately after saving.'],
     mode:['窗口配置','Window profile'], right:['右侧窗口','Right window'], full:['全屏窗口','Full window'],
     rightWidth:['右侧宽度','Right width'], rightHeight:['右侧高度','Right height'], fullWidth:['全屏宽度','Full width'], fullHeight:['全屏高度','Full height'],
     fps:['帧率 (5–30)','Frame rate (5–30)'], quality:['JPEG 画质 (40–95)','JPEG quality (40–95)'], cancel:['取消','Cancel'], save:['保存，下次连接生效','Save for next connection'],
@@ -27,11 +30,12 @@ import {createMedia} from './media.js';
   };
   const arabic={
     menu:'القائمة',close:'إغلاق',showKeys:'إظهار الأزرار الافتراضية',hideKeys:'إخفاء الأزرار',diagnostics:'التشخيص المباشر',
-    fitWindow:'استخدام أبعاد النافذة الحالية',fitHint:'تُملأ الإعدادات المحددة من مساحة النافذة المتاحة. تسري بعد الحفظ عند الاتصال التالي؛ تُحفظ نسبة أبعاد الصورة.',
+    fitWindow:'ملاءمة النافذة (موصى به)',fitHint:'اختر النافذة في Tesla أولًا، ثم إعدادًا مسبقًا. تتغير الأبعاد المحددة فقط؛ معدل الإطارات مشترك.',
+    presets:'إعدادات الصورة المسبقة',presetLight:'حمل منخفض · 720p',presetClear:'وضوح · 1080p',manualDisplay:'ضبط يدوي',
     unknown:'غير معروف',stale:'لم تُحدّث',resolution:'أبعاد الفيديو الفعلية',decoded:'معدل فك الترميز الفعلي',dropped:'الإطارات المفقودة',queue:'الصوت المخزن مؤقتًا',underruns:'مرات إعادة تخزين الصوت',memory:'الذاكرة المتاحة',battery:'حرارة البطارية',thermal:'الحالة الحرارية للنظام',sampleAge:'عمر عينة الجهاز',
     settings:'إعدادات العرض',expand:'ملء الشاشة',theme:'نهار / ليل',pair:'اتصال DiPlay',pairHint:'اعرض الرمز المكوّن من ستة أرقام في الاتصال ← متصفح Tesla على الهاتف. صالح لخمس دقائق. يتذكر المتصفح الاتصال؛ أعد فتح صفحة الاتصال على الهاتف للحصول على رمز جديد عند الحاجة.',code:'رمز الاقتران من 6 أرقام',connect:'اتصال',home:'الرئيسية',back:'رجوع',previous:'السابق',play:'تشغيل / إيقاف مؤقت',next:'التالي',
     audio:'يستخدم الميكروفون والمكالمات وSiri جهاز Android',browserAudio:'صوت المتصفح (تجريبي)',audioOn:'صوت المتصفح مفعّل (تجريبي)',buffer:'تخزين الصوت مؤقتًا',transport:'نقل الفيديو',auto:'WebRTC / JPEG تلقائي',audioBlocked:'اضغط مجددًا للسماح بالصوت؛ استُعيد صوت Android.',
-    displayHint:'تُحفظ إعدادات النافذة اليمنى وملء الشاشة بشكل مستقل. تسري الأبعاد ومعدل الإطارات عند الاتصال التالي؛ يتغير نقل الفيديو فورًا. تتحكم Tesla في وضع النافذة.',mode:'إعداد النافذة',right:'النافذة اليمنى',full:'ملء الشاشة',rightWidth:'عرض النافذة اليمنى',rightHeight:'ارتفاع النافذة اليمنى',fullWidth:'عرض ملء الشاشة',fullHeight:'ارتفاع ملء الشاشة',fps:'معدل الإطارات (5–30)',quality:'جودة JPEG (40–95)',cancel:'إلغاء',save:'حفظ للاتصال التالي',pending:'تسري الإعدادات الجديدة عند الاتصال التالي',reconnect:'تطبيق وإعادة الاتصال',confirm:'تطبيق الإعدادات المحفوظة وإعادة اتصال CarPlay الآن؟',waiting:'بانتظار CarPlay',disconnected:'انقطع الاتصال؛ تجري إعادة المحاولة…',invalid:'تحقق من رمز الاقتران والأبعاد واتصال الشبكة.',unavailable:'ملء الشاشة غير متاح؛ استخدم عناصر التحكم في Tesla.'
+    displayHint:'تُحفظ أبعاد النافذة اليمنى والكاملة بشكل مستقل للاتصال التالي.',transportHint:'يتغير نقل الفيديو فورًا بعد الحفظ.',mode:'إعداد النافذة',right:'النافذة اليمنى',full:'ملء الشاشة',rightWidth:'عرض النافذة اليمنى',rightHeight:'ارتفاع النافذة اليمنى',fullWidth:'عرض ملء الشاشة',fullHeight:'ارتفاع ملء الشاشة',fps:'معدل الإطارات (5–30)',quality:'جودة JPEG (40–95)',cancel:'إلغاء',save:'حفظ للاتصال التالي',pending:'تسري الإعدادات الجديدة عند الاتصال التالي',reconnect:'تطبيق وإعادة الاتصال',confirm:'تطبيق الإعدادات المحفوظة وإعادة اتصال CarPlay الآن؟',waiting:'بانتظار CarPlay',disconnected:'انقطع الاتصال؛ تجري إعادة المحاولة…',invalid:'تحقق من رمز الاقتران والأبعاد واتصال الشبكة.',unavailable:'ملء الشاشة غير متاح؛ استخدم عناصر التحكم في Tesla.'
   };
   const t = key => ar?arabic[key]:copy[key][zh ? 0 : 1];
   document.documentElement.lang = ar?'ar':zh?'zh-CN':'en';
@@ -241,6 +245,11 @@ import {createMedia} from './media.js';
     finally { clearTimeout(timer); button.disabled=false; }
   }
   $('pairing').addEventListener('submit',event => { event.preventDefault(); pair($('token').value.trim()); });
+  function displaySummary() {
+    const mode=$('mode').value.toLowerCase();
+    $('displaySummary').textContent=`${$(mode+'Width').value} × ${$(mode+'Height').value} · ${$('fps').value} fps`;
+  }
+  function clearPreset() { document.querySelectorAll('[data-preset]').forEach(button=>button.setAttribute('aria-pressed','false')); displaySummary(); }
   $('settingsButton').addEventListener('click',async () => {
     try {
       const state = await status(), display = state.display;
@@ -248,17 +257,21 @@ import {createMedia} from './media.js';
       ['right','full'].forEach(mode => { ['width','height'].forEach(axis => { $(mode + axis[0].toUpperCase()+axis.slice(1)).value = display[mode][axis]; }); });
       $('fps').value = display.fps; $('quality').value = display.jpegQuality;
       $('transport').value=localStorage.getItem('diplay-video')||'auto';
+      $('manualDisplay').open=false; clearPreset();
       releaseTouches(); closeMenu(); $('displayError').textContent = ''; $('displayPanel').hidden = false; $('mode').focus();
     } catch (error) { $('status').textContent = error.message; }
   });
   $('closeSettings').addEventListener('click',() => { $('displayPanel').hidden = true; $('menuButton').focus(); });
-  $('fitWindow').addEventListener('click',()=>{
+  $('mode').addEventListener('change',clearPreset);
+  $('manualDisplay').addEventListener('input',clearPreset);
+  document.querySelectorAll('[data-preset]').forEach(button=>button.addEventListener('click',()=>{
     const mode=$('mode').value.toLowerCase(),box=screen.getBoundingClientRect();
-    const scale=Math.min(1,2560/box.width,1440/box.height);
-    const width=Math.floor(box.width*scale/2)*2,height=Math.floor(box.height*scale/2)*2;
-    if(width<320 || height<240){$('displayError').textContent=t('invalid');return;}
-    $(mode+'Width').value=width; $(mode+'Height').value=height;
-  });
+    const preset=displayPreset(button.dataset.preset,box.width,box.height,window.devicePixelRatio||1);
+    if(!preset){$('displayError').textContent=t('invalid');return;}
+    $(mode+'Width').value=preset.width; $(mode+'Height').value=preset.height;
+    $('fps').value=preset.fps; $('quality').value=preset.jpegQuality;
+    $('displayError').textContent=''; clearPreset(); button.setAttribute('aria-pressed','true');
+  }));
   $('displayForm').addEventListener('submit',async event => {
     event.preventDefault();
     const size = mode => ({width:Number($(mode+'Width').value),height:Number($(mode+'Height').value)});
@@ -266,8 +279,9 @@ import {createMedia} from './media.js';
       await api('/api/display',{mode:$('mode').value,right:size('right'),full:size('full'),fps:Number($('fps').value),jpegQuality:Number($('quality').value)});
       if($('transport').value!==(localStorage.getItem('diplay-video')||'auto'))media.useVideo($('transport').value);
       $('displayPanel').hidden = true; $('menuButton').focus(); await status();
-    } catch (error) { $('displayError').textContent = error.message; }
+    } catch (error) { $('manualDisplay').open=true; $('displayError').textContent = error.message; }
   });
+  $('displayForm').addEventListener('invalid',()=>{ $('manualDisplay').open=true; },true);
   $('reconnectButton').addEventListener('click',() => { releaseTouches(); $('reconnectPanel').hidden=false; $('pending').hidden=true; $('cancelReconnect').focus(); });
   $('cancelReconnect').addEventListener('click',() => { $('reconnectPanel').hidden=true; $('pending').hidden=!current?.pendingReconnect; $('reconnectButton').focus(); });
   $('confirmReconnect').addEventListener('click',async () => {

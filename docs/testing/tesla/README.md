@@ -2,7 +2,42 @@
 
 Build checks run on Windows with JDK 25 and Android SDK 37. Historical 0.1.0/0.1.1
 device checks used a dedicated Android 10/API 29 emulator without an iPhone or Tesla.
-The 0.1.3 local V50/iPhone test is recorded separately below.
+The local V50/iPhone tests are recorded separately below.
+
+## 0.1.5 display presets — 2026-10-11
+
+The complete AGENTS.md Android CI command, browser/Tesla tests and debug lint/build
+passed on the final assets: **2264 unit tests, zero failures/errors**. All **15 Node
+audio/RTC/preset/proxy tests** passed. Three new tests cover viewport aspect ratio,
+high pixel density, wide/tall/odd dimensions, negotiated bounds and invalid inputs.
+The existing HTTP socket test also checks that the new preset module is served without
+API authentication. The first Node run lacked OpenSSL in PATH; adding the installed Git
+OpenSSL path made the complete run pass.
+
+Browser QA used production assets with a local synthetic grid fixture. It checked
+that manual settings start collapsed, presets affect only the selected size, cancelling
+retains the original configuration, and saving a 720p profile retains the active 1080p
+output until explicit reconnect confirmation. Invalid manual input in a collapsed
+section opens it and focuses the field instead of blocking submission invisibly.
+English and Arabic copy rendered. Full 1920×1080, compact 1024×768 and Arabic 360×740
+screenshots use 130% font size. Preset controls have equal heights; the narrow Arabic
+panel scrolls vertically, with `scrollWidth == clientWidth` (327 px).
+
+The five public screenshots and dated primary screen sources are in
+[the preset guide](../../TESLA-DISPLAY-PRESETS.md). Their background is synthetic and
+they contain no real CarPlay session, account, location, vehicle identifiers or pairing
+credentials. No private V50 screenshot or log is included in the public gallery.
+
+The signed local 0.1.5 standalone APK passed Release lint/build, retained the existing
+signing certificate and matched the provisioned authentication assets. It installed
+on the V50 as versionCode 6. The original RIGHT 1024×768, FULL 1920×1080, 20 fps and
+JPEG quality 80 settings were retained. The actual production page showed all three
+presets and a collapsed manual section. The iPhone and 1920×1080 WebRTC reconnected;
+browser audio was enabled again with the retained 400 ms buffer. This does not certify
+sustained listening or operation in the target 2026 Model Y Juniper vehicle.
+
+Local APK SHA-256:
+`a35cefd62d667f3ac7e807058275f8191481a36a7ec416708f54719af4870e39`.
 
 ## 0.1.4 pairing and browser output — 2026-10-11
 

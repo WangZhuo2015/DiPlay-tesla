@@ -58,6 +58,9 @@ class BrowserServerTest {
                     responseHeaders.toString().substringBefore("\r\n").split(' ')[1].toInt() to input.readBytes()
                 }
             }
+            val presets = request("/display-presets.js", auth = false)
+            assertEquals(200, presets.first)
+            assertTrue(String(presets.second).contains("export function displayPreset"))
             assertEquals(401, request("/api/status",auth = false).first)
             assertEquals(405, request("/api/pair", auth = false).first)
             repeat(5) {
