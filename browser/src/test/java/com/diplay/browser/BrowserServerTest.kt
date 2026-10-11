@@ -61,6 +61,9 @@ class BrowserServerTest {
             val presets = request("/display-presets.js", auth = false)
             assertEquals(200, presets.first)
             assertTrue(String(presets.second).contains("export function displayPreset"))
+            for (asset in listOf("browser-touch.js", "stream-summary.js")) {
+                assertEquals(200, request("/$asset", auth = false).first)
+            }
             assertEquals(401, request("/api/status",auth = false).first)
             assertEquals(405, request("/api/pair", auth = false).first)
             repeat(5) {
@@ -86,7 +89,9 @@ class BrowserServerTest {
             assertEquals(full,selected)
             assertEquals(200,request("/api/touch",body = """{"client":"client-one","contacts":[{"id":0,"x":0.5,"y":0.25,"down":true}]}""").first)
             assertEquals(409,request("/api/touch",body = """{"client":"client-two","contacts":[{"id":0,"x":0.5,"y":0.25,"down":true}]}""").first)
-            assertEquals(200,request("/api/touch",body = """{"client":"client-one","contacts":[]}""").first)
+            assertEquals(200,request("/api/touch",body = """{"client":"client-one","contacts":[{"id":0,"x":0.5,"y":0.25,"down":false}]}""").first)
+            assertEquals(200,request("/api/touch",body = """{"client":"client-two","contacts":[{"id":0,"x":0.5,"y":0.25,"down":true}]}""").first)
+            assertEquals(200,request("/api/touch",body = """{"client":"client-two","contacts":[]}""").first)
         } finally { server.close() }
     }
 }

@@ -1,6 +1,6 @@
 # DiPlay Tesla port
 
-Version 0.1.8 offers Fit window, Low load (720p), Clear (1080p) and 2K clear (1440p) browser display
+Version 0.1.9 offers Fit window, Low load (720p), Clear (1080p) and 2K clear (1440p) browser display
 presets, with manual parameters collapsed by default. Select the actual window mode
 in Tesla first. Presets preserve the viewport aspect ratio and change only the selected
 profile's size; frame rate and JPEG quality are shared. Saving waits for the next
@@ -132,6 +132,12 @@ can extract the accessory private key from such an APK. The APK signing key rema
 The browser supports two touch contacts, Home, Back, Siri, play/pause, next and previous.
 Only one page may hold touch input at a time. Hidden/closed pages release their contacts;
 the host releases a lost contact after one second without a heartbeat.
+
+From 0.1.9, normal releases retain the finger's final coordinates. Press and release
+boundaries are sent in order even when a previous request is pending; only intermediate
+motion may be coalesced. The menu summary groups the active video transport, actual
+received frame size, decoded frame rate and available SoC/battery temperatures.
+Stale device samples remain marked as stale. Detailed diagnostics retain all sensor names.
 
 ## Right window and full window
 

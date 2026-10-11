@@ -5,6 +5,29 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class BrowserControlTest {
+    @Test fun releasePreservesDockCoordinatesAndEndsTheInputLease() {
+        val sent = mutableListOf<List<AirPlayContact>>()
+        val control = BrowserControl({ sent += it; true })
+        val press = AirPlayContact(0, .04, .6, true)
+        assertTrue(control.touch("client-one", listOf(press)))
+        assertTrue(control.touch("client-one", listOf(press.copy(down = false))))
+        assertEquals(listOf(press.copy(down = false)), sent.last())
+        assertTrue(control.touch("client-two", listOf(press)))
+    }
+    @Test fun remainingSecondFingerKeepsItsHidSlotAfterTheFirstFingerLifts() {
+        val sent = mutableListOf<List<AirPlayContact>>()
+        val control = BrowserControl({ sent += it; true })
+        val first = AirPlayContact(0, .1, .2, true)
+        val second = AirPlayContact(1, .8, .6, true)
+        control.touch("client-one", listOf(first, second))
+        control.touch("client-one", listOf(first.copy(down = false), second))
+        control.touch("client-one", listOf(second.copy(x = .9)))
+        assertEquals(listOf(first.copy(down = false), second.copy(x = .9)), sent.last())
+        assertFalse(control.touch("client-two", listOf(second.copy(down = false))))
+        control.touch("client-one", listOf(second.copy(x = .9, down = false)))
+        assertEquals(listOf(first.copy(down = false), second.copy(x = .9, down = false)), sent.last())
+        assertTrue(control.touch("client-two", listOf(first)))
+    }
     @Test fun lostTouchReleaseExpiresAndAnotherClientCannotStealHeldInput() {
         var time = 0L
         val sent = mutableListOf<List<AirPlayContact>>()

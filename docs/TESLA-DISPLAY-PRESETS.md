@@ -57,6 +57,9 @@
 
 ![全屏适配缩放](testing/tesla/browser-017-scale-full-font130.jpg)
 ![右侧窗口适配缩放](testing/tesla/browser-017-scale-compact-font130.jpg)
-![顶部菜单](testing/tesla/browser-016-menu-full-font130.jpg)
+![顶部菜单与诊断摘要](testing/tesla/browser-019-status-full-font130.jpg)
+![紧凑菜单与诊断摘要](testing/tesla/browser-019-status-compact-font130.jpg)
+![阿拉伯语诊断摘要](testing/tesla/browser-019-status-ar-font130.jpg)
+![阿拉伯语窄窗口诊断摘要](testing/tesla/browser-019-status-narrow-ar-font130.jpg)
 ![阿拉伯语右侧窗口](testing/tesla/browser-017-scale-ar-font130.jpg)
 ![阿拉伯语窄窗口](testing/tesla/browser-017-scale-narrow-ar-font130.jpg)

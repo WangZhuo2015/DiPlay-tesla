@@ -4,6 +4,55 @@ Build checks run on Windows with JDK 25 and Android SDK 37. Historical 0.1.0/0.1
 device checks used a dedicated Android 10/API 29 emulator without an iPhone or Tesla.
 The local V50/iPhone tests are recorded separately below.
 
+## 0.1.9 browser touch and stream summary — 2026-10-11
+
+The complete AGENTS.md Android CI command, including the browser/Tesla modules,
+passed: **2271 unit tests, zero failures/errors**, with all required lint/debug builds.
+All **27 Node tests** passed. New cases cover fast taps behind an in-flight request,
+same-coordinate releases, two-finger motion/slot stability, cancellation, network failure
+recovery, release ownership and grouped fresh/stale video/temperature metrics. A real
+HTTP server test checks release contacts and the newly served JavaScript modules.
+JavaScript syntax, release lint and the signed standalone build passed.
+
+The old browser removed the released finger before posting its contact list. The HID
+encoder therefore sent the release at zero coordinates; dock icons could animate on
+press and cancel activation on release. Normal release now carries its final coordinates,
+press/release transitions are queued in order and only intermediate motion is coalesced.
+The host keeps the second finger in the same HID slot when the first lifts. A browser
+fixture click through the production DOM handlers emitted down=true then down=false
+with identical coordinates. This fixture verifies the web input path, not iPhone behavior.
+
+The menu summary groups active transport, received frame dimensions, actual decode rate,
+available SoC temperature and separately labelled battery temperature. Missing frames
+are unknown rather than replaced with negotiated dimensions; stale device samples remain
+stale. Four screenshots use production assets, synthetic grids/temperature samples and
+130% fonts: [full](browser-019-status-full-font130.jpg),
+[compact](browser-019-status-compact-font130.jpg),
+[Arabic](browser-019-status-ar-font130.jpg) and
+[narrow Arabic](browser-019-status-narrow-ar-font130.jpg).
+The narrow 360×740 summary has no horizontal overflow, numeric width×height order is
+preserved in RTL, and menu controls retain equal heights. All four JPEGs have no EXIF.
+Android settings layout is unchanged.
+
+The local signed APK installed on the V50 as versionCode 10, versionName 0.1.9. Display
+profiles and private HTTPS metadata survived. The iPhone reconnected wirelessly.
+Trusted device-side HTTPS returned byte-identical current APK assets, including both
+new JavaScript modules; CSP permits same-origin WSS and its upgrade returned 101.
+Browser and provisioned authentication assets match the build inputs, the signing
+certificate is unchanged and no customer HTTPS hostname/address/certificate/key is
+packaged in the APK. The independent gateway configuration was not restarted or changed.
+
+Before updating, the 0.1.8 session was observed for 129.1 seconds through 65 status samples:
+the iPhone stayed connected, the video route remained WebRTC and the browser audio route
+remained active, with no reported session or status-request errors. Established HTTPS
+connections came from a hotspot client, with loopback gateway-to-app traffic. These state
+observations do not prove audible continuity or identify the physical client as a Tesla.
+After 0.1.9 installation, the owner still needs to reload the HTTPS page and confirm dock
+activation, visible video and continuous sound before a Release is published.
+
+Local APK SHA-256:
+`645c5124532febbaa68edb5192f33349534547bbcb193547c3c0ca10df01d0a1`.
+
 ## 0.1.8 Android HTTPS entry and hotspot path — 2026-10-11
 
 The complete AGENTS.md Android CI command, including the browser/Tesla modules,

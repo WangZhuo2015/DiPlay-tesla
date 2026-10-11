@@ -1,5 +1,7 @@
 import {createMedia} from './media.js';
 import {displayPreset} from './display-presets.js';
+import {createTouchSender} from './browser-touch.js';
+import {streamSummary} from './stream-summary.js';
 /* Local H.264/WebRTC with JPEG fallback; optional PCM playback is independent of video. */
 (() => {
   'use strict';
@@ -80,8 +82,8 @@ import {displayPreset} from './display-presets.js';
   });
   $('audioBuffer').addEventListener('change',()=>{localStorage.setItem('diplay-audio-buffer',$('audioBuffer').value);media.audio.setBuffer(Number($('audioBuffer').value));});
   let current = null, sequence = -1, live = false, failures = 0, streamEpoch = 0;
-  let touchPending = null, touchSending = false, lastTouch = 0;
   const fingers = new Map();
+  const touchSender=createTouchSender({send:contacts=>api('/api/touch',{client,contacts}),onError:()=>fingers.clear()});
   const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
   async function api(path, body, keepalive = false) {
     const requestToken = token;
@@ -115,12 +117,16 @@ import {displayPreset} from './display-presets.js';
     const now=performance.now();
     if(now-jpegSample>=1000){jpegFps=jpegCount*1000/(now-jpegSample);jpegCount=0;jpegSample=now;}
     const fps=media.displayed ? videoMetrics.decodedFps : jpegFps;
-    $('transportStatus').textContent=(media.displayed?'H.264 / WebRTC':'JPEG') + (Number.isFinite(fps)?' · '+fps.toFixed(1)+' fps':'');
     const device=state.device, fresh=device && device.ageMs<=6000;
     const unknown=t('unknown'), stale=t('stale'), rows=[];
     const add=(name,value)=>rows.push([name,String(value)]);
-    const active=state.activeDisplay || state.display, size=active[active.mode.toLowerCase()];
-    add(t('resolution'),media.displayed?`${video.videoWidth} × ${video.videoHeight}`:`${size.width} × ${size.height}`);
+    const width=media.displayed?video.videoWidth:sequence>=0?canvas.width:0;
+    const height=media.displayed?video.videoHeight:sequence>=0?canvas.height:0;
+    $('transportStatus').replaceChildren(...streamSummary({transport:media.displayed?'H.264 / WebRTC':'JPEG',width,height,fps,device},{battery:t('battery'),stale:t('stale')}).flatMap((part,index)=>{
+      const span=document.createElement('span');span.dir=/^(?:H\.264|JPEG|SoC|\d)/.test(part)?'ltr':'auto';span.textContent=part;
+      return index?[document.createTextNode(' · '),span]:[span];
+    }));
+    add(t('resolution'),width && height?`${width} × ${height}`:unknown);
     add(t('decoded'),media.displayed && Number.isFinite(fps)?fps.toFixed(1)+' fps':unknown);
     add(t('dropped'),videoMetrics.dropped??unknown);
     add(t('queue'),audio.enabled?Math.round(audio.queuedMs)+' ms':t('audio'));
@@ -189,22 +195,10 @@ import {displayPreset} from './display-presets.js';
     const left = box.left+(box.width-width)/2, top = box.top+(box.height-height)/2;
     return { x:(x-left)/width, y:(y-top)/height };
   }
-  async function flushTouch() {
-    if (touchSending) return;
-    touchSending = true;
-    try {
-      while (touchPending !== null) {
-        const contacts = touchPending; touchPending = null;
-        await api('/api/touch',{client,contacts});
-        lastTouch = Date.now();
-      }
-    } catch (_) { fingers.clear(); touchPending = null; }
-    finally { touchSending = false; }
-  }
-  function queueTouches() { touchPending = Array.from(fingers.values()).sort((a,b) => a.id-b.id); flushTouch(); }
+  function queueTouches() { touchSender.transition(Array.from(fingers.values())); }
   function releaseTouches() {
-    fingers.clear(); touchPending = [];
-    if (token) flushTouch();
+    fingers.clear();
+    if (token) touchSender.cancel();
   }
   screen.addEventListener('pointerdown', event => {
     if(event.target!==canvas && event.target!==video)return;
@@ -219,12 +213,19 @@ import {displayPreset} from './display-presets.js';
     const finger = fingers.get(event.pointerId); if (!finger) return;
     const point = normalizedPoint(event.clientX,event.clientY);
     fingers.set(event.pointerId,{...finger,x:Math.max(0,Math.min(1,point.x)),y:Math.max(0,Math.min(1,point.y))});
-    touchPending = Array.from(fingers.values()).sort((a,b) => a.id-b.id);
+    touchSender.motion(Array.from(fingers.values()));
   });
-  ['pointerup','pointercancel','lostpointercapture'].forEach(name => screen.addEventListener(name,event => {
-    if (fingers.delete(event.pointerId)) queueTouches();
+  screen.addEventListener('pointerup',event=>{
+    const finger=fingers.get(event.pointerId);if(!finger)return;
+    const point=normalizedPoint(event.clientX,event.clientY);
+    const released={...finger,x:Number.isFinite(point.x)?Math.max(0,Math.min(1,point.x)):finger.x,y:Number.isFinite(point.y)?Math.max(0,Math.min(1,point.y)):finger.y,down:false};
+    fingers.delete(event.pointerId);
+    touchSender.transition([...fingers.values(),released]);
+  });
+  ['pointercancel','lostpointercapture'].forEach(name=>screen.addEventListener(name,event=>{
+    if(fingers.has(event.pointerId))releaseTouches();
   }));
-  setInterval(() => { if (touchPending !== null || (fingers.size && Date.now()-lastTouch > 300)) queueTouches(); },50);
+  setInterval(()=>touchSender.heartbeat(Array.from(fingers.values())),50);
   window.addEventListener('blur',releaseTouches);
   window.addEventListener('pagehide',() => { media.close(); fingers.clear(); if (token) api('/api/touch',{client,contacts:[]},true).catch(() => {}); });
   document.addEventListener('visibilitychange',() => { if (document.hidden) {releaseTouches();media.close();} else media.open(); });

@@ -23,6 +23,8 @@ header h1 { margin:0; }
 #presetLabel { margin-block-end:var(--gap); }
 .menuConnection,.menuOptions { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--gap); margin-bottom:var(--gap); }
 .menuConnection p,.menuOptions p { margin:0; }
+#transportStatus { font-variant-numeric:tabular-nums; }
+#transportStatus span { unicode-bidi:isolate; display:inline-block; }
 .audioBuffer { display:flex; align-items:center; justify-content:space-between; gap:var(--gap); }
 .audioBuffer select { width:auto; margin:0; }
 .panel { width:min(680px,calc(100% - 2 * var(--edge))); padding:var(--panel-padding); border:1px solid var(--line); border-radius:calc(var(--control) / 3); background:var(--panel); max-height:calc(100vh - 2 * var(--edge)); max-height:calc(100dvh - 2 * var(--edge)); overflow:auto; }
