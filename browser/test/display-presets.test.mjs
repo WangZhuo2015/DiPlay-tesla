@@ -29,3 +29,16 @@ test('density, wide, tall and odd viewports stay within negotiated bounds',()=>{
 test('unusable viewport and unsupported presets cannot produce an invalid profile',()=>{
   for(const args of [['fit',0,720],['fit',NaN,720],['fit',1920,Infinity],['fit',320,240,0],['fit',300,200],['bad',1920,1080]])assert.equal(displayPreset(...args),null);
 });
+test('fit scale reduces the capped DPR output for right and full profiles',()=>{
+  assert.deepEqual(displayPreset('fit',1420,1244,1.5,.5),{width:616,height:540,fps:20,jpegQuality:80});
+  assert.equal(displayPreset('fit',1920,1080,2,.5).width,960);
+  assert.equal(displayPreset('fit',1024,768,1,.75).width,768);
+  assert.deepEqual(displayPreset('qhd',1920,1080,2,.5),displayPreset('qhd',1920,1080,2));
+  for(const scale of [.5,.75,1])for(const [w,h,d] of [[360,740,1],[701,899,3],[3840,1080,2],[320,240,1]]) {
+    const size=displayPreset('fit',w,h,d,scale);
+    assert.ok(size.width>=320 && size.width<=1920 && size.height>=240 && size.height<=1080);
+    assert.equal(size.width%2,0);assert.equal(size.height%2,0);
+    assert.ok(Math.abs(size.width/size.height-w/h)<.01);
+  }
+  for(const scale of [0,-.5,1.1,NaN,Infinity])assert.equal(displayPreset('fit',1920,1080,1,scale),null);
+});

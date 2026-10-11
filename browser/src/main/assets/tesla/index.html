@@ -66,6 +66,11 @@
         <button type="button" data-preset="clear" aria-pressed="false" data-i18n="presetClear">清晰 · 1080p</button>
         <button type="button" data-preset="qhd" aria-pressed="false" data-i18n="presetQhd">2K 清晰 · 1440p</button>
       </div>
+      <div id="fitScaling" hidden>
+        <label for="fitScale" data-i18n="fitScale">适配缩放</label>
+        <select id="fitScale" aria-describedby="scaleHint"><option value="0.5" data-i18n="scaleHalf">1/2（推荐）</option><option value="0.75" data-i18n="scaleThreeQuarters">3/4</option><option value="1" data-i18n="scaleFull">1×</option></select>
+        <p id="scaleHint" data-i18n="scaleHint">缩放宽和高；1/2 的像素量为 1/4。小窗口最低保留 320×240，实际尺寸见下方。保存后下次连接生效。</p>
+      </div>
       <p data-i18n="fitHint">先在 Tesla 选好窗口，再点预设。只修改所选尺寸；两种窗口共用帧率。</p>
       <p data-i18n="qhdHint">2K 按窗口比例适配，最高 2560×1440，负载高于 1080p。</p>
       <p id="displaySummary" class="displaySummary" role="status" aria-live="polite" dir="ltr"></p>

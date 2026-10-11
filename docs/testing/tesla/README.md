@@ -4,6 +4,47 @@ Build checks run on Windows with JDK 25 and Android SDK 37. Historical 0.1.0/0.1
 device checks used a dedicated Android 10/API 29 emulator without an iPhone or Tesla.
 The local V50/iPhone tests are recorded separately below.
 
+## 0.1.7 fit scaling and local HTTPS — 2026-10-11
+
+The complete AGENTS.md Android CI command passed: **2264 unit tests, zero failures/errors**,
+plus all required lint/debug builds. All **19 Node tests** passed. New tests cover scaling
+after DPR/capping, half/three-quarter sizes, minimum/even bounds and invalid scale values;
+the independent Android gateway rejects non-loopback upstreams and config injection.
+Release lint and the signed standalone build passed; APK assets matched the final source
+and locally provisioned authentication inputs, with the same signing certificate.
+No customer HTTPS certificate or key is in the APK.
+
+Production browser assets with a synthetic fixture verified independent right/full scale
+drafts, cancel without persistence, saved choices across reload, and pending reconnect
+without changing the active output. Chinese, English and Arabic copy are provided.
+Screenshots use 130% font size at full 1920×1080, compact 1024×768 and Arabic 360×740.
+At the narrow RTL width, both page and panel have no horizontal overflow; the panel
+scrolls vertically, preset controls retain equal heights and fit output stops at 320×656
+rather than saving an invalid half size. Four public JPEGs contain synthetic grids only
+and have no EXIF fields.
+
+The local 0.1.7 APK installed on the V50 as versionCode 8 and retained the user's latest
+display configuration. The existing rooted Caddy gateway and trusted certificate were
+reused with locally generated configuration. Obsolete static app/audio overrides were
+removed: trusted HTTPS returned byte-identical current APK assets. Unauthenticated API
+requests returned 401, foreign Origins returned 403, and trusted WSS upgraded with 101.
+The final HTTPS CSP contains the public-origin WSS address rather than the upstream
+loopback address. A live response check caught an initial Caddyfile regex over-escaping
+issue; literal-dot character classes fixed it, with a regression check and device retest.
+Only the verified gateway process was restarted; CarPlay and the independent diagnostic
+collector were not stopped by gateway deployment. Real domain/address/certificate settings
+and old-config backups remain in ignored local files and on the device.
+
+The iPhone was disconnected during these 0.1.7 device checks, so they do not verify actual
+HTTPS video/audio playback. Tesla hotspot access and sustained vehicle performance remain
+to be tested. Desktop browser HTTPS access was not completed: the temporary desktop route
+needed an administrator launch, which was cancelled. That desktop route is separate from
+the vehicle's hotspot path. Certificate renewal, DNS and vehicle reachability are user-managed, as
+described in the [independent gateway guide](../../../proxy/android-root/README.md).
+
+Local APK SHA-256:
+`1bb87192a56889d1081d67526969d0eee707a00d3dd46d2d3b7991352b17cdf0`.
+
 ## 0.1.6 2K preset and audio explanation — 2026-10-11
 
 The complete AGENTS.md Android CI command, browser/Tesla tests and debug lint/build

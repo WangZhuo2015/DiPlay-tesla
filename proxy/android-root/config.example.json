@@ -1,0 +1,10 @@
+{
+  "domain": "carplay.example.invalid",
+  "bindAddress": "192.0.2.10",
+  "httpsPort": 443,
+  "upstream": "http://127.0.0.1:8081",
+  "directory": "/data/local/diplay-https",
+  "certificate": "/data/local/diplay-https/fullchain.pem",
+  "privateKey": "/data/local/diplay-https/privkey.pem",
+  "addLoopbackAlias": false
+}

@@ -9,6 +9,7 @@ import {displayPreset} from './display-presets.js';
   const copy = {
     menu:['菜单','Menu'], close:['关闭','Close'], showKeys:['显示虚拟按键','Show virtual keys'], hideKeys:['隐藏按键','Hide keys'], diagnostics:['实时诊断','Live diagnostics'],
     fitWindow:['适配窗口（推荐）','Fit window (recommended)'], fitHint:['先在 Tesla 选好窗口，再点预设。只修改所选尺寸；两种窗口共用帧率。','Choose the window in Tesla first, then a preset. Only the selected size changes; both windows share frame rate.'],
+    fitScale:['适配缩放','Fit scale'], scaleHalf:['1/2（推荐）','1/2 (recommended)'], scaleThreeQuarters:['3/4','3/4'], scaleFull:['1×','1×'], scaleHint:['缩放宽和高；1/2 的像素量为 1/4。小窗口最低保留 320×240，实际尺寸见下方。保存后下次连接生效。','Scales width and height; 1/2 uses one quarter of the pixels. Small windows stop at 320×240 minimum; see the actual size below. Save for the next connection.'],
     presets:['画面预设','Picture presets'], presetLight:['低负载 · 720p','Low load · 720p'], presetClear:['清晰 · 1080p','Clear · 1080p'], presetQhd:['2K 清晰 · 1440p','2K clear · 1440p'], qhdHint:['2K 按窗口比例适配，最高 2560×1440，负载高于 1080p。','2K follows the window shape, up to 2560×1440, with higher load than 1080p.'], manualDisplay:['手动调整','Manual adjustments'],
     unknown:['未知','Unknown'], stale:['未更新','Not updated'], resolution:['实际视频尺寸','Actual video size'], decoded:['实际解码帧率','Decoded frame rate'], dropped:['丢帧','Dropped frames'], queue:['实际音频缓冲','Queued audio'], underruns:['音频重新缓冲次数','Audio rebuffer count'], memory:['可用内存','Available memory'], battery:['电池温度','Battery temperature'], thermal:['系统热状态','System thermal status'], sampleAge:['设备采样时间','Device sample age'],
     settings:['显示设置','Display settings'], expand:['全屏','Fullscreen'], theme:['日夜','Day / night'],
@@ -31,6 +32,7 @@ import {displayPreset} from './display-presets.js';
   const arabic={
     menu:'القائمة',close:'إغلاق',showKeys:'إظهار الأزرار الافتراضية',hideKeys:'إخفاء الأزرار',diagnostics:'التشخيص المباشر',
     fitWindow:'ملاءمة النافذة (موصى به)',fitHint:'اختر النافذة في Tesla أولًا، ثم إعدادًا مسبقًا. تتغير الأبعاد المحددة فقط؛ معدل الإطارات مشترك.',
+    fitScale:'مقياس الملاءمة',scaleHalf:'1/2 (موصى به)',scaleThreeQuarters:'3/4',scaleFull:'1×',scaleHint:'يُغيّر العرض والارتفاع؛ يستخدم النصف ربع عدد البكسلات. الحد الأدنى للنوافذ الصغيرة هو \u2066320×240\u2069؛ تظهر الأبعاد الفعلية أدناه. احفظ للاتصال التالي.',
     presets:'إعدادات الصورة المسبقة',presetLight:'حمل منخفض · 720p',presetClear:'وضوح · 1080p',presetQhd:'وضوح 2K · 1440p',qhdHint:'تتبع أبعاد 2K نسبة النافذة حتى \u20662560×1440\u2069، بحمل أعلى من 1080p.',manualDisplay:'ضبط يدوي',
     unknown:'غير معروف',stale:'لم تُحدّث',resolution:'أبعاد الفيديو الفعلية',decoded:'معدل فك الترميز الفعلي',dropped:'الإطارات المفقودة',queue:'الصوت المخزن مؤقتًا',underruns:'مرات إعادة تخزين الصوت',memory:'الذاكرة المتاحة',battery:'حرارة البطارية',thermal:'الحالة الحرارية للنظام',sampleAge:'عمر عينة الجهاز',
     settings:'إعدادات العرض',expand:'ملء الشاشة',theme:'نهار / ليل',pair:'اتصال DiPlay',pairHint:'اعرض الرمز المكوّن من ستة أرقام في الاتصال ← متصفح Tesla على الهاتف. صالح لخمس دقائق. يتذكر المتصفح الاتصال؛ أعد فتح صفحة الاتصال على الهاتف للحصول على رمز جديد عند الحاجة.',code:'رمز الاقتران من 6 أرقام',connect:'اتصال',home:'الرئيسية',back:'رجوع',previous:'السابق',play:'تشغيل / إيقاف مؤقت',next:'التالي',
@@ -249,7 +251,12 @@ import {displayPreset} from './display-presets.js';
     const mode=$('mode').value.toLowerCase();
     $('displaySummary').textContent=`${$(mode+'Width').value} × ${$(mode+'Height').value} · ${$('fps').value} fps`;
   }
-  function clearPreset() { document.querySelectorAll('[data-preset]').forEach(button=>button.setAttribute('aria-pressed','false')); displaySummary(); }
+  let fitScales = {}, changedFitScales = new Set();
+  function rememberedScale(mode) {
+    const value=Number(localStorage.getItem('diplay-fit-scale-'+mode));
+    return [.5,.75,1].includes(value)?value:.5;
+  }
+  function clearPreset() { document.querySelectorAll('[data-preset]').forEach(button=>button.setAttribute('aria-pressed','false')); $('fitScaling').hidden=true; displaySummary(); }
   $('settingsButton').addEventListener('click',async () => {
     try {
       const state = await status(), display = state.display;
@@ -257,26 +264,34 @@ import {displayPreset} from './display-presets.js';
       ['right','full'].forEach(mode => { ['width','height'].forEach(axis => { $(mode + axis[0].toUpperCase()+axis.slice(1)).value = display[mode][axis]; }); });
       $('fps').value = display.fps; $('quality').value = display.jpegQuality;
       $('transport').value=localStorage.getItem('diplay-video')||'auto';
+      fitScales={right:rememberedScale('right'),full:rememberedScale('full')}; changedFitScales.clear();
+      $('fitScale').value=String(fitScales[display.mode.toLowerCase()]);
       $('manualDisplay').open=false; clearPreset();
       releaseTouches(); closeMenu(); $('displayError').textContent = ''; $('displayPanel').hidden = false; $('mode').focus();
     } catch (error) { $('status').textContent = error.message; }
   });
   $('closeSettings').addEventListener('click',() => { $('displayPanel').hidden = true; $('menuButton').focus(); });
-  $('mode').addEventListener('change',clearPreset);
+  $('mode').addEventListener('change',()=>{ $('fitScale').value=String(fitScales[$('mode').value.toLowerCase()]); clearPreset(); });
   $('manualDisplay').addEventListener('input',clearPreset);
-  document.querySelectorAll('[data-preset]').forEach(button=>button.addEventListener('click',()=>{
+  function applyPreset(button) {
     const mode=$('mode').value.toLowerCase(),box=screen.getBoundingClientRect();
-    const preset=displayPreset(button.dataset.preset,box.width,box.height,window.devicePixelRatio||1);
+    const preset=displayPreset(button.dataset.preset,box.width,box.height,window.devicePixelRatio||1,Number($('fitScale').value));
     if(!preset){$('displayError').textContent=t('invalid');return;}
     $(mode+'Width').value=preset.width; $(mode+'Height').value=preset.height;
     $('fps').value=preset.fps; $('quality').value=preset.jpegQuality;
     $('displayError').textContent=''; clearPreset(); button.setAttribute('aria-pressed','true');
-  }));
+    if(button.dataset.preset==='fit') {
+      $('fitScaling').hidden=false; fitScales[mode]=Number($('fitScale').value); changedFitScales.add(mode);
+    }
+  }
+  document.querySelectorAll('[data-preset]').forEach(button=>button.addEventListener('click',()=>applyPreset(button)));
+  $('fitScale').addEventListener('change',()=>applyPreset($('fitWindow')));
   $('displayForm').addEventListener('submit',async event => {
     event.preventDefault();
     const size = mode => ({width:Number($(mode+'Width').value),height:Number($(mode+'Height').value)});
     try {
       await api('/api/display',{mode:$('mode').value,right:size('right'),full:size('full'),fps:Number($('fps').value),jpegQuality:Number($('quality').value)});
+      changedFitScales.forEach(mode=>localStorage.setItem('diplay-fit-scale-'+mode,String(fitScales[mode])));
       if($('transport').value!==(localStorage.getItem('diplay-video')||'auto'))media.useVideo($('transport').value);
       $('displayPanel').hidden = true; $('menuButton').focus(); await status();
     } catch (error) { $('manualDisplay').open=true; $('displayError').textContent = error.message; }

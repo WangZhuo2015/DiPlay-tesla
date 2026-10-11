@@ -4,13 +4,19 @@ This fork adds a Tesla browser output to the existing Android CarPlay receiver. 
 `tesla` APK composes the core with the `browser` library; the optional Node.js `proxy/`
 process is deployed independently. Tesla and the Android host share a local network.
 
-Version 0.1.6 offers Fit window, Low load (720p), Clear (1080p) and 2K clear (1440p)
+Version 0.1.7 offers Fit window, Low load (720p), Clear (1080p) and 2K clear (1440p)
 presets, with manual parameters collapsed by default. Presets use the
 actual viewport aspect ratio, retain the other window's dimensions and apply on the
 next connection. [Screen sources, preset values and public screenshots](docs/TESLA-DISPLAY-PRESETS.md)
 show synthetic layout content without real vehicle or account data.
 
-![Browser display presets](docs/testing/tesla/browser-016-display-compact-font130.jpg)
+Fit window adds 1/2 (default), 3/4 and 1× scaling, remembered separately for right/full
+profiles in this browser after saving. Half width and height use a quarter of the pixels.
+An independent [rooted Android HTTPS gateway](proxy/android-root/README.md) can run on
+the hotspot host. Real domains, routing addresses and certificate settings stay in local
+ignored configuration; the repository contains only a template and generator.
+
+![Browser fit scaling](docs/testing/tesla/browser-017-scale-full-font130.jpg)
 
 Version 0.1.2 adds a full-viewport browser surface, hidden-by-default virtual keys, live diagnostics and static-screen protection. It retains H.264 WebRTC with automatic JPEG fallback and optional browser PCM
 audio with 80/200/400 ms buffering. Right/full resolutions remain independent. Vehicle

@@ -4,6 +4,10 @@ This Node.js 22+ process is deployed independently of the Android CarPlay host. 
 module imports it or requires it. Tesla can open `http://ANDROID_IP:8080` directly without it.
 There are no npm dependencies.
 
+For HTTPS hosted on a rooted Android hotspot device, see the independent
+[Android root gateway](android-root/README.md). Its public configuration template contains
+only placeholders; real domains, routing addresses and certificate configuration stay local.
+
 ## Browser gateway
 
 ```powershell
