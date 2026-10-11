@@ -17,7 +17,8 @@ packets. Pairing started audio without pressing its toggle; the browser acknowle
 Turning audio off and reloading kept it off, including after opening the menu. Turning it
 back on resumed playback. This verifies browser policy/preference handling and packet
 processing, not audible quality. Real continuous HTTPS playback was confirmed by the
-owner on 0.1.9; actual default playback after the 0.1.10 update is pending confirmation.
+owner on 0.1.9. After reconnecting the iPhone and reloading HTTPS on 0.1.10, the owner
+also confirmed default sound and normal idle retraction of the menu handle.
 
 The menu entry is centered at the top and retracts after two seconds. Its idle DOM bounds
 are 72 px wide with only 12 px inside the viewport; the remaining button is offscreen.
@@ -45,8 +46,8 @@ profiles survived. Trusted device-side HTTPS returned current APK assets and WSS
 with 101. The real diagnostic response no longer includes battery temperature and retains
 named thermal zones. The signing certificate is unchanged; provisioned authentication
 assets match their inputs. Customer HTTPS metadata/certificate/configuration remains local
-and is absent from the APK/public source. The iPhone was disconnected before this update;
-the owner has been asked to reconnect and check default audio and the menu handle.
+and is absent from the APK/public source. The iPhone was disconnected before this update,
+then reconnected; the owner confirmed default audio and the menu handle through HTTPS.
 
 Local APK SHA-256:
 `605c2dd283889db9581ac4fd3df78b8522ab6a4d3e6637d04ae38e43e5c2f612`.
