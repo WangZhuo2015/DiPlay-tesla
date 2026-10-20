@@ -69,7 +69,9 @@ Java_com_diplay_browser_rtc_RtcNative_create(JNIEnv* env, jobject owner, jstring
         }));
         check(rtcSetStateChangeCallback(p->pc, [](int, rtcState state, void* ptr) {
             if (state == RTC_CONNECTED) static_cast<Peer*>(ptr)->emit("connected");
-            if (state == RTC_FAILED || state == RTC_DISCONNECTED) static_cast<Peer*>(ptr)->emit("failed");
+            // A temporary ICE disconnection may recover on this peer. Kotlin owns its deadline.
+            if (state == RTC_DISCONNECTED) static_cast<Peer*>(ptr)->emit("disconnected");
+            if (state == RTC_FAILED || state == RTC_CLOSED) static_cast<Peer*>(ptr)->emit("failed");
         }));
         const char* format = env->GetStringUTFChars(profile, nullptr);
         rtcTrackInit track{};

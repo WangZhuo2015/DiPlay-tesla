@@ -4,6 +4,8 @@
 
 [下载完整连接版 0.1.10](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10) · **[从安装到车机使用的步骤](docs/TESLA-QUICKSTART.zh-CN.md)** · [English](docs/TESLA-QUICKSTART.md)
 
+**未发布源码增强：** 主线同步后的开发分支参考 WheelPlay，加入 50 ms 压缩帧排队预算、4／10／30 秒 WebRTC 恢复等待、最高 60 fps 协商（JPEG 转换仍最多 30 fps），以及默认关闭的 Canvas 显示选项。详见 [功能对比、归属和验证边界](docs/TESLA-WHEELPLAY-COMPARISON.md)。这些变化**不在上方已发布的 0.1.10 APK 中**，其实际车机性能需单独验证。
+
 **已在 2026 Model Y Juniper 实车测试：CarPlay 音频、触摸均正常。** Android 主机为 **ZTE V50 移动 WiFi**；测试手机为 **iPhone 16 Pro Max／iPhone 17 Pro Max，均运行 iOS 27.0.1**。这是用户确认的实测组合，其他车型、固件和手机需要分别验证。
 
 ![Model Y Juniper 实测照片，地址栏域名已遮挡](docs/testing/tesla/model-y-juniper-v50-redacted.png)

@@ -17,6 +17,8 @@ data class BrowserDisplay(
     val fps: Int = 20,
     val jpegQuality: Int = 80,
 ) {
-    init { require(fps in 5..30 && jpegQuality in 40..95) }
+    init { require(fps in 5..60 && jpegQuality in 40..95) }
     val resolution: BrowserResolution get() = if (mode == BrowserMode.RIGHT) right else full
+    /** WebRTC forwards encoded frames; software JPEG conversion keeps its own bounded budget. */
+    val jpegFps: Int get() = minOf(fps, 30)
 }

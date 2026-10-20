@@ -1,0 +1,115 @@
+{
+  "scope": "Production browser assets, synthetic local WebRTC peer and REST responses; no vehicle or Android device",
+  "browser": "134.0.6998.35",
+  "fontScale": 1.3,
+  "cjkFallback": "Noto Sans CJK SC",
+  "checks": [
+    {
+      "scenario": "full-en",
+      "layout": {
+        "viewport": 1920,
+        "document": 1920,
+        "panel": 678,
+        "scroll": 678,
+        "font": 20.8,
+        "direction": "ltr",
+        "controls": [
+          {
+            "id": "renderer",
+            "width": 630
+          },
+          {
+            "id": "recovery",
+            "width": 630
+          },
+          {
+            "id": "fps",
+            "width": 309
+          }
+        ]
+      },
+      "codec": "video/VP8",
+      "nativeToCanvasToNative": true,
+      "canvasTouch": true,
+      "lateJpegIgnored": true,
+      "frameRateSavedForNextConnection": true,
+      "recoveryHello": true,
+      "rendererOnlyKeepsMedia": true,
+      "focusTrap": true
+    },
+    {
+      "scenario": "compact-zh",
+      "layout": {
+        "viewport": 1024,
+        "document": 1024,
+        "panel": 678,
+        "scroll": 678,
+        "font": 20.8,
+        "direction": "ltr",
+        "controls": [
+          {
+            "id": "renderer",
+            "width": 630
+          },
+          {
+            "id": "recovery",
+            "width": 630
+          },
+          {
+            "id": "fps",
+            "width": 309
+          }
+        ]
+      },
+      "codec": "video/VP8",
+      "nativeToCanvasToNative": true,
+      "canvasTouch": true,
+      "lateJpegIgnored": true,
+      "frameRateSavedForNextConnection": true,
+      "recoveryHello": true,
+      "rendererOnlyKeepsMedia": true,
+      "focusTrap": true
+    },
+    {
+      "scenario": "narrow-ar",
+      "layout": {
+        "viewport": 360,
+        "document": 360,
+        "panel": 342,
+        "scroll": 342,
+        "font": 20.8,
+        "direction": "rtl",
+        "controls": [
+          {
+            "id": "renderer",
+            "width": 310
+          },
+          {
+            "id": "recovery",
+            "width": 310
+          },
+          {
+            "id": "fps",
+            "width": 310
+          }
+        ]
+      },
+      "codec": "video/VP8",
+      "nativeToCanvasToNative": true,
+      "canvasTouch": true,
+      "lateJpegIgnored": true,
+      "frameRateSavedForNextConnection": true,
+      "recoveryHello": true,
+      "rendererOnlyKeepsMedia": true,
+      "focusTrap": true
+    }
+  ],
+  "screenshots": [
+    "wheelplay-settings-full-en-font130.jpg",
+    "wheelplay-canvas-full-en-font130.jpg",
+    "wheelplay-settings-compact-zh-font130.jpg",
+    "wheelplay-settings-narrow-ar-font130.jpg",
+    "wheelplay-settings-narrow-ar-actions-font130.jpg"
+  ],
+  "result": "passed"
+}

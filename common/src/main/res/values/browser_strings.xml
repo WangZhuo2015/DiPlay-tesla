@@ -10,9 +10,9 @@
     <string name="settings_browser_right_height">Right window height (pixels)</string>
     <string name="settings_browser_full_width">Full window width (pixels)</string>
     <string name="settings_browser_full_height">Full window height (pixels)</string>
-    <string name="settings_browser_fps">Frame rate (5–30 fps)</string>
+    <string name="settings_browser_fps">Frame rate (5–60 fps)</string>
     <string name="settings_browser_quality">JPEG quality (40–95)</string>
-    <string name="settings_browser_invalid">Use even pixel sizes: width 320–2560, height 240–1440; frame rate 5–30; quality 40–95.</string>
+    <string name="settings_browser_invalid">Use even pixel sizes: width 320–2560, height 240–1440; frame rate 5–60; quality 40–95.</string>
     <string name="settings_browser_pairing_hint">Connect Tesla to the phone network and open an address below. Enter the six-digit code or copy the link; it lasts five minutes. The browser remembers the connection. Reopen this page for a new code if it expires or five attempts fail.</string>
     <string name="settings_browser_pairing_code">6-digit pairing code</string>
     <string name="settings_browser_copy_link">Copy browser link</string>

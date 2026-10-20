@@ -10,9 +10,9 @@
     <string name="settings_browser_right_height">Высота правой области (пиксели)</string>
     <string name="settings_browser_full_width">Ширина полной области (пиксели)</string>
     <string name="settings_browser_full_height">Высота полной области (пиксели)</string>
-    <string name="settings_browser_fps">Частота кадров (5–30)</string>
+    <string name="settings_browser_fps">Частота кадров (5–60)</string>
     <string name="settings_browser_quality">Качество JPEG (40–95)</string>
-    <string name="settings_browser_invalid">Чётные размеры: ширина 320–2560, высота 240–1440; частота 5–30; качество 40–95.</string>
+    <string name="settings_browser_invalid">Чётные размеры: ширина 320–2560, высота 240–1440; частота 5–60; качество 40–95.</string>
     <string name="settings_browser_pairing_hint">Подключите Tesla к сети телефона и откройте один из адресов. Введите шестизначный код или скопируйте ссылку; срок действия — пять минут. Браузер запоминает подключение. Откройте эту страницу снова после истечения срока или пяти ошибок.</string>
     <string name="settings_browser_pairing_code">Код из 6 цифр</string>
     <string name="settings_browser_copy_link">Скопировать ссылку</string>

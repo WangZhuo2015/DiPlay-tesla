@@ -10,9 +10,9 @@
     <string name="settings_browser_right_height">右側視窗高度（像素）</string>
     <string name="settings_browser_full_width">全螢幕視窗寬度（像素）</string>
     <string name="settings_browser_full_height">全螢幕視窗高度（像素）</string>
-    <string name="settings_browser_fps">幀率（5–30 fps）</string>
+    <string name="settings_browser_fps">幀率（5–60 fps）</string>
     <string name="settings_browser_quality">JPEG 畫質（40–95）</string>
-    <string name="settings_browser_invalid">寬度需為 320–2560 的偶數，高度需為 240–1440 的偶數；幀率 5–30；畫質 40–95。</string>
+    <string name="settings_browser_invalid">寬度需為 320–2560 的偶數，高度需為 240–1440 的偶數；幀率 5–60；畫質 40–95。</string>
     <string name="settings_browser_pairing_hint">讓 Tesla 連接手機所在網路，開啟以下地址。輸入 6 位碼或複製連結，5 分鐘有效；配對後瀏覽器自動記住。過期或輸錯 5 次後，重新開啟此頁取得新碼。</string>
     <string name="settings_browser_pairing_code">6 位配對碼</string>
     <string name="settings_browser_copy_link">複製瀏覽器連結</string>

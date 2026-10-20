@@ -16,8 +16,15 @@ class BrowserDisplayTest {
         for (size in listOf(319 to 240, 320 to 239, 2562 to 1440, 320 to 1442, 641 to 480)) {
             assertThrows(IllegalArgumentException::class.java) { BrowserResolution(size.first,size.second) }
         }
-        assertThrows(IllegalArgumentException::class.java) { BrowserDisplay(fps = 31) }
+        assertThrows(IllegalArgumentException::class.java) { BrowserDisplay(fps = 61) }
         assertThrows(IllegalArgumentException::class.java) { BrowserDisplay(jpegQuality = 100) }
+    }
+    @Test fun highFrameRateForwardingDoesNotRaiseTheJpegConversionBudget() {
+        assertEquals(60, BrowserDisplay(fps = 60).fps)
+        assertEquals(30, BrowserDisplay(fps = 60).jpegFps)
+        assertEquals(30, BrowserDisplay(fps = 30).jpegFps)
+        assertEquals(20, BrowserDisplay().jpegFps)
+        assertEquals(5, BrowserDisplay(fps = 5).jpegFps)
     }
     @Test fun onlyNewestFrameIsRetainedAndSessionTeardownClearsIt() {
         val latest = LatestFrame()

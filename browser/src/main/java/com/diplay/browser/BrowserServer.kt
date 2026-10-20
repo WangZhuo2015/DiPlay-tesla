@@ -83,7 +83,7 @@ class BrowserServer(
                 val asset = when (session.uri) {
                     "/", "/index.html" -> "index.html" to "text/html; charset=utf-8"
                     "/app.js" -> "app.js" to "text/javascript; charset=utf-8"
-                    "/media.js", "/browser-audio.js", "/rtc-health.js", "/display-presets.js",
+                    "/media.js", "/browser-audio.js", "/rtc-health.js", "/rtc-renderer.js", "/display-presets.js",
                     "/browser-touch.js", "/stream-summary.js" -> session.uri.drop(1) to "text/javascript; charset=utf-8"
                     "/style.css" -> "style.css" to "text/css; charset=utf-8"
                     "/rtc-licenses.txt" -> "rtc-licenses.txt" to "text/plain; charset=utf-8"

@@ -10,9 +10,9 @@
     <string name="settings_browser_right_height">右ウィンドウの高さ（ピクセル）</string>
     <string name="settings_browser_full_width">全画面の幅（ピクセル）</string>
     <string name="settings_browser_full_height">全画面の高さ（ピクセル）</string>
-    <string name="settings_browser_fps">フレームレート（5～30 fps）</string>
+    <string name="settings_browser_fps">フレームレート（5～60 fps）</string>
     <string name="settings_browser_quality">JPEG 品質（40～95）</string>
-    <string name="settings_browser_invalid">ピクセル数は偶数にしてください。幅 320～2560、高さ 240～1440、フレームレート 5～30、品質 40～95。</string>
+    <string name="settings_browser_invalid">ピクセル数は偶数にしてください。幅 320～2560、高さ 240～1440、フレームレート 5～60、品質 40～95。</string>
     <string name="settings_browser_pairing_hint">Tesla をスマートフォンのネットワークに接続し、以下のアドレスを開いてください。6 桁のコードを入力するかリンクをコピーしてください。有効期限は 5 分です。ブラウザは接続を記憶します。期限切れまたは 5 回失敗した場合、このページを開き直すと新しいコードが表示されます。</string>
     <string name="settings_browser_pairing_code">6 桁のペアリングコード</string>
     <string name="settings_browser_copy_link">ブラウザのリンクをコピー</string>

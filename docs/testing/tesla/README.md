@@ -1,8 +1,72 @@
 # Tesla port verification
 
-Build checks run on Windows with JDK 25 and Android SDK 37. Historical 0.1.0/0.1.1
+Historical build checks below ran on Windows with JDK 25 and Android SDK 37. The
+2026-10-20 source checks use Linux, JDK 25 and Android SDK 37. Historical 0.1.0/0.1.1
 device checks used a dedicated Android 10/API 29 emulator without an iPhone or Tesla.
 The local V50/iPhone tests are recorded separately below.
+
+## WheelPlay-inspired source changes — 2026-10-20
+
+These checks concern the unpublished source changes described in the
+[WheelPlay comparison](../../TESLA-WHEELPLAY-COMPARISON.md). They do not extend the
+0.1.10 vehicle report to 60 fps, the new recovery settings or Canvas presentation.
+
+The upstream synchronization baseline passed the full Android CI command: **3,145
+unit tests**, all five required lint targets and all four debug APK builds. Its Node
+suite passed **29 tests**.
+
+The enhancement's full Android gate passed at source commit
+`3dd89e5796b42e4206c2b0947b5eb71b36118ca1`: **3,162 unit tests**, zero failures,
+errors or skipped tests; all five lint targets and all four debug APK builds passed.
+The module totals are shared 1,607, common 1,490, home 6, browser 48 and Tesla 11.
+RTC native builds passed for arm64-v8a, armeabi-v7a and x86_64. None of the four
+ordinary debug APKs contains `offline-mfi` authentication assets. **68 Node tests**
+passed across `browser/test` and `proxy/test`, and `scripts/check_public_tree.py`
+passed. Subsequent changes to this record and the comparison are documentation only.
+
+The Android command completed with `BUILD SUCCESSFUL in 7m 49s` using one Gradle
+worker. An initial attempt failed while deserializing common's generated HTML test
+report (`EOFException` / Kryo buffer underflow), after its tests passed. Preserving
+and clearing only the ignored common test results, reports and temporary files,
+then rerunning the unchanged full command with HTML reports enabled, resolved it.
+No tests or reporting tasks were disabled.
+
+The Tesla debug APK from this source check has SHA-256
+`b3d7beb6e3622d769d7615bd714088d338929167d7c472a7fda9322ed430f713`.
+It is an ordinary source-validation build, not a new signed or provisioned release.
+
+`browser/scripts/verify-ui.mjs` serves the production HTML, CSS and JavaScript with
+synthetic REST responses and WebSocket signaling. Two real Chromium peer connections
+send and decode a locally generated moving grid; production `media.js` and
+`rtc-renderer.js` handle the receiving stream. Chromium **134.0.6998.35** negotiated
+**VP8** because that distribution does not expose an H.264 encoder. This verifies
+browser presentation and controls; it is not an Android H.264 sender, Tesla browser
+or end-to-end latency test. The production H.264 transport selection is unchanged.
+
+All three viewports passed native → Canvas → native switching, visible-surface touch
+coordinates and press/release delivery, one media restart when the recovery option
+changes, and no media restart for a renderer-only change. A deliberately late
+one-pixel JPEG response did not resize or paint the active RTC canvas. Saving 60 fps
+sent the new profile while retaining the active profile and did not issue a CarPlay
+reconnect action. The display dialog's final button wraps keyboard focus to its first
+control; no page or panel had horizontal overflow.
+
+The screenshots use **130% fonts** and a synthetic moving grid. The verification
+environment uses Noto Sans CJK SC as a fallback for missing Chinese system glyphs;
+that font is not bundled with the product.
+
+| Viewport | Evidence |
+| --- | --- |
+| Full, English, 1920×1080 | [New settings](wheelplay-settings-full-en-font130.jpg), [Canvas active with pending profile](wheelplay-canvas-full-en-font130.jpg) |
+| Compact, Chinese, 1024×768 | [New settings](wheelplay-settings-compact-zh-font130.jpg) |
+| Narrow, Arabic RTL, 360×740 | [Recovery and renderer](wheelplay-settings-narrow-ar-font130.jpg), [numeric fields and actions](wheelplay-settings-narrow-ar-actions-font130.jpg) |
+
+The [machine-readable report](wheelplay-browser-verification.json) records actual
+codec and layout measurements. To repeat, install Playwright and Chromium, then run
+`node browser/scripts/verify-ui.mjs`; the script documents optional executable and
+font paths. Android settings layout is unchanged. Sustained 60 fps, CPU/GPU load,
+temperature, audio quality, Tesla compositor behavior and recovery during real
+network interruptions remain device validation tasks.
 
 ## Model Y Juniper vehicle report — 2026-10-12
 
