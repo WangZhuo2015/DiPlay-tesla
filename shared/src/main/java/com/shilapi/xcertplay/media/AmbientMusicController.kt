@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.shilapi.xcertplay.hud.BydAmbientLightClient
 import com.shilapi.xcertplay.hud.BydAmbientLightPolicy
+import com.shilapi.xcertplay.hud.BydCarMusicRhythm
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -18,6 +19,8 @@ object AmbientMusicController {
     private val activeSink = AtomicLong()
     private val activeRenderer = AtomicLong()
     private val phonePlayback = AmbientPhonePlaybackState()
+    @Volatile private var artworkOwner: Any? = null
+    private var albumColor: Int? = null
     @Volatile private var settings = AmbientMusicSettings.Values()
     private var context: Context? = null
     private var envelope: AmbientMusicEnvelope? = null
@@ -27,6 +30,7 @@ object AmbientMusicController {
     private var brightnessEnvelope = AmbientMusicBrightness(settings.speed)
     private var appliedCount = 0L
     private var lastLogMillis = 0L
+    private var idleSinceMillis: Long? = null
 
     private val lampSession = AmbientLampSession(
         factory = {
@@ -58,12 +62,15 @@ object AmbientMusicController {
         },
     )
 
-    // The 20 Hz lamp update, scheduled only while the feature is on; turning it off restores the lamps by itself.
+    // The 20 Hz lamp update, scheduled only while the feature (or the car's own rhythm) is on; turning it off
+    // restores the lamps by itself.
     private var ticking: ScheduledFuture<*>? = null
+    private const val BAND_INTERVAL_MILLIS = 90L
 
     /** On the executor, after [settings] changed. */
     private fun updateTicking() {
-        if (!settings.enabled) {
+        if (!settings.carRhythm) context?.let { BydCarMusicRhythm.setPlaying(it, false) }
+        if (!settings.enabled && !settings.carRhythm) {
             ticking?.cancel(false)
             ticking = null
         } else if (ticking == null) {
@@ -83,9 +90,10 @@ object AmbientMusicController {
             if (activeSink.get() != token) return@execute
             this.context = context.applicationContext
             settings = AmbientMusicSettings.load(context)
-            colors = ambientMusicColorDetector(settings.color, settings.selectedColors)
+            resetColors()
             brightnessEnvelope = AmbientMusicBrightness(settings.speed)
             allowed = settings.enabled; envelope = null; playback = null
+            idleSinceMillis = longIdle()
             if (!settings.enabled) restoreOriginal()
             updateTicking()
         }
@@ -106,15 +114,57 @@ object AmbientMusicController {
         return token
     }
 
-    internal fun wantsPcm(token: Long): Boolean = token != 0L && token == activeRenderer.get() && settings.enabled && settings.music
+    private fun feeding() = settings.carRhythm && settings.carRhythmFeed
+
+    internal fun wantsPcm(token: Long): Boolean = token != 0L && token == activeRenderer.get() &&
+        ((settings.enabled && settings.music) || feeding())
+
+    /** Whether the played PCM should also be reduced to the 16 rhythm bands for the car. */
+    internal fun wantsBands(token: Long): Boolean = token != 0L && token == activeRenderer.get() && feeding()
 
     /** Binds phone playback callbacks to the current CarPlay media owner. */
-    fun claimPlaybackOwner(owner: Any) = phonePlayback.claim(owner)
+    @Synchronized fun claimPlaybackOwner(owner: Any) {
+        phonePlayback.claim(owner)
+        if (artworkOwner === owner) return
+        artworkOwner = owner
+        albumColorChanged(owner, null)
+    }
+
+    /** Already decoded artwork is sampled on the existing artwork worker, never on PCM writes. */
+    fun albumColorChanged(owner: Any, color: Int?) {
+        executor.execute {
+            if (artworkOwner !== owner) return@execute
+            val valid = color?.takeIf { it in 1..31 }
+            if (albumColor == valid) return@execute
+            albumColor = valid
+            if (settings.colorSource == AmbientColorSource.ALBUM) resetColors(preserveTiming = true)
+        }
+    }
 
     /** Stale callbacks from a replaced media owner are ignored. */
     fun phonePlaybackChanged(owner: Any, playing: Boolean): Boolean = phonePlayback.update(owner, playing)
 
-    fun releasePlaybackOwner(owner: Any): Boolean = phonePlayback.release(owner)
+    @Synchronized fun releasePlaybackOwner(owner: Any): Boolean {
+        if (artworkOwner === owner) {
+            artworkOwner = null
+            executor.execute {
+                if (artworkOwner != null) return@execute
+                albumColor = null
+                if (settings.colorSource == AmbientColorSource.ALBUM) resetColors(preserveTiming = true)
+            }
+        }
+        return phonePlayback.release(owner)
+    }
+
+    private fun resetColors(preserveTiming: Boolean = false) {
+        val palette = ambientColorPalette(settings.colorSource, settings.selectedColors, albumColor)
+        val initial = if (settings.colorSource == AmbientColorSource.ALBUM) albumColor ?: palette.first()
+            else settings.color
+        val random = if (settings.colorSource == AmbientColorSource.ALBUM && albumColor == null)
+            ({ size: Int -> kotlin.random.Random.nextInt(size) }) else null
+        if (preserveTiming) colors.updatePalette(initial, palette, random)
+        else colors = AmbientMusicColorDetector(initial, palette, AmbientColorSpeed.STANDARD, random)
+    }
 
     /** Checks existing authorization and lamp readback only; never asks for ADB or writes a lamp. */
     fun checkSupport(context: Context): java.util.concurrent.CompletableFuture<Boolean> {
@@ -140,13 +190,16 @@ object AmbientMusicController {
         executor.execute {
             this.context = context.applicationContext
             settings = AmbientMusicSettings.load(context)
-            colors = ambientMusicColorDetector(settings.color, settings.selectedColors)
+            resetColors()
             brightnessEnvelope = AmbientMusicBrightness(settings.speed)
             allowed = settings.enabled
             if (!settings.enabled) restoreOriginal()
             updateTicking()
         }
     }
+
+    /** Silence that began before this session: the car's own lighting returns without a first lamp session. */
+    private fun longIdle() = android.os.SystemClock.uptimeMillis() - AmbientMusicActivityPolicy.RESTORE_AFTER_MILLIS
 
     @Synchronized internal fun closeRenderer(token: Long) {
         if (token == 0L || !activeRenderer.compareAndSet(token, 0L)) return
@@ -171,27 +224,32 @@ object AmbientMusicController {
 
     private fun tick() {
         val values = settings
+        if (values.carRhythm) { carRhythm(); return }
         if (!allowed) return
         if (!values.enabled) { restoreOriginal(); return }
         if (context == null) return
-        lampSession.setEnabled(true)
+        val nowMillis = android.os.SystemClock.uptimeMillis()
         val rendererActive = activeRenderer.get() != 0L && playback != null
-        val playbackState = if (rendererActive && values.brightness > 0)
-            playback?.invoke() else null
+        val playbackState = if (rendererActive) playback?.invoke() else null
+        val playing = playbackState?.second == true && phonePlayback.current() != false
+        if (playing) idleSinceMillis = null
+        else if (idleSinceMillis == null) idleSinceMillis = nowMillis
         val target = AmbientMusicActivityPolicy.target(
             enabled = values.enabled,
             music = values.music,
             brightness = values.brightness,
             rendererActive = rendererActive,
-            playing = playbackState?.second == true && phonePlayback.current() != false
+            playing = playing,
+            idle = values.idle,
+            idleMillis = idleSinceMillis?.let { nowMillis - it } ?: 0,
         )
         if (target == AmbientMusicTarget.RESTORE_OEM) { restoreOriginal(); return }
+        lampSession.setEnabled(true)
         val energy = if (target == AmbientMusicTarget.FOLLOW_PLAYBACK) {
-            val (head, playing) = playbackState ?: return
-            envelope?.playedWindow(head, playing) ?: AmbientMusicEnvelope.Energy(0.0, 0.0)
+            val (head, headPlaying) = playbackState ?: return
+            envelope?.playedWindow(head, headPlaying) ?: AmbientMusicEnvelope.Energy(0.0, 0.0)
         } else AmbientMusicEnvelope.Energy(0.0, 0.0)
         val rms = energy.rms
-        val nowMillis = android.os.SystemClock.uptimeMillis()
         val brightness = when (target) {
             AmbientMusicTarget.LOWEST -> 1
             AmbientMusicTarget.FOLLOW_PLAYBACK -> brightnessEnvelope.level(rms, nowMillis, values.brightness)
@@ -199,9 +257,29 @@ object AmbientMusicController {
         }
         val area = if (target == AmbientMusicTarget.LOWEST) 3 else values.area
         val color = if (target == AmbientMusicTarget.FOLLOW_PLAYBACK && values.colorCycle)
-            colors.color(values.colorMode, nowMillis, rms, energy.bassRms) else values.selectedColors.firstOrNull() ?: values.color
+            colors.color(values.colorMode, nowMillis, rms, energy.bassRms) else if (values.colorSource == AmbientColorSource.ALBUM) albumColor ?: 1
+            else values.selectedColors.firstOrNull() ?: values.color
         lampSession.update(Triple(area, color, brightness))
     }
 
     private fun restoreOriginal() { lampSession.setEnabled(false) }
+
+    // The car's own rhythm follows CarPlay music while it plays; DiPlay does not set the lamps meanwhile. On head
+    // units whose audio service makes no spectrum of its own, the feed option sends the played music's 16 bands.
+    private var lastBandsMillis = 0L
+    private fun carRhythm() {
+        restoreOriginal()
+        val app = context ?: return
+        val rendererActive = activeRenderer.get() != 0L && playback != null
+        val playbackState = if (rendererActive) playback?.invoke() else null
+        val playing = carRhythmPlaying(rendererActive, playbackState?.second, phonePlayback.current())
+        BydCarMusicRhythm.setPlaying(app, playing)
+        if (!settings.carRhythmFeed) return
+        val (head, headPlaying) = playbackState ?: return
+        val bands = envelope?.playedBands(head, playing && headPlaying)
+        val now = android.os.SystemClock.uptimeMillis()
+        if (!playing || bands == null || now - lastBandsMillis < BAND_INTERVAL_MILLIS) return
+        lastBandsMillis = now
+        BydCarMusicRhythm.sendBands(app, bands)
+    }
 }
