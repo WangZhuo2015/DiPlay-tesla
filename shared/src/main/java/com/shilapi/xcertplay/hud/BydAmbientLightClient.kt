@@ -200,7 +200,7 @@ internal class BydAmbientLightClient(context: Context) : AutoCloseable {
     }
 
     private fun exchange(command: String, timeout: Int = 5000): String? =
-        token?.let { stream?.exchangeBounded("$it $command", timeout) }
+        BydAmbientLightWorkerProtocol.reply(token?.let { stream?.exchangeBounded("$it $command", timeout) })
 
     private fun fail(ticket: Long, reason: String) {
         if (generation.get() != ticket) return

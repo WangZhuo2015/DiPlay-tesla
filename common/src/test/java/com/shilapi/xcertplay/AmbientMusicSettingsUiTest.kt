@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Switch
 import com.shilapi.xcertplay.host.R
+import com.shilapi.xcertplay.media.AmbientColorSource
 import com.shilapi.xcertplay.media.AmbientMusicSettings
 import java.util.concurrent.CompletableFuture
 import org.junit.Assert.*
@@ -27,7 +28,7 @@ class AmbientMusicSettingsUiTest {
     private lateinit var activity: DiPlayActivity
 
     @Before fun setUp() {
-        RuntimeEnvironment.getApplication().getSharedPreferences("settings_ambient_music", 0).edit().clear().commit()
+        RuntimeEnvironment.getApplication().getSharedPreferences("ambient_music", 0).edit().clear().commit()
         activity = Robolectric.buildActivity(DiPlayActivity::class.java).get()
         activity.setTheme(android.R.style.Theme_Material_NoActionBar)
     }
@@ -40,6 +41,23 @@ class AmbientMusicSettingsUiTest {
         shadowOf(Looper.getMainLooper()).idle()
         assertFalse(AmbientMusicSettings.load(activity).enabled)
     }
+
+    @Test fun albumSourceUsesExistingSaveAndCancelDraft() {
+        var dialog = open()
+        albumSwitch(dialog).isChecked = true
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(AmbientColorSource.SELECTED, AmbientMusicSettings.load(activity).colorSource)
+        dialog = open()
+        albumSwitch(dialog).isChecked = true
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertEquals(AmbientColorSource.ALBUM, AmbientMusicSettings.load(activity).colorSource)
+        assertFalse(AmbientMusicSettings.load(activity).enabled)
+    }
+
+    private fun albumSwitch(dialog: AlertDialog): Switch = descendants(dialog.window!!.decorView)
+        .filterIsInstance<Switch>().single { it.contentDescription == activity.getString(R.string.settings_ambient_album) }
 
     @Test fun failedReadOnlyCheckLeavesControlDisabledAndExplainsWhy() {
         var checks = 0
@@ -68,6 +86,33 @@ class AmbientMusicSettingsUiTest {
         pending.complete(true)
         shadowOf(Looper.getMainLooper()).idle()
         assertFalse(AmbientMusicSettings.load(activity).enabled)
+    }
+
+    @Test fun theCarsRhythmIsSavedOnOnlyAfterItsCheckPasses() {
+        activity.carRhythmSupportCheck = { CompletableFuture.completedFuture(false) }
+        var row = carRhythmSwitch()
+        row.isChecked = true
+        shadowOf(Looper.getMainLooper()).idle()
+        assertFalse(AmbientMusicSettings.load(activity).carRhythm)
+        assertFalse(row.isChecked)
+        assertEquals(activity.getString(R.string.settings_ambient_car_rhythm_unavailable), ShadowToast.getTextOfLatestToast())
+
+        activity.carRhythmSupportCheck = { CompletableFuture.completedFuture(true) }
+        row = carRhythmSwitch()
+        row.isChecked = true
+        shadowOf(Looper.getMainLooper()).idle()
+        assertTrue(AmbientMusicSettings.load(activity).carRhythm)
+        row.isChecked = false
+        shadowOf(Looper.getMainLooper()).idle()
+        assertFalse(AmbientMusicSettings.load(activity).carRhythm)
+    }
+
+    private fun carRhythmSwitch(): Switch {
+        val card = android.widget.LinearLayout(activity)
+        ReflectionHelpers.callInstanceMethod<Unit>(activity, "carRhythmControl",
+            ReflectionHelpers.ClassParameter.from(android.widget.LinearLayout::class.java, card))
+        return descendants(card).filterIsInstance<Switch>()
+            .single { it.contentDescription == activity.getString(R.string.settings_ambient_car_rhythm) }
     }
 
     private fun open(): AlertDialog {

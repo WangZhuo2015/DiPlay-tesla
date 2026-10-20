@@ -6,8 +6,9 @@ import kotlin.math.sqrt
 /** Estimates onsets from played energy, not from a free-running color timer. */
 internal class AmbientMusicColorDetector(initial: Int = 1,
     selectedColors: List<Int> = (1..31).toList(),
-    private val speed: AmbientColorSpeed = AmbientColorSpeed.STANDARD) {
-    private val palette = normalizeAmbientPalette(selectedColors, initial)
+    private val speed: AmbientColorSpeed = AmbientColorSpeed.STANDARD,
+    private var randomIndex: ((Int) -> Int)? = null) {
+    private var palette = normalizeAmbientPalette(selectedColors, initial)
     private var colorIndex = palette.indexOf(initial).coerceAtLeast(0)
     private var current = palette[colorIndex]
     private var beatCount = 0
@@ -22,6 +23,13 @@ internal class AmbientMusicColorDetector(initial: Int = 1,
     private var nextPredicted: Long? = null
     var estimatedBpm: Double? = null
         private set
+
+    fun updatePalette(initial: Int, selected: List<Int>, random: ((Int) -> Int)? = null) {
+        palette = normalizeAmbientPalette(selected, initial)
+        colorIndex = palette.indexOf(initial).coerceAtLeast(0)
+        current = palette[colorIndex]
+        randomIndex = random
+    }
 
     fun color(mode: AmbientColorMode, now: Long, inputRms: Double, bassRms: Double = 0.0): Int {
         val energy = if (inputRms.isFinite()) inputRms.coerceIn(0.0, 1.0) else 0.0
@@ -85,9 +93,17 @@ internal class AmbientMusicColorDetector(initial: Int = 1,
         val threshold = if (palette.size <= 4) 1 else 2
         if (abs(target - colorIndex) >= threshold &&
             lastChange?.let { now - it >= speed.energyIntervalMillis } != false) {
-            colorIndex = target; current = palette[target]; lastChange = now
+            colorIndex = if (randomIndex != null) nextIndex() else target
+            current = palette[colorIndex]; lastChange = now
         }
         return current
+    }
+
+    private fun nextIndex(): Int {
+        if (palette.size == 1) return 0
+        val draw = randomIndex?.invoke(palette.size - 1)?.coerceIn(0, palette.size - 2)
+            ?: return (colorIndex + 1) % palette.size
+        return if (draw >= colorIndex) draw + 1 else draw
     }
 
     private fun updateTempo(now: Long) {
@@ -104,7 +120,7 @@ internal class AmbientMusicColorDetector(initial: Int = 1,
         lastCountedBeat = now
         beatCount++
         if (beatCount % speed.beatsPerColor != 0) return
-        colorIndex = (colorIndex + 1) % palette.size
+        colorIndex = nextIndex()
         current = palette[colorIndex]
         lastChange = now
     }

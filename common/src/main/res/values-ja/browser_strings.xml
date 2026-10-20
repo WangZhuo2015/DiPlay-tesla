@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_browser_connection">Tesla ブラウザ（実験的機能）</string>
+    <string name="settings_browser_connection_hint">同じネットワーク上の Tesla ブラウザで CarPlay を開きます。音声は Android 端末または iPhone の Bluetooth 接続を使用します。オプションのプロキシは別に動作します。</string>
+    <string name="settings_browser_display">Tesla 解像度（実験的機能）</string>
+    <string name="settings_browser_display_hint">右ウィンドウと全画面のピクセル数は個別に設定できます。保存した変更は次回の CarPlay 接続時に適用されます。準備ができてから再接続してください。</string>
+    <string name="settings_browser_right">右ウィンドウ</string>
+    <string name="settings_browser_full">全画面</string>
+    <string name="settings_browser_right_width">右ウィンドウの幅（ピクセル）</string>
+    <string name="settings_browser_right_height">右ウィンドウの高さ（ピクセル）</string>
+    <string name="settings_browser_full_width">全画面の幅（ピクセル）</string>
+    <string name="settings_browser_full_height">全画面の高さ（ピクセル）</string>
+    <string name="settings_browser_fps">フレームレート（5～30 fps）</string>
+    <string name="settings_browser_quality">JPEG 品質（40～95）</string>
+    <string name="settings_browser_invalid">ピクセル数は偶数にしてください。幅 320～2560、高さ 240～1440、フレームレート 5～30、品質 40～95。</string>
+    <string name="settings_browser_pairing_hint">Tesla をスマートフォンのネットワークに接続し、以下のアドレスを開いてください。6 桁のコードを入力するかリンクをコピーしてください。有効期限は 5 分です。ブラウザは接続を記憶します。期限切れまたは 5 回失敗した場合、このページを開き直すと新しいコードが表示されます。</string>
+    <string name="settings_browser_pairing_code">6 桁のペアリングコード</string>
+    <string name="settings_browser_copy_link">ブラウザのリンクをコピー</string>
+    <string name="settings_browser_waiting">ネットワークまたは CarPlay を待機中</string>
+</resources>
