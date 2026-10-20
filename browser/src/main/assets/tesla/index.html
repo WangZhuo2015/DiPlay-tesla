@@ -79,12 +79,19 @@
       <label for="transport" data-i18n="transport">视频传输</label>
       <select id="transport"><option value="auto" data-i18n="auto">自动 WebRTC / JPEG</option><option value="jpeg">JPEG</option></select>
       <p data-i18n="transportHint">视频传输在保存后立即切换。</p>
+      <label for="renderer" data-i18n="renderer">WebRTC 显示方式</label>
+      <select id="renderer" aria-describedby="rendererHint"><option value="native" data-i18n="nativeRenderer">原生视频（默认）</option><option value="canvas" data-i18n="canvasRenderer">Canvas（实验性）</option></select>
+      <p id="rendererHint" data-i18n="rendererHint">Canvas 可用于排查浏览器视频显示异常，会增加绘制开销。保存后立即应用，不重连 CarPlay。</p>
+      <label for="recovery" data-i18n="recovery">WebRTC 恢复等待</label>
+      <select id="recovery" aria-describedby="recoveryHint"><option value="4000" data-i18n="quickRecovery">4 秒 · 快速回退</option><option value="10000" selected data-i18n="balancedRecovery">10 秒 · 均衡（默认）</option><option value="30000" data-i18n="patientRecovery">30 秒 · 等待恢复</option></select>
+      <p id="recoveryHint" data-i18n="recoveryHint">短暂中断时保留最后画面，超过所选时间再回退 JPEG。保存后重建浏览器媒体连接；不会增加视频缓冲或重连 iPhone。</p>
+      <p data-i18n="jpegLimit">60 fps 用于 WebRTC；JPEG 转换最高 30 fps。保存帧率后，下次 CarPlay 连接生效。</p>
       <div class="sizes">
         <label><span data-i18n="rightWidth">右侧宽度</span><input id="rightWidth" type="number" min="320" max="2560" step="2" required></label>
         <label><span data-i18n="rightHeight">右侧高度</span><input id="rightHeight" type="number" min="240" max="1440" step="2" required></label>
         <label><span data-i18n="fullWidth">全屏宽度</span><input id="fullWidth" type="number" min="320" max="2560" step="2" required></label>
         <label><span data-i18n="fullHeight">全屏高度</span><input id="fullHeight" type="number" min="240" max="1440" step="2" required></label>
-        <label><span data-i18n="fps">帧率 (5–30)</span><input id="fps" type="number" min="5" max="30" required></label>
+        <label><span data-i18n="fps">帧率 (5–60)</span><input id="fps" type="number" min="5" max="60" required></label>
         <label><span data-i18n="quality">画质 (40–95)</span><input id="quality" type="number" min="40" max="95" required></label>
       </div>
       </details>

@@ -148,13 +148,14 @@ class JpegVideoSink(
                         null -> Unit
                     }
                     codec?.let { current ->
-                        // Always drain all decoded frames, only compress at the chosen browser FPS.
+                        // Drain the complete prediction chain, but cap software conversion independently
+                        // when the iPhone negotiated 60 fps for WebRTC before falling back to JPEG.
                         repeat(16) {
                             val index = current.dequeueOutputBuffer(info, 0)
                             if (index >= 0) {
                                 try {
                                     val now = System.nanoTime()
-                                    if (info.size > 0 && now - lastJpegNanos >= 1_000_000_000L / display.fps) {
+                                    if (info.size > 0 && now - lastJpegNanos >= 1_000_000_000L / display.jpegFps) {
                                         val image = current.getOutputImage(index) ?: error("Decoder does not expose YUV images")
                                         try {
                                             require(image.format == ImageFormat.YUV_420_888)

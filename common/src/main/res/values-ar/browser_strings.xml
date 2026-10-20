@@ -10,9 +10,9 @@
     <string name="settings_browser_right_height">ارتفاع النافذة اليمنى (بكسل)</string>
     <string name="settings_browser_full_width">عرض النافذة الكاملة (بكسل)</string>
     <string name="settings_browser_full_height">ارتفاع النافذة الكاملة (بكسل)</string>
-    <string name="settings_browser_fps">معدل الإطارات (5–30)</string>
+    <string name="settings_browser_fps">معدل الإطارات (\u20665–60\u2069)</string>
     <string name="settings_browser_quality">جودة JPEG (40–95)</string>
-    <string name="settings_browser_invalid">استخدم قيماً زوجية: العرض 320–2560، الارتفاع 240–1440؛ الإطارات 5–30؛ الجودة 40–95.</string>
+    <string name="settings_browser_invalid">استخدم قيماً زوجية: العرض 320–2560، الارتفاع 240–1440؛ الإطارات \u20665–60\u2069؛ الجودة 40–95.</string>
     <string name="settings_browser_pairing_hint">صل Tesla بشبكة الهاتف وافتح أحد العناوين أدناه. أدخل الرمز من ستة أرقام أو انسخ الرابط؛ صالح لخمس دقائق. يتذكر المتصفح الاتصال. أعد فتح هذه الصفحة للحصول على رمز جديد بعد انتهاء الصلاحية أو خمس محاولات خاطئة.</string>
     <string name="settings_browser_pairing_code">رمز الاقتران من 6 أرقام</string>
     <string name="settings_browser_copy_link">نسخ رابط المتصفح</string>

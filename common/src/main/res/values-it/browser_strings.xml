@@ -10,9 +10,9 @@
     <string name="settings_browser_right_height">Altezza finestra destra (pixel)</string>
     <string name="settings_browser_full_width">Larghezza finestra intera (pixel)</string>
     <string name="settings_browser_full_height">Altezza finestra intera (pixel)</string>
-    <string name="settings_browser_fps">Frequenza fotogrammi (5–30 fps)</string>
+    <string name="settings_browser_fps">Frequenza fotogrammi (5–60 fps)</string>
     <string name="settings_browser_quality">Qualità JPEG (40–95)</string>
-    <string name="settings_browser_invalid">Usa dimensioni in pixel pari: larghezza 320–2560, altezza 240–1440; frequenza fotogrammi 5–30; qualità 40–95.</string>
+    <string name="settings_browser_invalid">Usa dimensioni in pixel pari: larghezza 320–2560, altezza 240–1440; frequenza fotogrammi 5–60; qualità 40–95.</string>
     <string name="settings_browser_pairing_hint">Collega Tesla alla rete del telefono e apri un indirizzo qui sotto. Inserisci il codice a sei cifre o copia il link; è valido per cinque minuti. Il browser ricorda la connessione. Riapri questa pagina per un nuovo codice se scade o dopo cinque tentativi falliti.</string>
     <string name="settings_browser_pairing_code">Codice di abbinamento a 6 cifre</string>
     <string name="settings_browser_copy_link">Copia link del browser</string>

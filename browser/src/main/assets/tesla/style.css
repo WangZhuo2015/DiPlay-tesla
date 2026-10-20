@@ -10,6 +10,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 button:disabled { opacity:.45; cursor:default; }
 main { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
 canvas,video { width:100%; height:100%; object-fit:contain; touch-action:none; user-select:none; background:#000; }
+video.rtcOffscreen { position:fixed; left:-10000px; top:0; width:1px; height:1px; pointer-events:none; }
 .menuButton { position:fixed; inset-block-start:env(safe-area-inset-top,0px); left:50%; width:calc(var(--control) * 1.5); height:var(--control); padding:0; z-index:2; opacity:.65; transform:translate(-50%,calc(-1 * (var(--control) - var(--gap)))); transition:transform .18s; border-radius:0 0 calc(var(--control) * .22) calc(var(--control) * .22); }
 .menuButton::before,.menuButton::after { content:''; position:absolute; left:50%; transform:translateX(-50%); background:var(--muted); border-radius:2px; }
 .menuButton::before { width:20px; height:2px; top:50%; box-shadow:0 -6px var(--muted),0 6px var(--muted); }

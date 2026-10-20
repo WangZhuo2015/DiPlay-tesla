@@ -8,6 +8,7 @@ object BrowserDisplayJson {
         .put("right", resolution(display.right))
         .put("full", resolution(display.full))
         .put("fps", display.fps).put("jpegQuality", display.jpegQuality)
+        .put("jpegFps", display.jpegFps)
 
     fun decode(json: JSONObject): BrowserDisplay {
         fun size(name: String) = json.getJSONObject(name).let {
