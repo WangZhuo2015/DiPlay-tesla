@@ -478,6 +478,11 @@ class AirPlaySession(
                 val parsed = RtspMessage.parseMessages(accumulated)
                 accumulated = parsed.rest
                 for (request in parsed.messages) {
+                    // M3 enables encryption. Requests in that same plaintext batch must not
+                    // inherit its newly verified identity, including already-parsed requests.
+                    require(activeCipher != null || !pairVerify.isVerified) {
+                        "RTSP: plaintext after pair-verify"
+                    }
                     val cseq = request.headers["cseq"] ?: "-"
                     val path = request.path.lowercase()
                     val showInDebugOverlay =
@@ -522,8 +527,12 @@ class AirPlaySession(
                         debugLog("airplay control encryption enabled")
                     }
                 }
+                // A partial plaintext request must not survive the M3 -> encrypted transition.
+                require(activeCipher != null || cipher == null || accumulated.isEmpty()) {
+                    "RTSP: plaintext remainder after pair-verify"
+                }
                 output.flush()
-                notifySetupResponseSent()
+                if (pairVerify.isVerified) notifySetupResponseSent()
             }
         } catch (error: Exception) {
             closeReason = "control I/O failed: ${error.message ?: error.javaClass.simpleName}"
@@ -535,6 +544,16 @@ class AirPlaySession(
     }
 
     private fun handle(request: RtspMessage.Request): RtspMessage.Response {
+        val path = request.path.lowercase()
+        val pairing = path.endsWith("/pair-setup") || path.endsWith("/pair-verify")
+        val bootstrap = request.method == "OPTIONS" ||
+            (request.method == "POST" && (pairing || path.endsWith("/auth-setup"))) ||
+            (request.method in listOf("GET", "POST") && path.endsWith("/info"))
+        if (!pairVerify.isVerified && !bootstrap) return RtspMessage.Response(status = 401)
+        // One verification establishes control and media keys for this connection. Re-pairing
+        // an active session would leave those keys referring to different handshakes.
+        if (pairVerify.isVerified && pairing) return RtspMessage.Response(status = 400)
+        if (request.method == "OPTIONS") return RtspMessage.Response(status = 200)
         when (request.method) {
             "SETUP" -> return handleSetup(request)
             "SET_PARAMETER" -> {
@@ -566,7 +585,6 @@ class AirPlaySession(
             )
         }
 
-        val path = request.path.lowercase()
         return when {
             path.endsWith("/pair-setup") -> RtspMessage.Response(
                 headers = mapOf("Content-Type" to PAIRING_CONTENT_TYPE),

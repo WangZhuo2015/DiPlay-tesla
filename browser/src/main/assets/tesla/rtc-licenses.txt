@@ -11,6 +11,12 @@ The compressed-frame queue and recovery policies are selectively adapted from
 RtcFrameQueue.kt, RtcVideoStream.kt, RtcReceiverHealth.kt and WEBRTC_RECOVERY.md.
 Optional Canvas presentation and diagnostics also reference its web/app.js design.
 Scope and local changes: docs/TESLA-WHEELPLAY-COMPARISON.md
+JPEG-to-WebRTC retry policy and permanent browser-error classification also adapt
+WheelPlay commit 44635dd94e95fed6a8973faf85437c8a9342e44a (GNU GPL version 3):
+https://github.com/fython/wheelplay/commit/44635dd94e95fed6a8973faf85437c8a9342e44a
+The 5/10/20/30-second backoff runs in Tesla's RTC worker, with a continuous healthy
+minute before reset; no WheelPlay LanWebServer implementation is imported.
+Scope and local changes: docs/TESLA-RTC-RETRY.md
 Full GPL text: LICENSE in the DiPlay Tesla source distribution.
 Existing native dependency notices and license texts follow unchanged.
 

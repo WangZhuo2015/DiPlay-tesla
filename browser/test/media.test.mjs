@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createMedia} from '../src/main/assets/tesla/media.js';
+import {createTouchSender} from '../src/main/assets/tesla/browser-touch.js';
 
 const flush = async () => { for (let i=0;i<12;i++) await Promise.resolve(); };
 function deferred() {
@@ -8,7 +9,7 @@ function deferred() {
   const promise = new Promise((yes,no) => { resolve=yes; reject=no; });
   return {promise,resolve,reject};
 }
-function fixture({grace=4000,storedGrace=String(grace),storageBlocked=false}={}) {
+function fixture({grace=4000,storedGrace=String(grace),storageBlocked=false,onTransport=()=>{}}={}) {
   const original = new Map(), timers = new Map(), sockets = [], peers = [], behaviors = [], snapshots = [], transports = [];
   const storage = new Map([['diplay-browser-audio','false'],['diplay-rtc-recovery-ms',storedGrace]]);
   let clock=0, timerId=0;
@@ -34,7 +35,7 @@ function fixture({grace=4000,storedGrace=String(grace),storageBlocked=false}={})
       this.listeners=new Map();peers.push(this);
     }
     async setRemoteDescription(value) { this.remoteDescription=value;await this.behavior.remote; }
-    async createAnswer() { await this.behavior.answer;return {type:'answer',sdp:'answer'}; }
+    async createAnswer() { await this.behavior.answer;return {type:'answer',sdp:this.behavior.answerSdp||'answer'}; }
     async setLocalDescription(value) { this.localDescription=value;await this.behavior.local; }
     getStats() {
       this.getStatsCalls++;
@@ -67,7 +68,8 @@ function fixture({grace=4000,storedGrace=String(grace),storageBlocked=false}={})
     setItem(key,value) { if(storageBlocked)throw new Error('Storage blocked');storage.set(key,value); }});
   install('setTimeout',(fn,delay)=>schedule(fn,delay));install('clearTimeout',id=>timers.delete(id));
   install('setInterval',(fn,delay)=>schedule(fn,delay,true));install('clearInterval',id=>timers.delete(id));
-  const media=createMedia({video,getToken:()=> 'paired-token',onStats:value=>snapshots.push(value),onTransport:value=>transports.push(value)});
+  const media=createMedia({video,getToken:()=> 'paired-token',onStats:value=>snapshots.push(value),
+    onTransport:value=>{transports.push(value);onTransport(value);}});
   media.open();sockets[0].open();
   async function advance(duration) {
     const until=clock+duration;
@@ -285,5 +287,108 @@ test('an offer whose negotiation never resolves still reaches its first-frame de
     await f.advance(1);assert.equal(f.stats().fallbackReason,'first-frame-timeout');
     assert.equal(peer.closeCalls,1);assert.equal(f.fallback().length,1);
     pending.resolve();await flush();assert.equal(f.messages('rtc-answer').length,0);
+  } finally { await f.dispose(); }
+});
+
+test('NotSupportedError playback rejection permanently stops this server attempt without socket/audio teardown',async()=>{
+  const f=fixture();
+  try {
+    await f.media.audio.enable();
+    const peer=await f.offer(1);
+    f.video.playPromise=Promise.reject(Object.assign(new Error('unsupported playback'),{name:'NotSupportedError'}));
+    peer.track();await flush();
+    assert.deepEqual(f.fallback(),[{type:'rtc-fallback',id:1,retryable:false}]);
+    assert.equal(f.stats().fallbackReason,'playback-failed');assert.equal(f.media.displayed,false);
+    assert.equal(f.sockets[0].closeCalls,0);assert.equal(f.media.audio.enabled,true);
+    f.sockets[0].message({type:'rtc-stop',id:1,reason:'browser-fallback',retryAfterMs:0,retryBlocked:true});
+    assert.equal(f.stats().fallbackReason,'playback-failed');assert.equal(f.stats().rtcRetryBlocked,true);
+    await f.advance(120000);
+    assert.equal(f.peers.length,1);assert.equal(f.fallback().length,1);
+  } finally { await f.dispose(); }
+});
+
+test('a current NotAllowedError remains retryable and playback can recover on the same audio/control socket',async()=>{
+  const f=fixture();
+  try {
+    await f.media.audio.enable();
+    const old=await f.offer(1);
+    f.video.playPromise=Promise.reject(Object.assign(new Error('activation needed'),{name:'NotAllowedError'}));
+    old.track();await flush();
+    assert.deepEqual(f.fallback(),[{type:'rtc-fallback',id:1}]);
+    f.sockets[0].message({type:'rtc-stop',id:1,reason:'browser-fallback',retryAfterMs:5000,retryBlocked:false});
+    await f.advance(5000);
+    f.video.playPromise=null;
+    await f.ready(2);
+    assert.equal(f.sockets.length,1);assert.equal(f.sockets[0].closeCalls,0);
+    assert.equal(f.media.audio.enabled,true);assert.equal(f.media.displayed,true);
+  } finally { await f.dispose(); }
+});
+
+test('JPEG retry negotiation and failure keep a held touch, but actual transport switches and control close release it',async()=>{
+  const sent=[];
+  const touch=createTouchSender({send:async contacts=>sent.push(contacts)});
+  const point={id:0,x:.4,y:.6,down:true};
+  const f=fixture({onTransport:()=>touch.cancel()});
+  try {
+    touch.transition([point]);await flush();
+    const attempt=await f.offer(1);
+    assert.deepEqual(sent,[[point]],'JPEG offer must not cancel the held input');
+    attempt.state('failed');await flush();
+    f.sockets[0].message({type:'rtc-stop',id:1,reason:'browser-fallback',retryAfterMs:5000});
+    assert.deepEqual(sent,[[point]],'JPEG failure/ack must not cancel the held input');
+    touch.motion([{...point,x:.5}]);await flush();
+    assert.deepEqual(sent.at(-1),[{...point,x:.5}]);
+    await f.advance(5000);
+    const next=await f.ready(2);await flush();
+    assert.deepEqual(sent.at(-1),[],'JPEG to displayed RTC must release input');
+    touch.transition([point]);await flush();
+    next.state('failed');await flush();
+    assert.deepEqual(sent.at(-1),[],'RTC to JPEG must release input');
+    touch.transition([point]);await flush();
+    f.media.close();await flush();
+    assert.deepEqual(sent.at(-1),[],'closing JPEG control ownership must also release input');
+  } finally { await f.dispose(); }
+});
+
+test('an answer that disables video is a permanent rejection before local SDP or an answer is sent',async()=>{
+  const f=fixture();
+  try {
+    const peer=await f.offer(1,{answerSdp:'v=0\r\nm=video 0 UDP/TLS/RTP/SAVPF 96\r\n'});
+    assert.equal(peer.localDescription,undefined);assert.equal(peer.closeCalls,1);
+    assert.equal(f.messages('rtc-answer').length,0);
+    assert.deepEqual(f.fallback(),[{type:'rtc-fallback',id:1,retryable:false}]);
+    assert.equal(f.stats().fallbackReason,'video-unsupported');
+  } finally { await f.dispose(); }
+});
+
+test('a transient fallback accepts a server retry while late permanent failures stay on the retired peer',async()=>{
+  const f=fixture(),pending=deferred();
+  try {
+    const old=await f.offer(1,{remote:pending.promise});
+    await f.advance(10000);
+    assert.equal(f.fallback().length,1);assert.equal(f.fallback()[0].retryable,undefined);
+    f.sockets[0].message({type:'rtc-stop',id:1,reason:'browser-fallback',retryAfterMs:5000,retryBlocked:false});
+    assert.equal(f.stats().rtcRetryAfterMs,5000);
+    await f.advance(5000);
+    const replacement=await f.ready(2);
+    pending.reject(Object.assign(new Error('old codec failure'),{name:'NotSupportedError'}));await flush();
+    f.sockets[0].message({type:'rtc-stop',id:1,reason:'browser-fallback',retryBlocked:true});
+    assert.equal(old.closeCalls,1);assert.equal(replacement.closeCalls,0);
+    assert.equal(f.media.displayed,true);assert.equal(f.fallback().length,1);
+  } finally { await f.dispose(); }
+});
+
+test('closing or hiding the page while JPEG is waiting cannot create browser-owned RTC retries',async()=>{
+  const f=fixture();
+  try {
+    const old=await f.ready();old.state('failed');
+    f.sockets[0].message({type:'rtc-stop',id:1,reason:'browser-fallback',retryAfterMs:5000});
+    const oldMessage=f.sockets[0].onmessage;
+    document.hidden=true;f.media.close();
+    await f.advance(120000);
+    oldMessage({data:JSON.stringify({type:'rtc-offer',id:2,sdp:'stale'})});await flush();
+    assert.equal(f.sockets.length,1);assert.equal(f.peers.length,1);assert.equal(f.media.displayed,false);
+    document.hidden=false;f.media.open();f.sockets.at(-1).open();
+    await f.ready(3);assert.equal(f.media.displayed,true);
   } finally { await f.dispose(); }
 });

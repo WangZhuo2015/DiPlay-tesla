@@ -38,6 +38,7 @@ object RtspMessage {
     private val statusText = mapOf(
         200 to "OK",
         400 to "Bad Request",
+        401 to "Unauthorized",
         404 to "Not Found",
         500 to "Internal Server Error",
     )

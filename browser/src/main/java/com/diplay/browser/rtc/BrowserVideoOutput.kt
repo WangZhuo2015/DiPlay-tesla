@@ -37,7 +37,7 @@ class BrowserVideoOutput internal constructor(
     private var config: ByteArray? = null
     private var parameters = ByteArray(0)
     private var enabled = false
-    private var attempted = false
+    private val retry = RtcRetryPolicy(clock)
     private var reply: ((JSONObject) -> Boolean)? = null
     private var peer: RtcPeer? = null
     private var id = 0L
@@ -56,7 +56,7 @@ class BrowserVideoOutput internal constructor(
     }
     fun attach(rtc: Boolean, send: (JSONObject) -> Boolean) = attach(rtc, RtcRecoveryPolicy.BALANCED.graceMs, send)
     fun attach(rtc: Boolean, recoveryGraceMs: Long, send: (JSONObject) -> Boolean) = execute {
-        stop(); reply = send; enabled = rtc; attempted = false
+        stop(); reply = send; enabled = rtc
         recoveryPolicy = RtcRecoveryPolicy.fromMillis(recoveryGraceMs)
         start()
     }
@@ -65,14 +65,15 @@ class BrowserVideoOutput internal constructor(
         when (data.getString("type")) {
             "rtc-answer" -> runCatching { peer?.answer(data.getString("sdp")) }.onFailure { stop("answer-rejected") }
             "rtc-ready" -> if (connected && peer != null) {
-                displayed = true; health?.ready(clock()); (jpeg as? JpegVideoSink)?.setSuspended(true)
+                displayed = true; health?.ready(clock()); retry.healthy()
+                (jpeg as? JpegVideoSink)?.setSuspended(true)
                 reportDiagnostic("first frame rendered")
             }
             "rtc-feedback" -> {
                 val frames = data.getLong("decoded")
                 health?.feedback(frames, clock())
             }
-            "rtc-fallback" -> stop("browser-fallback")
+            "rtc-fallback" -> stop("browser-fallback", data.optBoolean("retryable", true))
         }
     }
     fun detach() = execute { enabled = false; reply = null; stop() }
@@ -99,7 +100,7 @@ class BrowserVideoOutput internal constructor(
         val bytes = codecData.copyOf()
         execute {
             if (config?.contentEquals(bytes) == true) return@execute
-            stop(); config = bytes; attempted = false; start()
+            stop(); config = bytes; start()
         }
     }
     override fun onVideoFrame(type: Int, naluBytes: ByteArray) = onVideoFrame(type, naluBytes, clock(), clock())
@@ -122,15 +123,14 @@ class BrowserVideoOutput internal constructor(
     override fun onScreenStreamActive(type: Int, active: Boolean) {
         if (type == MAIN_SCREEN && !active) diagnostic = null
         jpeg.onScreenStreamActive(type, active)
-        if (type == MAIN_SCREEN && !active) execute { stop(); config = null; attempted = false }
+        if (type == MAIN_SCREEN && !active) execute { stop(); config = null }
     }
     private fun start() {
         val bytes = config ?: return
-        if (!enabled || attempted || reply == null) return
-        attempted = true
+        if (!enabled || reply == null || !retry.start()) return
         try {
             val (sps, pps) = MediaCodecSupport.avcParameterSets(bytes)
-            require(sps.size >= 4 && pps.isNotEmpty())
+            if (sps.size < 4 || pps.isEmpty()) { stop("invalid-video-config", retryable = false); return }
             parameters = START + sps + START + pps
             val profile = sps.sliceArray(1..3).joinToString("") { "%02x".format(it.toInt() and 255) }
             // A reconnect creates a new output while the old worker may still
@@ -145,14 +145,14 @@ class BrowserVideoOutput internal constructor(
                             .put("sdp", value).put("recoveryGraceMs", recoveryPolicy.graceMs)) != true) stop("offer-rejected")
                     "connected" -> {
                         synchronized(lock) {
-                            queue.takeSendFailure()?.let { health?.sendFailed(it) }
+                            queue.takeSendFailure()?.let { health?.sendFailed(it); retry.interrupted() }
                             queue.clear()
                         }
                         health?.connected(clock())
                         connected = true; requestKey(force = true)
                     }
                     "disconnected" -> {
-                        connected = false; health?.disconnected(clock())
+                        connected = false; health?.disconnected(clock()); retry.interrupted()
                         synchronized(lock) { queue.invalidate(clock()) }
                         // Keep the last displayed frame and the peer until the recovery deadline.
                     }
@@ -162,13 +162,14 @@ class BrowserVideoOutput internal constructor(
             } }
             // Retain the peer before start so a partial native setup is closed on failure.
             peer?.start("profile-level-id=$profile;packetization-mode=1;level-asymmetry-allowed=1")
-        } catch (_: Exception) { stop("transport-unavailable") } catch (_: LinkageError) { stop("native-unavailable") }
+        } catch (_: Exception) { stop("transport-unavailable") }
+        catch (_: LinkageError) { stop("native-unavailable", retryable = false) }
     }
     private fun drain() {
         repeat(6) {
             val frame = synchronized(lock) {
                 val next = queue.poll(clock())
-                queue.takeSendFailure()?.let { health?.sendFailed(it) }
+                queue.takeSendFailure()?.let { health?.sendFailed(it); retry.interrupted() }
                 next
             } ?: return@repeat
             if (peer == null || !connected) return@repeat
@@ -179,7 +180,7 @@ class BrowserVideoOutput internal constructor(
                 sentFrames++; health?.sent(clock())
             }
             else {
-                sendFailures++; health?.sendFailed(clock())
+                sendFailures++; health?.sendFailed(clock()); retry.interrupted()
                 synchronized(lock) { queue.invalidate(clock()) }; requestKey()
             }
         }
@@ -196,16 +197,18 @@ class BrowserVideoOutput internal constructor(
         if (lastRecovery.compareAndSet(previous, now)) recovery?.invoke()
     }
     private fun checkHealth() {
-        if (peer == null) return
+        if (peer == null) { start(); return }
         val now = clock()
         val waitingForKey = synchronized(lock) {
-            queue.takeSendFailure()?.let { health?.sendFailed(it) }
+            queue.takeSendFailure()?.let { health?.sendFailed(it); retry.interrupted() }
             queue.recovering(now)
         }
         val reason = health?.failureReason(now) ?: synchronized(lock) {
             if (queue.recoveryExpired(now, recoveryPolicy.graceNanos)) "keyframe-timeout" else null
         }
-        if (reason != null) { stop(reason); return }
+        if (reason != null) { retry.interrupted(); stop(reason); return }
+        if (displayed && connected && !waitingForKey && health?.recovering(now) == false) retry.healthy()
+        else retry.interrupted()
         if (connected && (waitingForKey || health?.needsKeyframe(now) == true)) requestKey()
         val progress = JSONObject().put("type", "rtc-progress").put("id", id)
             .put("sent", sentFrames).put("received", receivedFrames).put("sendFailures", sendFailures)
@@ -219,16 +222,19 @@ class BrowserVideoOutput internal constructor(
         }
         reply?.invoke(progress)
     }
-    private fun stop(reason: String? = null) {
+    private fun stop(reason: String? = null, retryable: Boolean = true) {
         val wasDisplaying = displayed
+        val hadAttempt = retry.inFlight
+        if (reason == null) retry.reset() else retry.finish(retryable)
         displayed = false; connected = false; health = null
         (jpeg as? JpegVideoSink)?.setSuspended(false)
         val old = peer; peer = null
         runCatching { old?.close() }
         synchronized(lock) { queue.clear() }
-        if (old != null) {
-            if (reason != null) { fallbackReason = reason; reportDiagnostic("browser RTC fallback: $reason") }
-            reply?.invoke(JSONObject().put("type", "rtc-stop").put("id", id).put("reason", reason))
+        if (reason != null && hadAttempt) { fallbackReason = reason; reportDiagnostic("browser RTC fallback: $reason") }
+        if (old != null || (reason != null && retry.blocked)) {
+            reply?.invoke(JSONObject().put("type", "rtc-stop").put("id", id).put("reason", reason)
+                .put("retryAfterMs", retry.retryAfterMs).put("retryBlocked", retry.blocked))
         }
         if (wasDisplaying) requestKey()
     }

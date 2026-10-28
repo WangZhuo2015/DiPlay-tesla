@@ -87,6 +87,32 @@ browser microphone, device credentials and authentication assets are not importe
 The APK's `rtc-licenses.txt` contains the same short source attribution. These additions
 describe source changes after Tesla 0.1.10, not the contents of that existing release APK.
 
+### WheelPlay RTC retry policy
+
+The JPEG-to-WebRTC retry gate and browser capability-error classification selectively adapt
+WheelPlay commit
+[`44635dd94e95fed6a8973faf85437c8a9342e44a`](https://github.com/fython/wheelplay/commit/44635dd94e95fed6a8973faf85437c8a9342e44a)
+by Siubeng and contributors, under the retained GNU GPL version 3 license.
+The 5/10/20/30-second backoff is adapted to Tesla's independent RTC worker and existing
+media/input ownership, with a continuous healthy 60-second interval before resetting backoff.
+The browser distinguishes explicit unsupported video from transient failures; unlike the
+reference classification, Tesla keeps `NotAllowedError` retryable. WheelPlay's `LanWebServer`
+implementation is not imported. Scope and local changes are documented in
+[the RTC retry notes](TESLA-RTC-RETRY.md); the APK's `rtc-licenses.txt` records the same fixed
+source and policy attribution. Existing native dependency and Concentus notices remain unchanged.
+
+### WheelPlay AirPlay authentication hardening
+
+The 2026-10-28 source adaptation selectively incorporates the AirPlay authentication boundary
+and synthetic pair-verify/socket regression fixtures from WheelPlay commit
+[`7f5da9864e6d668867c924403e0311fc9470042a`](https://github.com/fython/wheelplay/commit/7f5da9864e6d668867c924403e0311fc9470042a)
+by Siubeng and contributors, under the retained GNU GPL version 3 license.
+It adapts `AirPlaySession.kt`, `PairVerify.kt` and `AirPlaySessionSecurityTest.kt`, preserving
+DiPlay's separate corner-mask, buffered-audio and bounded-parser behavior. It does not import
+WheelPlay's incremental RTSP decoder, incomplete-message deadline, authentication assets,
+projection plugins or system-privilege integrations. Scope and verification limits are recorded
+in [the synchronization notes](UPSTREAM-SYNC-20261028.md#wheelplay-独立安全适配).
+
 ### Native WebRTC dependencies
 
 WebRTC native dependencies use unmodified official sources pinned in

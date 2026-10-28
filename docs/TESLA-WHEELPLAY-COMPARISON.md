@@ -57,7 +57,7 @@ WheelPlay 基于 DiPlay / xcertplay 并保留 GPL-3.0 及各组件原有许可�
 
 恢复时间是**等待新画面恢复的期限，不是视频缓冲长度**。它与固定 50 ms 压缩帧队列和 80／200／400 ms 音频播放缓冲互相独立。健康检查按周期运行，实际回退时刻会受采样与调度影响。
 
-原有 WebSocket 控制连接心跳、自动重连和音频背压规则继续独立工作。因此选择 30 秒并不保证整个 Wi-Fi／控制连接断开 30 秒后仍保持原会话：控制消息约 5 秒无活动，或音频确认积压约 500 ms，仍可提前结束媒体连接。此次没有增加 ICE restart、TURN 或自适应码率。一次 RTC 尝试回退到 JPEG 后，重新连接浏览器媒体或改变视频配置才能重新尝试 RTC。
+原有 WebSocket 控制连接心跳、自动重连和音频背压规则继续独立工作。因此选择 30 秒并不保证整个 Wi-Fi／控制连接断开 30 秒后仍保持原会话：控制消息约 5 秒无活动，或音频确认积压约 500 ms，仍可提前结束媒体连接。此次没有增加 ICE restart、TURN 或自适应码率。2026-10-28 的后续适配为临时失败后的 JPEG 回退增加了 **5／10／20／30 秒自动重试退避**；永久不支持时仍停止当前配置的重试，详见 [RTC 重试说明](TESLA-RTC-RETRY.md)。这一后续变更不属于本文最初固定快照的验证成绩。
 
 实现见 [RtcRecoveryPolicy](../browser/src/main/java/com/diplay/browser/rtc/RtcRecoveryPolicy.kt)、
 [RtcHealth](../browser/src/main/java/com/diplay/browser/rtc/RtcHealth.kt)、
