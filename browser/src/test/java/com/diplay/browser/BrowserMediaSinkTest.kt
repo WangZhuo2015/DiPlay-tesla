@@ -9,6 +9,7 @@ import java.net.InetAddress
 class BrowserMediaSinkTest {
     private class RecordingSink : MediaSink {
         val video = mutableListOf<String>()
+        val observedFrames = mutableListOf<Int>()
         val active = mutableListOf<Boolean>()
         val audio = mutableListOf<String>()
         var pcm: RemotePcmOutput? = null
@@ -16,6 +17,7 @@ class BrowserMediaSinkTest {
         override fun setPcmOutput(output: RemotePcmOutput?) { pcm = output }
         override fun onVideoCodec(type: Int, codec: VideoCodec) { video += "codec" }
         override fun onVideoConfig(type: Int, codecData: ByteArray) { video += "config" }
+        override fun onVideoFrameObserved(type: Int) { observedFrames += type }
         override fun onVideoFrame(type: Int, naluBytes: ByteArray) { video += "frame" }
         override fun onVideoFrame(type: Int, naluBytes: ByteArray, senderNanos: Long, arrivalNanos: Long) {
             video += "timed"; timedFrame = listOf(senderNanos, arrivalNanos)
@@ -43,6 +45,7 @@ class BrowserMediaSinkTest {
         sink.onVideoFrame(110, byteArrayOf(3), 10, 20)
         sink.onScreenStreamActive(110, false)
         assertTrue(local.video.isEmpty())
+        assertEquals(listOf(110, 110), local.observedFrames)
         assertEquals(listOf("recovery", "diagnostic", "codec", "config", "frame", "timed"), browser.video)
         assertEquals(listOf(10L, 20L), browser.timedFrame)
         assertEquals(listOf(true, false), local.active)

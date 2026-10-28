@@ -59,7 +59,7 @@ class UpdateReleaseLookupTest {
 
     private fun response(url: URL, tag: String, vararg names: String): HttpURLConnection {
         val assets = (names.toList() + "SHA256SUMS.txt").joinToString(",") {
-            """{"name":"$it","browser_download_url":"https://example.test/$it"}"""
+            """{"name":"$it","browser_download_url":"https://github.com/WangZhuo2015/DiPlay-tesla/releases/download/$tag/$it"}"""
         }
         val bytes = """[{"tag_name":"$tag","assets":[$assets]}]""".toByteArray()
         return object : HttpURLConnection(url) {
