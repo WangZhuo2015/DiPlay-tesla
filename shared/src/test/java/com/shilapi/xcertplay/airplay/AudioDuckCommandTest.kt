@@ -70,5 +70,5 @@ class AudioDuckCommandTest {
         identity = AirPlayIdentity.generate(), pairings = PairingStore(), mfi = null,
         listener = listener,
         media = media,
-    )
+    ).also { it.verifyForTest() }
 }

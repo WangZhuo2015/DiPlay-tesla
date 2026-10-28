@@ -1,6 +1,9 @@
 import {createBrowserAudio,createAudioPreference} from './browser-audio.js';
 import {createRtcHealth} from './rtc-health.js';
 
+// NotAllowedError is a current playback/activation restriction, not permanent codec absence.
+const retryableRtcError = error => error?.name !== 'NotSupportedError';
+
 // Recovery waiting follows WheelPlay's 4/10/30-second policy; media queues stay bounded separately.
 export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},onStats=()=>{}}) {
   const recoveryKey = 'diplay-rtc-recovery-ms';
@@ -29,8 +32,9 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     if (state?.playing) video.removeEventListener('playing',state.playing);
     if (state) state.playing = null;
   }
-  function stopRtc(reason = null) {
+  function stopRtc(reason = null,connectionEnded = false) {
     const old = session;
+    const wasDisplayed = displayed;
     session = null; displayed = false;
     removePlaying(old);
     if (old) {
@@ -39,14 +43,16 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
       try { old.rtc.close(); } catch (_) {}
     }
     video.pause(); video.srcObject = null; video.hidden = true;
-    onTransport('jpeg');
+    // A JPEG-to-JPEG automatic retry must not cancel a drag/long press in app.js.
+    // Closing the owning control connection still releases input even if it was JPEG.
+    if (wasDisplayed || connectionEnded) onTransport('jpeg');
     if (!reason) stats = {};
     publishStats({decodedFps:null,dropped:null,recoveryGraceMs:old?.health.graceMs ?? selectedGrace,
       recovering:false,fallbackReason:reason});
   }
-  function fallback(state,reason) {
+  function fallback(state,reason,retryable = true) {
     if (!current(state)) return;
-    send({type:'rtc-fallback',id:state.id});
+    send({type:'rtc-fallback',id:state.id,...(retryable ? {} : {retryable:false})});
     stopRtc(reason);
   }
   function checkHealth(state,at) {
@@ -114,7 +120,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
           await video.play();
           if (!currentTrack()) return;
           playResolved = true; playing();
-        } catch (_) { if (currentTrack()) fallback(state,'playback-failed'); }
+        } catch (error) { if (currentTrack()) fallback(state,'playback-failed',retryableRtcError(error)); }
       };
       rtc.onconnectionstatechange = () => {
         if (!current(state)) return;
@@ -129,14 +135,16 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
       if (!current(state)) return;
       const answer = await rtc.createAnswer();
       if (!current(state)) return;
+      if (/^m=video 0(?: |\r?$)/m.test(answer.sdp)) { fallback(state,'video-unsupported',false); return; }
       await rtc.setLocalDescription(answer);
       if (!current(state) || !await waitForGathering(state) || !current(state)) return;
       send({type:'rtc-answer',id:state.id,sdp:rtc.localDescription.sdp});
-    } catch (_) {
+    } catch (error) {
       // An old same-id offer may reject after a replacement has already started.
-      if (state) { if (current(state)) fallback(state,'negotiation-failed'); }
+      if (state) { if (current(state)) fallback(state,'negotiation-failed',retryableRtcError(error)); }
       else if (socketCurrent(ws,ticket) && lastOfferId === message.id && session === null) {
-        send({type:'rtc-fallback',id:message.id}); stopRtc('transport-unavailable');
+        send({type:'rtc-fallback',id:message.id,...(retryableRtcError(error) ? {} : {retryable:false})});
+        stopRtc('transport-unavailable');
       }
     }
   }
@@ -236,12 +244,14 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
         const reason = typeof data.reason === 'string' ? data.reason : null;
         // Preserve the client's concrete cause when Android acknowledges its fallback request.
         stopRtc(reason === 'browser-fallback' && session === null ? stats.fallbackReason || reason : reason);
+        publishStats({rtcRetryAfterMs:Number.isSafeInteger(data.retryAfterMs) && data.retryAfterMs >= 0 ? data.retryAfterMs : null,
+          rtcRetryBlocked:data.retryBlocked === true});
       } else if (data.type === 'audio-stop') audio.stopped(data.stream);
     };
     ws.onclose = () => {
       if (!socketCurrent(ws,ticket)) return;
       clearSocketHandlers(ws); socket = null; connecting = false;
-      audio.disable(); stopRtc(); scheduleRetry(ticket);
+      audio.disable(); stopRtc(null,true); scheduleRetry(ticket);
     };
     ws.onerror = () => { if (socketCurrent(ws,ticket)) ws.close(); };
   }
@@ -249,7 +259,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     generation++; clearTimeout(retry); retry = null; connecting = false;
     const old = socket; socket = null;
     if (old) { clearSocketHandlers(old); old.close(); }
-    audio.disable(); stopRtc();
+    audio.disable(); stopRtc(null,true);
   }
   function configureVideo(mode,graceMs = selectedGrace) {
     if (disposed) return;

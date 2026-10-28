@@ -143,9 +143,8 @@ class CurrentScreenListenerTest {
     }
 
     private fun withSharedSecret(session: AirPlaySession) {
-        // onScreen derives the stream key from the pair-verify secret; any 32 bytes will do for routing.
-        PairVerify::class.java.getDeclaredField("sharedSecret").apply { isAccessible = true }
-            .set(session.pairVerify, ByteArray(32) { it.toByte() })
+        // The routing fixture still uses the actual pair-verify authentication boundary.
+        session.verifyForTest()
         assertTrue(session.sharedSecret != null)
     }
 

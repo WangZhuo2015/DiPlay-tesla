@@ -297,5 +297,5 @@ class BufferedAudioSessionTest {
         ),
         identity = AirPlayIdentity.generate(), pairings = PairingStore(), mfi = null,
         listener = object : AirPlaySessionListener {}, media = media,
-    )
+    ).also { it.verifyForTest() }
 }

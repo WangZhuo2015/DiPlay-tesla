@@ -7,14 +7,128 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.util.ReflectionHelpers
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
 @RunWith(RobolectricTestRunner::class) @Config(sdk=[29])
 class BrowserVideoOutputTest {
+    @Test fun aSendFailureThatRecoversBetweenHealthTicksStillInterruptsTheHealthyMinute() {
+        Fixture(4_000).use { fixture ->
+            fixture.peer.event("failed", ""); fixture.message("rtc-stop")
+            fixture.clock.set(5_000_000_000); fixture.tick(); fixture.nextOffer(); fixture.ready()
+            for (second in 1..59) {
+                fixture.clock.set((5L + second) * 1_000_000_000)
+                fixture.feedback(1); fixture.tick()
+            }
+            fixture.clock.set(64_500_000_000); fixture.peer.acceptFrames = false
+            fixture.output.onVideoFrame(110, byteArrayOf(0, 0, 0, 1, 0x65, 1))
+            fixture.barrier()
+            fixture.clock.set(64_600_000_000); fixture.peer.acceptFrames = true
+            fixture.output.onVideoFrame(110, byteArrayOf(0, 0, 0, 1, 0x65, 1))
+            assertNotNull(fixture.peer.frames.poll(2, TimeUnit.SECONDS))
+            fixture.feedback(2); fixture.barrier()
+            fixture.clock.set(65_000_000_000); fixture.tick()
+            fixture.peer.event("failed", "")
+            assertEquals("An inter-tick send failure must prevent premature healthy reset", 10_000L,
+                fixture.message("rtc-stop").getLong("retryAfterMs"))
+        }
+    }
+
+    @Test fun aHealthyMinuteAfterRecoveryResetsTheNextFailureToFiveSeconds() {
+        Fixture(4_000).use { fixture ->
+            fixture.peer.event("failed", ""); fixture.message("rtc-stop")
+            fixture.clock.set(5_000_000_000); fixture.tick(); fixture.nextOffer(); fixture.ready()
+            for (second in 1..60) {
+                fixture.clock.set((5L + second) * 1_000_000_000)
+                fixture.feedback(1); fixture.tick()
+            }
+            fixture.peer.event("failed", "")
+            assertEquals(5_000L, fixture.message("rtc-stop").getLong("retryAfterMs"))
+        }
+    }
+
+    @Test fun missingNativeTransportBlocksRetriesRatherThanLoadingItEveryFiveSeconds() {
+        val clock = AtomicLong()
+        val attempts = AtomicInteger()
+        val messages = LinkedBlockingQueue<JSONObject>()
+        val output = BrowserVideoOutput(object : MediaSink {}, {}, clock::get) {
+            attempts.incrementAndGet()
+            throw UnsatisfiedLinkError("No native transport in this test")
+        }
+        try {
+            output.onVideoConfig(110, byteArrayOf(1,0x42,0,0x1f,-1,-31,0,4,0x67,0x42,0,0x1f,1,0,2,0x68,0))
+            output.attach(true) { messages.offer(it); true }
+            val stop = messages.poll(2, TimeUnit.SECONDS)!!
+            assertEquals("native-unavailable", stop.getString("reason"))
+            assertTrue(stop.getBoolean("retryBlocked"))
+            clock.set(120_000_000_000)
+            ReflectionHelpers.getField<ScheduledExecutorService>(output, "worker").submit {
+                ReflectionHelpers.callInstanceMethod<Unit>(output, "checkHealth")
+            }.get(2, TimeUnit.SECONDS)
+            assertEquals(1, attempts.get()); assertEquals("jpeg", output.transport)
+        } finally { output.close() }
+    }
+
+    @Test fun jpegRemainsAvailableUntilTheCooldownStartsANewPeerAndOldCallbacksStayRetired() {
+        Fixture(4_000).use { fixture ->
+            val old = fixture.peer
+            val oldId = fixture.offer.getLong("id")
+            old.event("failed", "")
+            assertEquals(5_000L, fixture.message("rtc-stop").getLong("retryAfterMs"))
+            fixture.output.onVideoFrame(110, byteArrayOf(0, 0, 0, 1, 0x65, 1))
+            assertEquals(1, fixture.jpegFrames.get())
+            fixture.clock.set(4_999_999_999); fixture.tick(); fixture.assertNoOffer()
+            fixture.clock.set(5_000_000_000); fixture.tick()
+            val offer = fixture.nextOffer()
+            assertNotEquals(oldId, offer.getLong("id"))
+            assertEquals("Negotiation must not hide JPEG", "jpeg", fixture.output.transport)
+            fixture.output.onVideoFrame(110, byteArrayOf(0, 0, 0, 1, 0x65, 1))
+            assertEquals(2, fixture.jpegFrames.get())
+            fixture.ready()
+            old.event("failed", "")
+            fixture.output.command(JSONObject().put("type", "rtc-fallback").put("id", oldId).put("retryable", false))
+            fixture.barrier()
+            assertEquals("webrtc", fixture.output.transport)
+            fixture.peer.event("failed", "")
+            assertEquals("A brief recovery retains the accumulated backoff", 10_000L,
+                fixture.message("rtc-stop").getLong("retryAfterMs"))
+        }
+    }
+
+    @Test fun permanentBrowserRejectionAfterNativeFailureCancelsRetryUntilANewConfiguration() {
+        Fixture(4_000).use { fixture ->
+            fixture.peer.event("failed", "")
+            fixture.message("rtc-stop")
+            fixture.output.command(JSONObject().put("type", "rtc-fallback").put("id", fixture.offer.getLong("id"))
+                .put("retryable", false))
+            assertTrue(fixture.message("rtc-stop").getBoolean("retryBlocked"))
+            fixture.clock.set(120_000_000_000); fixture.tick(); fixture.assertNoOffer()
+            fixture.output.onVideoConfig(110, byteArrayOf(1,0x42,0,0x20,-1,-31,0,4,0x67,0x42,0,0x20,1,0,2,0x68,0))
+            fixture.nextOffer(); fixture.ready()
+            assertEquals("webrtc", fixture.output.transport)
+        }
+    }
+
+    @Test fun detachAndSourceStopCancelPendingRetryWhileReattachStartsImmediately() {
+        Fixture(4_000).use { fixture ->
+            fixture.peer.event("failed", ""); fixture.message("rtc-stop")
+            fixture.output.detach()
+            fixture.clock.set(120_000_000_000); fixture.tick(); fixture.assertNoOffer()
+            fixture.attach(); fixture.nextOffer(); fixture.ready()
+            fixture.peer.event("failed", ""); fixture.message("rtc-stop")
+            fixture.output.onScreenStreamActive(110, false)
+            fixture.clock.set(240_000_000_000); fixture.tick(); fixture.assertNoOffer()
+            fixture.output.onScreenStreamActive(110, true)
+            fixture.output.onVideoConfig(110, byteArrayOf(1,0x42,0,0x1f,-1,-31,0,4,0x67,0x42,0,0x1f,1,0,2,0x68,0))
+            fixture.nextOffer(); fixture.ready()
+            assertEquals("A new source may reuse the prior configuration bytes", "webrtc", fixture.output.transport)
+        }
+    }
     @Test fun shortNativeDisconnectKeepsLastVideoAndRequestsAFreshKeyframeOnRecovery() {
         Fixture(4_000).use { fixture ->
             assertEquals(4_000, fixture.offer.getLong("recoveryGraceMs"))
@@ -138,9 +252,13 @@ class BrowserVideoOutputTest {
         val frames = LinkedBlockingQueue<ByteArray>()
         val closed = AtomicInteger()
         @Volatile var beforeAnswer: ((String) -> Unit)? = null
+        @Volatile var acceptFrames = true
         override fun start(profile: String) { event("offer", "test"); event("connected", "") }
         override fun answer(sdp: String) { beforeAnswer?.invoke(sdp); answers.offer(sdp) }
-        override fun send(frame: ByteArray, timestamp: Long): Boolean { frames.offer(frame); return true }
+        override fun send(frame: ByteArray, timestamp: Long): Boolean {
+            if (!acceptFrames) return false
+            frames.offer(frame); return true
+        }
         override fun close() { closed.incrementAndGet() }
     }
 
@@ -155,7 +273,7 @@ class BrowserVideoOutputTest {
             override fun onVideoFrame(type: Int, naluBytes: ByteArray) { jpegFrames.incrementAndGet() }
         }, {}, clock::get) { event -> FakePeer(event).also { currentPeer = it } }
         val offer: JSONObject
-        private val id: Long
+        private var id: Long
         init {
             output.setVideoRecoveryHandler(110) { keyRequests.incrementAndGet() }
             output.onVideoConfig(110, byteArrayOf(1,0x42,0,0x1f,-1,-31,0,4,0x67,0x42,0,0x1f,1,0,2,0x68,0))
@@ -170,6 +288,18 @@ class BrowserVideoOutputTest {
             output.command(JSONObject().put("type", "rtc-answer").put("id", id).put("sdp", "barrier"))
             assertEquals("barrier", peer.answers.poll(2, TimeUnit.SECONDS))
         }
+        fun tick() {
+            ReflectionHelpers.getField<ScheduledExecutorService>(output, "worker").submit {
+                ReflectionHelpers.callInstanceMethod<Unit>(output, "checkHealth")
+            }.get(2, TimeUnit.SECONDS)
+        }
+        fun nextOffer(): JSONObject = message("rtc-offer").also { id = it.getLong("id") }
+        fun ready() {
+            output.command(JSONObject().put("type", "rtc-ready").put("id", id))
+            barrier()
+        }
+        fun attach() = output.attach(true, 4_000) { messages.offer(it); true }
+        fun assertNoOffer() { assertFalse(messages.any { it.getString("type") == "rtc-offer" }) }
         fun feedback(decoded: Long) {
             output.command(JSONObject().put("type", "rtc-feedback").put("id", id).put("decoded", decoded))
         }

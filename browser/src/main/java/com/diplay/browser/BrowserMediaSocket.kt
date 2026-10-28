@@ -70,7 +70,11 @@ internal class BrowserMediaSocket(
                 }
                 "audio-ack" -> pending.remove(data.getLong("sequence"))
                 "rtc-answer" -> { require(data.getString("sdp").length <= 32000); media.command(this, data) }
-                "rtc-ready", "rtc-fallback" -> media.command(this, data)
+                "rtc-ready" -> media.command(this, data)
+                "rtc-fallback" -> {
+                    require(!data.has("retryable") || data.get("retryable") is Boolean)
+                    media.command(this, data)
+                }
                 "rtc-feedback" -> { require(data.getLong("decoded") in 0..9_007_199_254_740_991L); media.command(this, data) }
                 else -> throw IllegalArgumentException()
             }

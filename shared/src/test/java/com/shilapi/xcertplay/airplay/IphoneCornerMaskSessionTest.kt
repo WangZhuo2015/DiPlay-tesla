@@ -28,7 +28,7 @@ class IphoneCornerMaskSessionTest {
                 override fun onScreen(session: AirPlaySession, type: Int, stream: Map<String, Any?>): Int? =
                     if (type == 110) 43210 else null
             },
-        )
+        ).also { it.verifyForTest() }
 
     private fun handle(session: AirPlaySession, method: String, payload: Map<String, Any?>): RtspMessage.Response =
         AirPlaySession::class.java.getDeclaredMethod("handle", RtspMessage.Request::class.java)
