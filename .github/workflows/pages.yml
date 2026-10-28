@@ -13,6 +13,9 @@ concurrency:
   cancel-in-progress: true
 jobs:
   deploy:
+    # Forks must explicitly opt in before publishing their own Pages site.
+    # Keep the original upstream release-site behavior unchanged.
+    if: github.repository == 'shihabal3amri/DiPlay'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
