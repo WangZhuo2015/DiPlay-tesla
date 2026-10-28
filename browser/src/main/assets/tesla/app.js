@@ -2,6 +2,7 @@ import {createMedia} from './media.js';
 import {displayPreset} from './display-presets.js';
 import {createTouchSender} from './browser-touch.js';
 import {streamSummary} from './stream-summary.js';
+import {createRtcRenderer} from './rtc-renderer.js';
 /* Local H.264/WebRTC with JPEG fallback; optional PCM playback is independent of video. */
 (() => {
   'use strict';
@@ -23,15 +24,25 @@ import {streamSummary} from './stream-summary.js';
     audioBlocked:['请再次点按允许声音；已恢复 Android 音频。','Tap again to allow sound; Android playback restored.'],
     displayHint:['右侧与全屏尺寸独立保存，下次连接生效。','Right and full sizes are saved independently for the next connection.'],
     transportHint:['视频传输在保存后立即切换。','Video transport switches immediately after saving.'],
+    renderer:['WebRTC 显示方式','WebRTC presentation'],nativeRenderer:['原生视频（默认）','Native video (default)'],canvasRenderer:['Canvas（实验性）','Canvas (experimental)'],
+    rendererHint:['Canvas 可用于排查浏览器视频显示异常，会增加绘制开销。保存后立即应用，不重连 CarPlay。','Canvas can help with browser video presentation problems and adds drawing work. Applies on save without reconnecting CarPlay.'],
+    rendererFailed:['Canvas 绘制失败，已恢复原生视频。','Canvas rendering failed; native video restored.'],
+    recovery:['WebRTC 恢复等待','WebRTC recovery wait'],quickRecovery:['4 秒 · 快速回退','4 seconds · Quick fallback'],balancedRecovery:['10 秒 · 均衡（默认）','10 seconds · Balanced (default)'],patientRecovery:['30 秒 · 等待恢复','30 seconds · Patient'],
+    recoveryHint:['短暂中断时保留最后画面，超过所选时间再回退 JPEG。保存后重建浏览器媒体连接；不会增加视频缓冲或重连 iPhone。','Keep the last picture during a short interruption, then fall back to JPEG after this wait. Saving restarts browser media only; it does not add video buffering or reconnect the iPhone.'],
+    jpegLimit:['60 fps 用于 WebRTC；JPEG 转换最高 30 fps。保存帧率后，下次 CarPlay 连接生效。','60 fps is available for WebRTC; JPEG conversion is capped at 30 fps. A saved frame rate applies at the next CarPlay connection.'],
+    recovering:['正在恢复视频','Recovering video'],videoQueue:['压缩视频队列','Compressed video queue'],queueBudget:['视频排队时限','Video queue budget'],expiredFrames:['过期帧丢弃','Expired frames'],overflowFrames:['队列溢出丢弃','Queue overflow drops'],keyframeSkips:['等待关键帧跳过','Skipped until keyframe'],sendFailures:['本地发送失败','Local send failures'],fallbackReason:['视频回退原因','Video fallback reason'],
     mode:['窗口配置','Window profile'], right:['右侧窗口','Right window'], full:['全屏窗口','Full window'],
     rightWidth:['右侧宽度','Right width'], rightHeight:['右侧高度','Right height'], fullWidth:['全屏宽度','Full width'], fullHeight:['全屏高度','Full height'],
-    fps:['帧率 (5–30)','Frame rate (5–30)'], quality:['JPEG 画质 (40–95)','JPEG quality (40–95)'], cancel:['取消','Cancel'], save:['保存，下次连接生效','Save for next connection'],
+    fps:['帧率 (5–60)','Frame rate (5–60)'], quality:['JPEG 画质 (40–95)','JPEG quality (40–95)'], cancel:['取消','Cancel'], save:['保存，下次连接生效','Save for next connection'],
     pending:['新配置等待下次连接','New profile applies at next connection'], reconnect:['应用并重新连接','Apply and reconnect'],
     confirm:['现在应用配置并重新连接 CarPlay？','Apply the saved profile and reconnect CarPlay now?'],
     waiting:['等待 CarPlay','Waiting for CarPlay'], disconnected:['连接中断，正在重试…','Connection lost; retrying…'], invalid:['检查配对码、分辨率和网络连接。','Check the pairing code, dimensions and network connection.'],
     unavailable:['此浏览器不支持全屏，请使用 Tesla 的窗口控制。','Fullscreen is unavailable; use Tesla window controls.']
   };
   const arabic={
+    renderer:'طريقة عرض WebRTC',nativeRenderer:'الفيديو الأصلي (افتراضي)',canvasRenderer:'Canvas (تجريبي)',rendererHint:'قد يساعد Canvas في مشاكل عرض الفيديو في المتصفح ويزيد عمل الرسم. يُطبّق عند الحفظ دون إعادة اتصال CarPlay.',rendererFailed:'تعذّر الرسم على Canvas؛ استُعيد الفيديو الأصلي.',
+    recovery:'مهلة استعادة WebRTC',quickRecovery:'4 ثوانٍ · انتقال سريع',balancedRecovery:'10 ثوانٍ · متوازن (افتراضي)',patientRecovery:'30 ثانية · انتظار الاستعادة',recoveryHint:'تُحفظ الصورة الأخيرة أثناء الانقطاع القصير، ثم ينتقل العرض إلى JPEG بعد المهلة. يعيد الحفظ اتصال وسائط المتصفح فقط؛ ولا يزيد تخزين الفيديو أو يعيد اتصال iPhone.',jpegLimit:'يتوفر 60 إطارًا في الثانية لـ WebRTC؛ تحويل JPEG محدود بـ 30 إطارًا. يسري معدل الإطارات المحفوظ عند اتصال CarPlay التالي.',
+    recovering:'تجري استعادة الفيديو',videoQueue:'قائمة انتظار الفيديو المضغوط',queueBudget:'مهلة انتظار الفيديو',expiredFrames:'الإطارات المنتهية',overflowFrames:'الإطارات المتجاوزة للسعة',keyframeSkips:'الإطارات المتخطاة حتى الإطار الرئيسي',sendFailures:'إخفاقات الإرسال المحلي',fallbackReason:'سبب الانتقال إلى JPEG',
     menu:'القائمة',close:'إغلاق',showKeys:'إظهار الأزرار الافتراضية',hideKeys:'إخفاء الأزرار',diagnostics:'التشخيص المباشر',
     fitWindow:'ملاءمة النافذة (موصى به)',fitHint:'اختر النافذة في Tesla أولًا، ثم إعدادًا مسبقًا. تتغير الأبعاد المحددة فقط؛ معدل الإطارات مشترك.',
     fitScale:'مقياس الملاءمة',scaleHalf:'1/2 (موصى به)',scaleThreeQuarters:'3/4',scaleFull:'1×',scaleHint:'يُغيّر العرض والارتفاع؛ يستخدم النصف ربع عدد البكسلات. الحد الأدنى للنوافذ الصغيرة هو \u2066320×240\u2069؛ تظهر الأبعاد الفعلية أدناه. احفظ للاتصال التالي.',
@@ -39,7 +50,7 @@ import {streamSummary} from './stream-summary.js';
     unknown:'غير معروف',stale:'لم تُحدّث',resolution:'أبعاد الفيديو الفعلية',decoded:'معدل فك الترميز الفعلي',dropped:'الإطارات المفقودة',queue:'الصوت المخزن مؤقتًا',underruns:'مرات إعادة تخزين الصوت',memory:'الذاكرة المتاحة',thermal:'الحالة الحرارية للنظام',sampleAge:'عمر عينة الجهاز',
     settings:'إعدادات العرض',expand:'ملء الشاشة',theme:'نهار / ليل',pair:'اتصال DiPlay',pairHint:'اعرض الرمز المكوّن من ستة أرقام في الاتصال ← متصفح Tesla على الهاتف. صالح لخمس دقائق. يتذكر المتصفح الاتصال؛ أعد فتح صفحة الاتصال على الهاتف للحصول على رمز جديد عند الحاجة.',code:'رمز الاقتران من 6 أرقام',connect:'اتصال',home:'الرئيسية',back:'رجوع',previous:'السابق',play:'تشغيل / إيقاف مؤقت',next:'التالي',
     audio:'يشغّل المتصفح الموسيقى وإرشادات الملاحة؛ تستخدم المكالمات وصوت Siri والميكروفون جهاز Android المضيف حاليًا.',browserAudio:'صوت المتصفح (تجريبي)',audioOn:'صوت المتصفح مفعّل (تجريبي)',audioPending:'صوت المتصفح · اضغط للتشغيل (تجريبي)',buffer:'تخزين الصوت مؤقتًا',transport:'نقل الفيديو',auto:'WebRTC / JPEG تلقائي',audioBlocked:'اضغط مجددًا للسماح بالصوت؛ استُعيد صوت Android.',
-    displayHint:'تُحفظ أبعاد النافذة اليمنى والكاملة بشكل مستقل للاتصال التالي.',transportHint:'يتغير نقل الفيديو فورًا بعد الحفظ.',mode:'إعداد النافذة',right:'النافذة اليمنى',full:'ملء الشاشة',rightWidth:'عرض النافذة اليمنى',rightHeight:'ارتفاع النافذة اليمنى',fullWidth:'عرض ملء الشاشة',fullHeight:'ارتفاع ملء الشاشة',fps:'معدل الإطارات (5–30)',quality:'جودة JPEG (40–95)',cancel:'إلغاء',save:'حفظ للاتصال التالي',pending:'تسري الإعدادات الجديدة عند الاتصال التالي',reconnect:'تطبيق وإعادة الاتصال',confirm:'تطبيق الإعدادات المحفوظة وإعادة اتصال CarPlay الآن؟',waiting:'بانتظار CarPlay',disconnected:'انقطع الاتصال؛ تجري إعادة المحاولة…',invalid:'تحقق من رمز الاقتران والأبعاد واتصال الشبكة.',unavailable:'ملء الشاشة غير متاح؛ استخدم عناصر التحكم في Tesla.'
+    displayHint:'تُحفظ أبعاد النافذة اليمنى والكاملة بشكل مستقل للاتصال التالي.',transportHint:'يتغير نقل الفيديو فورًا بعد الحفظ.',mode:'إعداد النافذة',right:'النافذة اليمنى',full:'ملء الشاشة',rightWidth:'عرض النافذة اليمنى',rightHeight:'ارتفاع النافذة اليمنى',fullWidth:'عرض ملء الشاشة',fullHeight:'ارتفاع ملء الشاشة',fps:'معدل الإطارات (\u20665–60\u2069)',quality:'جودة JPEG (40–95)',cancel:'إلغاء',save:'حفظ للاتصال التالي',pending:'تسري الإعدادات الجديدة عند الاتصال التالي',reconnect:'تطبيق وإعادة الاتصال',confirm:'تطبيق الإعدادات المحفوظة وإعادة اتصال CarPlay الآن؟',waiting:'بانتظار CarPlay',disconnected:'انقطع الاتصال؛ تجري إعادة المحاولة…',invalid:'تحقق من رمز الاقتران والأبعاد واتصال الشبكة.',unavailable:'ملء الشاشة غير متاح؛ استخدم عناصر التحكم في Tesla.'
   };
   const t = key => ar?arabic[key]:copy[key][zh ? 0 : 1];
   document.documentElement.lang = ar?'ar':zh?'zh-CN':'en';
@@ -57,7 +68,13 @@ import {streamSummary} from './stream-summary.js';
   const client = 'client-' + Array.from(crypto.getRandomValues(new Uint8Array(12)), x => x.toString(16).padStart(2,'0')).join('');
   const canvas = $('picture'), drawing = canvas.getContext('2d');
   const screen = $('screen'), video = $('video');
-  let videoMetrics = {};
+  let videoMetrics = {}, rendererNotice = null;
+  const renderer = createRtcRenderer({video,canvas,onError:()=>{
+    rendererNotice=t('rendererFailed');
+    localStorage.setItem('diplay-rtc-renderer','native');$('renderer').value='native';
+    $('status').textContent=rendererNotice;
+  }});
+  renderer.setMode(localStorage.getItem('diplay-rtc-renderer'));
   let menuPeekTimer;
   function peekMenu() {
     clearTimeout(menuPeekTimer);$('menuButton').classList.add('menuPeek');
@@ -77,7 +94,7 @@ import {streamSummary} from './stream-summary.js';
   $('keysButton').addEventListener('click',()=>{ showKeys($('virtualKeys').hidden); closeMenu(); });
   $('hideKeys').addEventListener('click',()=>{ showKeys(false); $('menuButton').focus(); });
   const media = createMedia({video,getToken:()=>token,
-    onTransport:mode=>{canvas.hidden=mode==='webrtc';},
+    onTransport:mode=>{renderer.setActive(mode==='webrtc');releaseTouches();},
     onStats:metrics=>{videoMetrics=metrics;},
     onAudio:state=>{const button=$('audioButton'),label=t(state.enabled?'audioOn':media.audioPreference.wanted?'audioPending':'browserAudio');if(button.textContent!==label)button.textContent=label;button.setAttribute('aria-pressed',String(state.enabled));}
   });
@@ -117,7 +134,7 @@ import {streamSummary} from './stream-summary.js';
   async function status() {
     const state = await (await api('/api/status')).json();
     current = state;
-    $('status').textContent = state.error || state.stage || (state.connected ? 'CarPlay' : t('waiting'));
+    $('status').textContent = state.error || rendererNotice || (videoMetrics.recovering ? t('recovering') : null) || state.stage || (state.connected ? 'CarPlay' : t('waiting'));
     $('pending').hidden = !state.pendingReconnect || !$('reconnectPanel').hidden;
     document.querySelectorAll('[data-action]').forEach(button => { button.disabled = !state.connected; });
     if (!state.connected) resetPicture();
@@ -141,6 +158,10 @@ import {streamSummary} from './stream-summary.js';
     add(t('resolution'),width && height?`${width} × ${height}`:unknown);
     add(t('decoded'),media.displayed && Number.isFinite(fps)?fps.toFixed(1)+' fps':unknown);
     add(t('dropped'),videoMetrics.dropped??unknown);
+    if(Number.isFinite(videoMetrics.queueFrames))add(t('videoQueue'),`${videoMetrics.queueFrames} / ${Math.round(videoMetrics.queueBytes/1024)} KiB`);
+    if(Number.isFinite(videoMetrics.queueBudgetMs))add(t('queueBudget'),videoMetrics.queueBudgetMs+' ms');
+    for(const key of ['expiredFrames','overflowFrames','keyframeSkips','sendFailures'])if(Number.isFinite(videoMetrics[key]))add(t(key),videoMetrics[key]);
+    if(videoMetrics.fallbackReason)add(t('fallbackReason'),videoMetrics.fallbackReason);
     add(t('queue'),audio.enabled?Math.round(audio.queuedMs)+' ms':t('audio'));
     add(t('underruns'),audio.underruns);
     add(t('sampleAge'),device?Math.round(device.ageMs/1000)+' s':unknown);
@@ -179,6 +200,8 @@ import {streamSummary} from './stream-summary.js';
             try { picture = await new Promise((resolve,reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = reject; img.src = url; }); }
             finally { URL.revokeObjectURL(url); }
           }
+          // A JPEG request can finish after WebRTC takes over this same Canvas.
+          if(media.displayed || !live || epoch!==streamEpoch || document.hidden) { if(picture.close)picture.close(); continue; }
           // Reassigning either dimension clears and reallocates the canvas backing store.
           if (canvas.width !== picture.width) canvas.width = picture.width;
           if (canvas.height !== picture.height) canvas.height = picture.height;
@@ -188,7 +211,8 @@ import {streamSummary} from './stream-summary.js';
           sequence = Number(response.headers.get('X-Frame-Sequence'));
         }
         failures = 0;
-        const fps = (current.activeDisplay || current.display).fps;
+        const profile = current.activeDisplay || current.display;
+        const fps = profile.jpegFps || Math.min(profile.fps,30);
         await delay(Math.max(15,1000/fps - (Date.now()-start)));
       } catch (error) {
         resetPicture(); releaseTouches();
@@ -199,7 +223,7 @@ import {streamSummary} from './stream-summary.js';
     }
   }
   function normalizedPoint(x,y) {
-    const picture=media.displayed?video:canvas;
+    const picture=renderer.surface;
     const box = picture.getBoundingClientRect(), sourceWidth=media.displayed?video.videoWidth:canvas.width,sourceHeight=media.displayed?video.videoHeight:canvas.height;
     const scale = Math.min(box.width/sourceWidth,box.height/sourceHeight);
     const width = sourceWidth*scale, height = sourceHeight*scale;
@@ -276,6 +300,8 @@ import {streamSummary} from './stream-summary.js';
       ['right','full'].forEach(mode => { ['width','height'].forEach(axis => { $(mode + axis[0].toUpperCase()+axis.slice(1)).value = display[mode][axis]; }); });
       $('fps').value = display.fps; $('quality').value = display.jpegQuality;
       $('transport').value=localStorage.getItem('diplay-video')||'auto';
+      $('renderer').value=renderer.mode;
+      $('recovery').value=String(media.recoveryGraceMs);
       fitScales={right:rememberedScale('right'),full:rememberedScale('full')}; changedFitScales.clear();
       $('fitScale').value=String(fitScales[display.mode.toLowerCase()]);
       $('manualDisplay').open=false; clearPreset();
@@ -304,7 +330,9 @@ import {streamSummary} from './stream-summary.js';
     try {
       await api('/api/display',{mode:$('mode').value,right:size('right'),full:size('full'),fps:Number($('fps').value),jpegQuality:Number($('quality').value)});
       changedFitScales.forEach(mode=>localStorage.setItem('diplay-fit-scale-'+mode,String(fitScales[mode])));
-      if($('transport').value!==(localStorage.getItem('diplay-video')||'auto'))media.useVideo($('transport').value);
+      rendererNotice=null;
+      localStorage.setItem('diplay-rtc-renderer',renderer.setMode($('renderer').value));
+      media.configureVideo($('transport').value,Number($('recovery').value));
       $('displayPanel').hidden = true; $('menuButton').focus(); await status();
     } catch (error) { $('manualDisplay').open=true; $('displayError').textContent = error.message; }
   });

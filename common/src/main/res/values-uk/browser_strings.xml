@@ -10,9 +10,9 @@
     <string name="settings_browser_right_height">Висота правої області (пікселі)</string>
     <string name="settings_browser_full_width">Ширина повної області (пікселі)</string>
     <string name="settings_browser_full_height">Висота повної області (пікселі)</string>
-    <string name="settings_browser_fps">Частота кадрів (5–30)</string>
+    <string name="settings_browser_fps">Частота кадрів (5–60)</string>
     <string name="settings_browser_quality">Якість JPEG (40–95)</string>
-    <string name="settings_browser_invalid">Парні розміри: ширина 320–2560, висота 240–1440; частота 5–30; якість 40–95.</string>
+    <string name="settings_browser_invalid">Парні розміри: ширина 320–2560, висота 240–1440; частота 5–60; якість 40–95.</string>
     <string name="settings_browser_pairing_hint">Підключіть Tesla до мережі телефона та відкрийте одну з адрес. Введіть шестизначний код або скопіюйте посилання; строк дії — п’ять хвилин. Браузер запам’ятовує підключення. Відкрийте цю сторінку знову після завершення строку або п’яти помилок.</string>
     <string name="settings_browser_pairing_code">Код із 6 цифр</string>
     <string name="settings_browser_copy_link">Копіювати посилання</string>

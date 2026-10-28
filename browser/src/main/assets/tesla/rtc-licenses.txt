@@ -4,6 +4,16 @@ Pinned commits and SHA-256 hashes: browser/src/main/cpp/NativeDependencies.cmake
 Full source: https://github.com/WangZhuo2015/DiPlay-tesla
 MbedTLS is used under its Apache-2.0 license option.
 
+WheelPlay browser policy references (unreleased Tesla source enhancements)
+WheelPlay by fython and contributors, GNU GPL version 3.
+Source: https://github.com/fython/wheelplay/tree/4ed3536822998babd086e4fcb1a384e791b0e2d4
+The compressed-frame queue and recovery policies are selectively adapted from
+RtcFrameQueue.kt, RtcVideoStream.kt, RtcReceiverHealth.kt and WEBRTC_RECOVERY.md.
+Optional Canvas presentation and diagnostics also reference its web/app.js design.
+Scope and local changes: docs/TESLA-WHEELPLAY-COMPARISON.md
+Full GPL text: LICENSE in the DiPlay Tesla source distribution.
+Existing native dependency notices and license texts follow unchanged.
+
 
 libdatachannel
 ============================================================

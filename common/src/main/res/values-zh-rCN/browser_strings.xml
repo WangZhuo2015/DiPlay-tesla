@@ -10,9 +10,9 @@
     <string name="settings_browser_right_height">右侧窗口高度（像素）</string>
     <string name="settings_browser_full_width">全屏窗口宽度（像素）</string>
     <string name="settings_browser_full_height">全屏窗口高度（像素）</string>
-    <string name="settings_browser_fps">帧率（5–30 fps）</string>
+    <string name="settings_browser_fps">帧率（5–60 fps）</string>
     <string name="settings_browser_quality">JPEG 画质（40–95）</string>
-    <string name="settings_browser_invalid">宽度需为 320–2560 的偶数，高度需为 240–1440 的偶数；帧率 5–30；画质 40–95。</string>
+    <string name="settings_browser_invalid">宽度需为 320–2560 的偶数，高度需为 240–1440 的偶数；帧率 5–60；画质 40–95。</string>
     <string name="settings_browser_pairing_hint">让 Tesla 连接手机所在网络，打开以下地址。输入 6 位码或复制链接，5 分钟有效；配对后浏览器自动记住。过期或输错 5 次后，重新打开此页获取新码。</string>
     <string name="settings_browser_pairing_code">6 位配对码</string>
     <string name="settings_browser_copy_link">复制浏览器链接</string>

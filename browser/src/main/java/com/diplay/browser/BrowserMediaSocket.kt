@@ -58,7 +58,8 @@ internal class BrowserMediaSocket(
             if (type != "rtc-answer") require(message.binaryPayload.size <= 2048)
             if (!authenticated) {
                 require(type == "hello" && MessageDigest.isEqual(data.getString("token").toByteArray(), token.toByteArray()))
-                require(media.attach(this, data.optBoolean("rtc", false), ::sendControl, ::sendAudio))
+                require(media.attach(this, data.optBoolean("rtc", false), ::sendControl, ::sendAudio,
+                    data.optLong("recoveryGraceMs", 10_000L)))
                 authenticated = true
                 sendControl(JSONObject().put("type", "welcome"))
             } else when (type) {
@@ -91,8 +92,9 @@ internal class BrowserMediaSocket(
         runCatching { handshakeRequest.inputStream.close() }
         ended(this)
     }
-    override fun close(code: WebSocketFrame.CloseCode, reason: String, initiatedByRemote: Boolean) = disconnect()
-    override fun onClose(code: WebSocketFrame.CloseCode, reason: String, initiatedByRemote: Boolean) = disconnect()
+    // NanoWSD passes null for both fields when a client sends a valid empty close frame.
+    override fun close(code: WebSocketFrame.CloseCode?, reason: String?, initiatedByRemote: Boolean) = disconnect()
+    override fun onClose(code: WebSocketFrame.CloseCode?, reason: String?, initiatedByRemote: Boolean) = disconnect()
     override fun onException(exception: IOException) = disconnect()
     override fun onPong(pong: WebSocketFrame) { seen = System.nanoTime() }
 }

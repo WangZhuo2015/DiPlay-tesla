@@ -9,6 +9,11 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import java.io.InputStream
+import java.io.ByteArrayInputStream
+import java.lang.reflect.Proxy
+import fi.iki.elonen.NanoHTTPD.IHTTPSession
+import fi.iki.elonen.NanoWSD.WebSocket
+import fi.iki.elonen.NanoWSD.WebSocketFrame
 import java.net.ServerSocket
 import java.net.Socket
 import java.nio.ByteBuffer
@@ -16,6 +21,36 @@ import java.nio.ByteOrder
 
 @RunWith(RobolectricTestRunner::class) @Config(sdk = [29])
 class BrowserMediaSocketTest {
+    @Test fun anEmptyCloseFrameReleasesTheMediaLeaseWithoutNullParameterFailure() {
+        val close = WebSocketFrame.read(ByteArrayInputStream(
+            byteArrayOf(0x88.toByte(), 0x80.toByte(), 0, 0, 0, 0))) as WebSocketFrame.CloseFrame
+        assertNull(close.closeCode)
+        assertNull(close.closeReason)
+        val input = ByteArrayInputStream(byteArrayOf())
+        val handshake = Proxy.newProxyInstance(IHTTPSession::class.java.classLoader,
+            arrayOf(IHTTPSession::class.java)) { _, method, _ ->
+            when (method.name) {
+                "getInputStream" -> input
+                "getHeaders" -> mapOf("sec-websocket-key" to "dGhlIHNhbXBsZSBub25jZQ==")
+                else -> null
+            }
+        } as IHTTPSession
+        val media = BrowserMediaHub()
+        var ended = 0
+        val socket = BrowserMediaSocket(handshake, "1234567890abcdef1234567890abcdef", media) { ended++ }
+        assertTrue(media.attach(socket, false, { true }, { _, _ -> true }))
+        media.audio.ready(socket, true)
+        assertTrue(media.audio.active)
+        // Dispatch through NanoWSD's Java signature: these platform arguments really can be null.
+        (socket as WebSocket).close(close.closeCode, close.closeReason, true)
+        socket.disconnect()
+        assertEquals(1, ended)
+        assertFalse(media.audio.active)
+        val next = Any()
+        assertTrue(media.attach(next, false, { true }, { _, _ -> true }))
+        media.detach(next)
+    }
+
     @Test fun mediaRequiresOriginAndPairingThenTransportsReadyPcmAndReleasesOwnership() {
         val port = ServerSocket(0).use { it.localPort }
         val token = "1234567890abcdef1234567890abcdef"
@@ -69,6 +104,13 @@ class BrowserMediaSocketTest {
                 send(it, """{"type":"ping"}""")
                 assertEquals("pong", JSONObject(frame(it.getInputStream()).second.toString(Charsets.UTF_8)).getString("type"))
                 assertFalse(media.audio.active)
+                it.getOutputStream().apply { write(byteArrayOf(0x88.toByte(), 0x80.toByte(), 0, 0, 0, 0)); flush() }
+                assertEquals(-1, it.getInputStream().read())
+            } }
+            connect("http://127.0.0.1:$port").let { (socket, status) -> socket.use {
+                assertEquals(101, status)
+                send(it, """{"type":"hello","token":"$token","rtc":false}""")
+                assertEquals("welcome", JSONObject(frame(it.getInputStream()).second.toString(Charsets.UTF_8)).getString("type"))
             } }
         } finally { server.close() }
     }

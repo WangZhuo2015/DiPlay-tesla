@@ -68,6 +68,27 @@ The downloaded source ZIP SHA-256 is recorded in the verification notes. Its dev
 VPN routing, custom packetizer/SRTP patches, binary APK and authentication identity were
 not imported. The audio scheduler and route failover are implemented here.
 
+### WheelPlay browser policy references
+
+The unreleased Tesla browser enhancements selectively adapt the compressed-frame queue
+and recovery policies from [WheelPlay by fython and contributors](https://github.com/fython/wheelplay),
+fixed at commit [`4ed3536822998babd086e4fcb1a384e791b0e2d4`](https://github.com/fython/wheelplay/tree/4ed3536822998babd086e4fcb1a384e791b0e2d4).
+WheelPlay retains the DiPlay / xcertplay GNU GPL version 3 license and upstream component
+notices. The full GPL text remains in this repository's `LICENSE`.
+
+The references are WheelPlay's `RtcFrameQueue.kt`, `RtcVideoStream.kt`,
+`RtcReceiverHealth.kt` and `docs/WEBRTC_RECOVERY.md` for the 50 ms queue and 4/10/30-second
+recovery choices, plus `common/src/main/assets/web/app.js` for optional Canvas presentation
+and its diagnostic design. These are adapted to the separate `browser` module, including
+its existing H.264 transport and audio/input ownership. The implementation and differences
+are documented in [the source comparison](TESLA-WHEELPLAY-COMPARISON.md).
+WheelPlay's native video-buffer, RTP/SRTP and media-send patches, VPN/root routing,
+browser microphone, device credentials and authentication assets are not imported.
+The APK's `rtc-licenses.txt` contains the same short source attribution. These additions
+describe source changes after Tesla 0.1.10, not the contents of that existing release APK.
+
+### Native WebRTC dependencies
+
 WebRTC native dependencies use unmodified official sources pinned in
 `browser/src/main/cpp/NativeDependencies.cmake`: libdatachannel and libjuice (MPL-2.0),
 libsrtp and usrsctp (BSD-style), nlohmann/json and plog (MIT), and MbedTLS (Apache-2.0

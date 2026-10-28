@@ -61,7 +61,7 @@ class BrowserServerTest {
             val presets = request("/display-presets.js", auth = false)
             assertEquals(200, presets.first)
             assertTrue(String(presets.second).contains("export function displayPreset"))
-            for (asset in listOf("browser-touch.js", "stream-summary.js")) {
+            for (asset in listOf("browser-touch.js", "stream-summary.js", "rtc-renderer.js", "rtc-health.js", "media.js")) {
                 assertEquals(200, request("/$asset", auth = false).first)
             }
             assertEquals(401, request("/api/status",auth = false).first)
@@ -84,9 +84,10 @@ class BrowserServerTest {
             assertEquals(204,request("/api/frame?after=1").first)
             assertEquals(400,request("/api/display",body = "{}").first)
             assertEquals(0,touches)
-            val full = BrowserDisplay(mode = BrowserMode.FULL, full = BrowserResolution(1600,900))
+            val full = BrowserDisplay(mode = BrowserMode.FULL, full = BrowserResolution(1600,900), fps = 60)
             assertEquals(200,request("/api/display",body = BrowserDisplayJson.encode(full).toString()).first)
             assertEquals(full,selected)
+            assertEquals(30,JSONObject(String(request("/api/status").second)).getJSONObject("display").getInt("jpegFps"))
             assertEquals(200,request("/api/touch",body = """{"client":"client-one","contacts":[{"id":0,"x":0.5,"y":0.25,"down":true}]}""").first)
             assertEquals(409,request("/api/touch",body = """{"client":"client-two","contacts":[{"id":0,"x":0.5,"y":0.25,"down":true}]}""").first)
             assertEquals(200,request("/api/touch",body = """{"client":"client-one","contacts":[{"id":0,"x":0.5,"y":0.25,"down":false}]}""").first)

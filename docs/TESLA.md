@@ -1,5 +1,13 @@
 # DiPlay Tesla port
 
+**Unreleased source enhancements:** after the upstream sync, the development branch
+adds WheelPlay-inspired 50 ms compressed-frame queueing, 4/10/30-second RTC recovery
+choices, negotiation up to 60 fps with JPEG conversion capped at 30 fps, and opt-in
+Canvas presentation. See the [source comparison, attribution and validation boundaries](TESLA-WHEELPLAY-COMPARISON.md).
+These changes are **not included in the published 0.1.10 APK**. The source behavior
+below reflects these additions where marked; the 0.1.10 hardware reports retain their
+original release scope.
+
 Version 0.1.10 offers Fit window, Low load (720p), Clear (1080p) and 2K clear (1440p) browser display
 presets, with manual parameters collapsed by default. Select the actual window mode
 in Tesla first. Presets preserve the viewport aspect ratio and change only the selected
@@ -164,10 +172,14 @@ Both edit the same persisted profiles:
 
 These are editable starting points, not detected Tesla panel specifications. Tesla model,
 firmware, toolbars and window mode change the available viewport. Width accepts even values
-320–2560, height even values 240–1440, frame rate 5–30, and JPEG quality 40–95.
+320–2560, height even values 240–1440, and JPEG quality 40–95. Frame rate accepts
+5–60 in the unreleased source (5–30 in 0.1.10); the default remains 20 fps.
 The selected pixel dimensions are advertised to the iPhone, independently of the Android
 host's own screen size. Host window changes do not renegotiate this remote canvas.
 JPEG quality applies only to fallback. WebRTC carries the original iPhone H.264 stream.
+The source caps JPEG conversion and browser polling at `min(fps, 30)` even after a
+60 fps session falls back; the decoder still processes the predictive chain. A negotiated
+60 fps setting does not establish actual delivery or display rate.
 
 Saving keeps a running CarPlay session intact and displays a reconnect notice. Select
 **Apply and reconnect** in the browser, or **Reconnect now** in Android settings, when
@@ -206,7 +218,7 @@ with an appropriate stable signing key before using this update flow.
 ## Browser protocol and boundaries
 
 Public GET routes: `/`, `/index.html`, `/app.js`, `/media.js`, `/browser-audio.js`,
-`/rtc-health.js`, `/display-presets.js`, `/browser-touch.js`, `/stream-summary.js`,
+`/rtc-health.js`, `/rtc-renderer.js`, `/display-presets.js`, `/browser-touch.js`, `/stream-summary.js`,
 `/style.css`, `/rtc-licenses.txt`. HTTP API routes require `Authorization: Bearer ACCESS_TOKEN`.
 WebSocket `/api/media` requires a same-host Origin and a first `hello` message containing
 the access token; only one authenticated media viewer owns the session. Foreign Origins are rejected;
@@ -226,8 +238,10 @@ JSON HTTP bodies are capped at 8 KiB; masked, unfragmented WebSocket messages at
 checked before allocation. Control messages other than SDP are limited to 2 KiB. HTTP
 workers, media clients, outgoing packets and outstanding audio acknowledgements are bounded.
 H.264 WebRTC uses upstream libdatachannel's packetizer and DTLS-SRTP with no codec or
-crypto patches. The queue holds at most six frames/2 MiB/150 ms; overflow invalidates
-the reference chain until a fresh IDR. JPEG decoding stops only after browser playback
+crypto patches. The unreleased source queue holds at most six frames/2 MiB/50 ms
+(150 ms in 0.1.10); overflow or expiry invalidates the reference chain until a fresh IDR.
+The lower queue budget is not a measured 100 ms reduction in end-to-end latency.
+JPEG decoding stops only after browser playback
 starts, and resumes when decoding stalls, negotiation fails or the viewer disconnects.
 HEVC and BYD secondary displays are not advertised by this output.
 
@@ -323,11 +337,22 @@ older than six seconds is labeled stale; unavailable fields are unknown. Sensor 
 are preserved; policy limits are not interpreted as proof of thermal throttling.
 
 The browser and Android video watchdogs distinguish a quiet source from a decoder stall.
-A stationary screen with fresh viewer feedback stays on WebRTC. Fresh source frames
-without decoding progress for five seconds trigger JPEG fallback; initial playback and
-missing viewer feedback still have bounded timeouts. This adapts the useful diagnostics
-and static-scene handling from the referenced local tepla experiment without importing
-its device-specific hotspot/root/VPN service configuration into the core or proxy.
+A stationary screen with fresh viewer feedback stays on WebRTC. The unreleased source
+adds a shared 4/10/30-second recovery choice (10 seconds by default), replacing the
+earlier fixed stall deadlines. Recoverable RTC interruptions retain the last picture
+while waiting; terminal failures still fall back immediately. First playback waits at
+least 10 seconds, or 30 seconds with that policy. Saving a recovery choice restarts
+browser media without reconnecting the iPhone. This waiting period does not enlarge
+the compressed-frame or audio buffers; control connection and audio backpressure rules
+keep their own deadlines. See the [recovery and queue details](TESLA-WHEELPLAY-COMPARISON.md).
+
+The source also adds optional Canvas presentation, disabled by default, for investigating
+native video display problems. It uses the browser video decoder and copies frames to
+Canvas; changing the setting applies immediately without a CarPlay reconnect. Drawing
+failure restores native video. It can increase CPU/GPU work, and decoded FPS does not
+measure Canvas drawing rate. Queue size, budget, drops, local send failures, recovery
+state and fallback reason are exposed in the diagnostics menu. These source additions
+need their own hardware validation and do not extend the existing 0.1.10 vehicle report.
 
 The page supports Chinese, English and Arabic/RTL, selected from browser language or
 `?lang=zh-CN`, `?lang=en`, `?lang=ar`.
