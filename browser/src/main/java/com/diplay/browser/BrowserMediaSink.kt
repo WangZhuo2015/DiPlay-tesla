@@ -14,9 +14,11 @@ class BrowserMediaSink(private val local: MediaSink, private val browser: MediaS
         browser.onVideoConfig(type, codecData)
     }
     override fun onVideoFrame(type: Int, naluBytes: ByteArray) {
+        local.onVideoFrameObserved(type)
         browser.onVideoFrame(type, naluBytes)
     }
     override fun onVideoFrame(type: Int, naluBytes: ByteArray, senderNanos: Long, arrivalNanos: Long) {
+        local.onVideoFrameObserved(type)
         browser.onVideoFrame(type, naluBytes, senderNanos, arrivalNanos)
     }
     override fun setVideoRecoveryHandler(type: Int, handler: () -> Unit) {

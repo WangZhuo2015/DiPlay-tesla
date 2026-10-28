@@ -78,11 +78,57 @@ class UpdateCatalogTest {
 
     @Test fun teslaUpdateCannotSelectTheOriginalAndroidOrCnApk() {
         assertNull(UpdateCatalog.parse(releaseJson, "DiPlay-Tesla-"))
-        val json = """[{"tag_name":"v0.1.1","assets":[
-            {"name":"DiPlay-Tesla-0.1.1.apk","browser_download_url":"https://example.com/tesla.apk"},
-            {"name":"DiPlay-0.2.16.apk","browser_download_url":"https://example.com/mobile.apk"},
-            {"name":"SHA256SUMS.txt","browser_download_url":"https://example.com/SHA256SUMS.txt"}
+        val json = """[{"tag_name":"tesla-v0.1.11","assets":[
+            {"name":"DiPlay-Tesla-0.1.11.apk","browser_download_url":"https://github.com/WangZhuo2015/DiPlay-tesla/releases/download/tesla-v0.1.11/DiPlay-Tesla-0.1.11.apk"},
+            {"name":"DiPlay-0.2.21.apk","browser_download_url":"https://github.com/shihabal3amri/DiPlay/releases/download/v0.2.21/DiPlay-0.2.21.apk"},
+            {"name":"DiPlay-cn-0.2.21.apk","browser_download_url":"https://github.com/shihabal3amri/DiPlay/releases/download/v0.2.21/DiPlay-cn-0.2.21.apk"},
+            {"name":"SHA256SUMS.txt","browser_download_url":"https://github.com/WangZhuo2015/DiPlay-tesla/releases/download/tesla-v0.1.11/SHA256SUMS.txt"}
         ]}]"""
-        assertEquals("DiPlay-Tesla-0.1.1.apk", UpdateCatalog.parse(json, "DiPlay-Tesla-")?.apkName)
+        assertEquals("DiPlay-Tesla-0.1.11.apk", UpdateCatalog.parse(json, "DiPlay-Tesla-")?.apkName)
+    }
+
+    @Test fun teslaPrefixDoesNotBypassTheAssetSafetyRules() {
+        assertNull(UpdateCatalog.parse(releaseWith(apkName = "DiPlay-Tesla-../evil.apk", apkUrl = GITHUB + "x.apk"), "DiPlay-Tesla-"))
+        assertNull(UpdateCatalog.parse(releaseWith(apkName = "DiPlay-Tesla-0.1.11.apk", apkUrl = "https://evil.example/tesla.apk"), "DiPlay-Tesla-"))
+    }
+
+    private fun releaseWith(apkName: String = "DiPlay-0.2.22.apk", apkUrl: String, checksumsUrl: String = GITHUB + "SHA256SUMS.txt") = """
+        [{"tag_name": "v0.2.22", "draft": false, "assets": [
+          {"name": ${org.json.JSONObject.quote(apkName)}, "browser_download_url": ${org.json.JSONObject.quote(apkUrl)}},
+          {"name": "SHA256SUMS.txt", "browser_download_url": ${org.json.JSONObject.quote(checksumsUrl)}}
+        ]}]
+    """.trimIndent()
+
+    @Test
+    fun acceptsTheAssetsOfARealRelease() {
+        val release = UpdateCatalog.parse(releaseWith(apkUrl = GITHUB + "DiPlay-0.2.22.apk"))
+        assertEquals("DiPlay-0.2.22.apk", release?.apkName)
+    }
+
+    @Test
+    fun refusesAnApkNameThatLeavesTheDownloadFolder() {
+        for (name in listOf("../../evil.apk", "..\\evil.apk", "/data/evil.apk", "sub/evil.apk", ".apk", "evil.apk\u0000.txt.apk")) {
+            assertNull(name, UpdateCatalog.parse(releaseWith(apkName = name, apkUrl = GITHUB + "x.apk")))
+        }
+    }
+
+    @Test
+    fun refusesDownloadUrlsThatAreNotHttpsOnGithub() {
+        for (url in listOf(
+            "http://github.com/shihabal3amri/DiPlay/releases/download/v0.2.22/DiPlay-0.2.22.apk",
+            "https://evil.example/DiPlay-0.2.22.apk",
+            "https://github.com.evil.example/DiPlay-0.2.22.apk",
+            "https://github.com@evil.example/DiPlay-0.2.22.apk",
+            "https://evil.example/github.com/DiPlay-0.2.22.apk",
+            "file:///sdcard/DiPlay-0.2.22.apk",
+            "ftp://github.com/DiPlay-0.2.22.apk",
+        )) {
+            assertNull(url, UpdateCatalog.parse(releaseWith(apkUrl = url)))
+            assertNull(url, UpdateCatalog.parse(releaseWith(apkUrl = GITHUB + "x.apk", checksumsUrl = url)))
+        }
+    }
+
+    private companion object {
+        const val GITHUB = "https://github.com/shihabal3amri/DiPlay/releases/download/v0.2.22/"
     }
 }
