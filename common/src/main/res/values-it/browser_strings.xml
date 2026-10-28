@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_browser_connection">Browser Tesla (sperimentale)</string>
+    <string name="settings_browser_connection_hint">Apri CarPlay nel browser Tesla sulla stessa rete. L\'audio usa il dispositivo Android o la connessione Bluetooth di iPhone. Il proxy facoltativo viene eseguito separatamente.</string>
+    <string name="settings_browser_display">Risoluzione Tesla (sperimentale)</string>
+    <string name="settings_browser_display_hint">La finestra destra e quella intera hanno dimensioni in pixel separate. Salva ora; le modifiche si applicano alla prossima connessione CarPlay. Riconnettiti quando sei pronto.</string>
+    <string name="settings_browser_right">Finestra destra</string>
+    <string name="settings_browser_full">Finestra intera</string>
+    <string name="settings_browser_right_width">Larghezza finestra destra (pixel)</string>
+    <string name="settings_browser_right_height">Altezza finestra destra (pixel)</string>
+    <string name="settings_browser_full_width">Larghezza finestra intera (pixel)</string>
+    <string name="settings_browser_full_height">Altezza finestra intera (pixel)</string>
+    <string name="settings_browser_fps">Frequenza fotogrammi (5–30 fps)</string>
+    <string name="settings_browser_quality">Qualità JPEG (40–95)</string>
+    <string name="settings_browser_invalid">Usa dimensioni in pixel pari: larghezza 320–2560, altezza 240–1440; frequenza fotogrammi 5–30; qualità 40–95.</string>
+    <string name="settings_browser_pairing_hint">Collega Tesla alla rete del telefono e apri un indirizzo qui sotto. Inserisci il codice a sei cifre o copia il link; è valido per cinque minuti. Il browser ricorda la connessione. Riapri questa pagina per un nuovo codice se scade o dopo cinque tentativi falliti.</string>
+    <string name="settings_browser_pairing_code">Codice di abbinamento a 6 cifre</string>
+    <string name="settings_browser_copy_link">Copia link del browser</string>
+    <string name="settings_browser_waiting">In attesa della rete o di CarPlay</string>
+</resources>

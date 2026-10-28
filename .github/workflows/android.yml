@@ -41,6 +41,7 @@ jobs:
             browser/build/reports/lint-results-debug.html
             tesla/build/reports/tests/
             tesla/build/reports/lint-results-debug.html
+            common/build/reports/album-artwork-ui/
             mobile/build/reports/lint-results-debug.html
             samples/home/build/reports/tests/
             samples/home/build/reports/lint-results-debug.html

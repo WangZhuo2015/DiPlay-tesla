@@ -130,7 +130,10 @@ class WifiP2pGroupManager(
         try {
             val station = readStation()
             val stationFrequency = station.alignmentFrequency
-            checkPrerequisites(station)
+            val fiveGhz = checkPrerequisites(station)
+            if (!fiveGhz && preferredChannel == WifiP2pChannels.AUTO) {
+                diagnostic("Wi-Fi P2P 5 GHz skipped: the Wi-Fi chip reports no 5 GHz band")
+            }
             val remembered = configurationMemory.read()
             val preferred = remembered?.takeIf {
                 preferredChannel == WifiP2pChannels.AUTO && it.stationMHz == stationFrequency
@@ -184,6 +187,7 @@ class WifiP2pGroupManager(
                 preferredChannel = preferredChannel,
                 // Band-only requests need the API 29 WifiP2pConfig; the legacy path pins channels.
                 bandRequests = !legacyChannels,
+                fiveGhz = fiveGhz,
                 beforeRetry = {
                     ensureStartActive(attempt)
                     // Do not cancel discovery, toggle Wi-Fi, or remove a newly observed group.
@@ -194,6 +198,10 @@ class WifiP2pGroupManager(
                     if (requestGroupInfo(attempt, p2pChannel, REQUEST_POLL_NANOS, requireResponse = true) != null) {
                         throw P2pResetRequiredException()
                     }
+                },
+                busyCause = { rejection ->
+                    P2pHotspotConflict.failure(Build.VERSION.SDK_INT, CarHotspotStatus.isEnabled(appContext), rejection)
+                        ?.also { diagnostic("Wi-Fi P2P refused beside the car hotspot replyMs=${rejection.replyMillis}; not asking again") }
                 },
                 request = { selection ->
                     ensureStartActive(attempt)
@@ -369,14 +377,15 @@ class WifiP2pGroupManager(
         }
 
         override fun onFailure(reason: Int) {
+            val replyMillis = (System.nanoTime() - request.createdNanos) / NANOS_PER_MILLISECOND
             synchronized(stateLock) {
                 if (request.completed || attempt.request !== request) return
                 request.completed = true
                 request.failure = P2pCreateRejected(reason,
-                    "Wi-Fi P2P createGroup failed: ${failureReason(reason)} (code=$reason)")
+                    "Wi-Fi P2P createGroup failed: ${failureReason(reason)} (code=$reason)", replyMillis)
                 stateLock.notifyAll()
             }
-            diagnostic("Wi-Fi P2P create rejected code=$reason reason=${failureReason(reason)}")
+            diagnostic("Wi-Fi P2P create rejected code=$reason reason=${failureReason(reason)} replyMs=$replyMillis")
         }
     }
 
@@ -731,7 +740,8 @@ class WifiP2pGroupManager(
         Station(info?.supplicantState, info?.frequency?.takeIf { it > 0 })
     }.getOrDefault(Station(null, null))
 
-    private fun checkPrerequisites(station: Station) {
+    /** Returns false only when Wi-Fi is on and reports no 5 GHz band; it also reads false while Wi-Fi is off. */
+    private fun checkPrerequisites(station: Station): Boolean {
         val wifi = appContext.getSystemService(WifiManager::class.java)
         val fiveGhzSupported = runCatching { wifi?.is5GHzBandSupported }.getOrNull()
         val wifiEnabled = runCatching { wifi?.isWifiEnabled }.getOrNull()
@@ -752,6 +762,7 @@ class WifiP2pGroupManager(
         if (wifiEnabled == false) throw IOException("Turn on Wi-Fi in the head unit's settings, then reconnect")
         // Location mode is diagnostic only: AOSP createGroup does not require it to be on.
         // Do not block firmware where Wi-Fi Direct works with Location services disabled.
+        return !(wifiEnabled == true && fiveGhzSupported == false)
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -933,6 +944,7 @@ class WifiP2pGroupManager(
     }
 
     private class CreateRequest {
+        val createdNanos = System.nanoTime()
         var completed = false
         var failure: P2pCreateRejected? = null
     }

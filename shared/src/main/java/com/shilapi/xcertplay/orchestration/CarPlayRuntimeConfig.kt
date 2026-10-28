@@ -53,7 +53,7 @@ class CarPlayRuntimeConfig(
     val hostMac: ByteArray = DEFAULT_HOST_MAC,
     val linkLocal: String = "fe80::2",
     val identification: Iap2IdentificationConfig,
-    val availableCurrentMilliAmps: Int = 2400,
+    val availableCurrentMilliAmps: Int = DEFAULT_AVAILABLE_CURRENT_MILLI_AMPS,
     val label: String = "xcertplay",
     val hostName: String = "xcertplay",
     val transport: CarPlayTransport = CarPlayTransport.WIRED,
@@ -63,6 +63,8 @@ class CarPlayRuntimeConfig(
     val manualHotspotBand: ManualHotspotBand = ManualHotspotBand.AUTO,
     val manualHotspotChannel: Int = 0,
     val manualHotspotSecurity: ManualHotspotSecurity = ManualHotspotSecurity.WPA2,
+    /** Interface override for head units that keep their hotspot off the Wi-Fi tether list (#573). */
+    val manualHotspotInterface: String? = null,
     val wirelessBluetoothDeviceAddress: String? = null,
     val locationReportingEnabled: Boolean = false,
     val wifiP2pPreferredChannel: Int = WifiP2pChannels.AUTO,
@@ -149,6 +151,8 @@ class CarPlayRuntimeConfig(
 
     companion object {
         const val APPLE_VENDOR_ID = 0x05ac
+        /** The wired iAP2 charging offer; the iPhone may draw up to this much from the car's USB port. */
+        const val DEFAULT_AVAILABLE_CURRENT_MILLI_AMPS = 2400
         val DEFAULT_HOST_MAC = byteArrayOf(0x02, 0x00, 0x00, 0x00, 0x00, 0x02)
         private fun isLinkLocalIpv6(value: String): Boolean {
             if (value.contains('%') || '\u0000' in value || !value.contains(':')) return false

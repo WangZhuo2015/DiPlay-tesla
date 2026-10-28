@@ -16,6 +16,13 @@ internal object BydAmbientLightWorkerProtocol {
     data class Request(val op: String, val args: List<Int> = emptyList())
     fun validToken(token: String) = tokenPattern.matches(token)
 
+    /**
+     * The worker's one-line reply in [output]. On BYD firmware with its hotfix framework (DiLink 5 on a 2024 Tang),
+     * app_process prints "HotFixRoot: … -> patchMetaFile:…" on stdout as the worker sets up BYD's SDK, before
+     * the first reply; only the last line is the worker's.
+     */
+    fun reply(output: String?): String? = output?.lines()?.lastOrNull { it.isNotBlank() }?.trim()
+
     fun parse(line: String, token: String): Request? {
         if (!validToken(token) || line.toByteArray(Charsets.UTF_8).size > MAX_LINE_BYTES) return null
         val f = line.split(' ')

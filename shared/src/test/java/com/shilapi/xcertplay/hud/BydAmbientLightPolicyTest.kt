@@ -20,6 +20,16 @@ class BydAmbientLightPolicyTest {
         assertNull(ByDProtocolLong(token))
     }
 
+    @Test fun theWorkersReplyIsItsLastLineAfterTheFirmwaresHotfixNote() {
+        // As a 2024 Tang (DiLink 5) prints it before the worker's first reply.
+        val hotfix = "HotFixRoot: /data/app/com.android.shell.aG90Zml -> patchMetaFile:/data/app/com.android.shell.aG90Zml/current.meta"
+        assertEquals("ready", BydAmbientLightWorkerProtocol.reply("$hotfix\nready"))
+        assertEquals("state=20,20,3,3,3", BydAmbientLightWorkerProtocol.reply("state=20,20,3,3,3"))
+        assertEquals("ready", BydAmbientLightWorkerProtocol.reply("ready\r\n"))
+        assertNull(BydAmbientLightWorkerProtocol.reply(null))
+        assertNull(BydAmbientLightWorkerProtocol.reply(""))
+    }
+
     @Test fun onlyLightingFeaturesAreWhitelisted() {
         assertEquals(9, BydAmbientLightPolicy.getNames.size)
         assertEquals(3, BydAmbientLightPolicy.setNames.size)
