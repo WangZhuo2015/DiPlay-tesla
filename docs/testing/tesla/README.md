@@ -2,9 +2,64 @@
 
 ## Browser navigation volume and visible video status — 2026-10-30 (unreleased)
 
-This change was developed from `f39ab328` on an isolated local branch. It does not
-publish a new APK, establish the cause of the reported V50/Tesla slowdown, or extend
-any historical vehicle validation to this change.
+Product implementation commit: `9904b44cc0600cc415d16a76f6a1486c75f547bd`, based on
+`f39ab328`. The subsequent validation-record commit changes documentation only.
+This work does not establish the cause of the reported V50/Tesla slowdown or extend
+historical vehicle validation to the new controls.
+
+### Android validation on this Mac
+
+Installed official Temurin **25.0.5+8 arm64**, Android SDK **37.0 r2**, NDK
+**28.2.13676358** and CMake **3.22.1**; reused Gradle **9.5.0** and Build-Tools
+**36.0.0**. The required Android CI command was run with two workers. Its unit-test
+phase failed on the unchanged host-network cases below. The remaining CI tasks were
+then run separately with `--continue`, preserving the original failure reports.
+
+| Unit-test module | Tests | Passed | Failed | Skipped |
+| --- | ---: | ---: | ---: | ---: |
+| shared | 1,798 | 1,795 | 2 | 1 |
+| common | 1,739 | 1,738 | 1 | 0 |
+| home | 14 | 14 | 0 | 0 |
+| browser | 61 | 61 | 0 | 0 |
+| tesla | 12 | 12 | 0 | 0 |
+| Total | **3,624** | **3,620** | **3** | **1** |
+
+No test errors were reported. The failures are:
+
+- `AirPlayDualListenerTest.acceptsBothFamiliesOnTheSamePort`: accept timeout.
+- `AirPlayTcpAcceptTest.bothAddressFamiliesReportOwnerAndOldCleanupPreservesNewListener`:
+  no accepted TCP event.
+- `CarPlayBonjourDualStackTest.dualLanThenSingleP2pThenDualLanServesAirPlayInfo`:
+  expected HTTP response was absent.
+
+Those network sources/tests are unchanged from `f39ab328`. An independent plain-Java
+probe reproduced the `::1` accept timeout under both Temurin 25 and the pre-existing
+JBR 21; IPv4 succeeded. This isolates an observable host IPv6 limitation without
+asserting a particular system-permission or routing cause. No network settings were
+changed and no tests were disabled. The skipped wildcard-port test reports that this
+host permits wildcard and specific-address listeners to overlap. **The complete gate
+is therefore not green on this Mac.**
+
+Feature suites passed: navigation gain **21/21**, shared navigation settings **3/3**,
+adaptive Android UI **69/69**, the HTTP server test including new authentication,
+range and conflict cases **1/1**, and Tesla output tests **5/5**. No product-code repair
+was needed after compilation/testing.
+
+All five debug lint targets (`mobile`, `home`, `maphost`, `browser`, `tesla`) completed
+with **zero errors/fatal issues** and **56 warnings**. Four ordinary debug APKs built
+successfully and were checked to contain no `offline-mfi` assets. The native RTC
+library built for **arm64-v8a**, **armeabi-v7a** and **x86_64**.
+
+A separate **standalone debug** build also completed, with application output redirected
+to a repository-external private directory. Its package is `com.diplay.tesla.debug`,
+version **0.1.11 / versionCode 12**. APK signature verification passed. Its two authentication
+entries match the explicitly selected **Tesla 0.1.10 release** byte for byte; no Android
+signing-keystore container is bundled. Inputs, logs and APK remain local/private and
+are excluded from Git. This debug-signed package **cannot update the original release**.
+The original release keystore remains unavailable; no replacement release key was created.
+No APK was uploaded or published. Disk free after validation was approximately **23.6 GiB**.
+
+### Browser validation and remaining limits
 
 - Browser/proxy Node regression suite: **82 passed, 0 failed, 0 skipped**.
   New cases cover serialized/coalesced gestures, stale reads, conflicting clients,
@@ -17,19 +72,12 @@ any historical vehicle validation to this change.
 - JPEGs were actually decoded in Chromium 151.0.7922.34. A deliberately invalid RTC
   offer verified the visible `negotiation-failed` explanation while JPEG remained usable.
   The configured 1920×1080/60 fps was not substituted for the measured 960×540 image
-  or the stationary stream's 0 fps. This is synthetic HTTP/signaling, not Android H.264
-  or end-to-end car performance validation.
+  or the stationary stream's 0 fps. This is synthetic HTTP/signaling, not vehicle performance.
 - `python3 scripts/check_public_tree.py`, JavaScript syntax checks and `git diff --check`
-  passed. No new dependency or credential container was added.
-- The full required Android CI command, including browser/Tesla checks, was attempted
-  offline with automatic toolchain downloads disabled. It stopped before compilation:
-  **JDK 25 is absent** (installed Android Studio JBR is 21). SDK 37, NDK 28.2.13676358
-  and CMake 3.22.1 are also absent. The new Android HTTP/persistence/concurrency tests
-  therefore remain **unexecuted**, as do Android lint and APK assembly.
-- The existing `browser/scripts/verify-ui.mjs` real RTC loopback check did not reach
-  connected ICE on this Mac (`checking`, sender `connecting`, zero encoded frames).
-  No product transport workaround was added. The separate feedback harness requires
-  no successful UDP peer; working H.264 transport still needs another environment or a device.
+  passed. No credential container or new product dependency was added to public source.
+- The existing real RTC loopback harness previously did not reach connected ICE on
+  this Mac. Working H.264 transport still needs another suitable environment or a device.
+  No product transport workaround was added.
 
 [Machine-readable UI results](browser-feedback-20261030/feedback-browser-verification.json)
 · [English full menu](browser-feedback-20261030/feedback-menu-full-en-font130.jpg)
@@ -37,22 +85,10 @@ any historical vehicle validation to this change.
 · [Arabic narrow menu](browser-feedback-20261030/feedback-menu-narrow-ar-font130.jpg)
 · [Visible fallback reason](browser-feedback-20261030/feedback-fallback-full-en-font130.jpg)
 
-Rerun with an existing Playwright installation:
-
-```sh
-DIPLAY_PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.js node browser/scripts/verify-feedback-ui.mjs
-```
-
-Before release, run the full Android gates in the required toolchain and verify music
-and navigation together on V50/Tesla: independent guidance gain, live Android/browser
-changes, reconnect persistence, and actual RTC/JPEG diagnostics. Use the original release
-signature and intentionally provisioned authentication inputs; this branch contains neither.
-
-
-Historical build checks below ran on Windows with JDK 25 and Android SDK 37. The
-2026-10-20 source checks use Linux, JDK 25 and Android SDK 37. Historical 0.1.0/0.1.1
-device checks used a dedicated Android 10/API 29 emulator without an iPhone or Tesla.
-The local V50/iPhone tests are recorded separately below.
+Before release, resolve or independently validate the host-network failures in a suitable
+environment, then test music and navigation together on V50/Tesla: independent guidance
+gain, live Android/browser changes, reconnect persistence, and actual RTC/JPEG diagnostics.
+The original release signature is still required for an in-place update.
 
 ## WheelPlay-inspired source changes — 2026-10-20
 
