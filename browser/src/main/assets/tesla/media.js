@@ -24,7 +24,9 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     try { ws.send(JSON.stringify(data)); return true; }
     catch (_) { if (socket === ws) ws.close(); return false; }
   }
-  const audio = createBrowserAudio({send,onState:onAudio});
+  const volumeKeys = {music:'diplay-music-volume',navigation:'diplay-navigation-volume'};
+  const audio = createBrowserAudio({send,onState:onAudio,
+    volumes:{music:read(volumeKeys.music),navigation:read(volumeKeys.navigation)}});
   const audioPreference = createAudioPreference({audio,storedValue:read('diplay-browser-audio'),
     save:value=>save('diplay-browser-audio',value)});
 
@@ -270,6 +272,11 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     close(); open();
   }
   return {open,close,audio,audioPreference,configureVideo,
+    setAudioVolume(role,value) {
+      const percent = audio.setVolume(role,value);
+      if (percent !== null) save(volumeKeys[role],percent);
+      return percent;
+    },
     useVideo(mode) { configureVideo(mode,selectedGrace); },
     get recoveryGraceMs() { return selectedGrace; },
     get displayed() { return displayed; },

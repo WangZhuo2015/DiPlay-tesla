@@ -30,6 +30,17 @@
       <label class="audioBuffer"><span data-i18n="buffer">音频缓冲</span><select id="audioBuffer"><option value="80">80 ms</option><option value="200" selected>200 ms</option><option value="400">400 ms</option></select></label>
       <p data-i18n="audio">网页音频用于音乐与导航；通话、Siri 语音和麦克风目前由 Android 主机处理。</p>
     </div>
+    <div class="audioVolumes" role="group" aria-describedby="volumeHint">
+      <div class="audioVolume">
+        <label for="musicVolume" data-i18n="musicVolume">音乐音量</label><output id="musicVolumeValue" for="musicVolume" dir="ltr">100%</output>
+        <input id="musicVolume" type="range" min="0" max="100" step="1" value="100" aria-describedby="volumeHint">
+      </div>
+      <div class="audioVolume">
+        <label for="navigationVolume" data-i18n="navigationVolume">导航音量</label><output id="navigationVolumeValue" for="navigationVolume" dir="ltr">100%</output>
+        <input id="navigationVolume" type="range" min="0" max="100" step="1" value="100" aria-describedby="volumeHint">
+      </div>
+    </div>
+    <p id="volumeHint" data-i18n="volumeHint">仅调低浏览器内对应声音，立即生效并在此浏览器记住，无需重连。100% 不额外衰减，0% 静音；不会自动压低音乐。旧版主机未标记的音频不受影响。</p>
     <details id="diagnostics"><summary data-i18n="diagnostics">实时诊断</summary><dl id="diagnosticValues"></dl></details>
     <p><a href="/rtc-licenses.txt">Licenses</a></p>
   </div>

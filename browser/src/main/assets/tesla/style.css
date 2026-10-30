@@ -39,6 +39,11 @@ header h1 { margin:0; }
 .panel p,a { color:var(--muted); overflow-wrap:anywhere; }
 .panel input,.panel select { display:block; width:100%; margin:6px 0 var(--gap); }
 .panel .audioBuffer select { width:auto; margin:0; }
+.audioVolumes { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr)); gap:var(--gap); }
+.audioVolume { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:var(--gap); }
+.audioVolume label { overflow-wrap:anywhere; }
+.audioVolume output { font-variant-numeric:tabular-nums; }
+.panel .audioVolume input { grid-column:1 / -1; min-width:0; margin:0; accent-color:var(--accent); direction:ltr; }
 .overlay { position:fixed; inset:0; z-index:3; display:flex; align-items:center; justify-content:center; background:#0009; }
 .menuOverlay { align-items:flex-start; padding-block-start:max(var(--edge),env(safe-area-inset-top)); background:transparent; }
 .menuOverlay .panel { width:calc(100% - 2 * var(--edge)); }

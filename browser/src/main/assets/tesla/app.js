@@ -21,6 +21,8 @@ import {createRtcRenderer} from './rtc-renderer.js';
     audio:['网页音频用于音乐与导航；通话、Siri 语音和麦克风目前由 Android 主机处理。','Browser audio plays music and navigation; calls, Siri voice and the microphone currently use the Android host.'],
     browserAudio:['浏览器音频（实验性）','Browser audio (experimental)'], audioOn:['浏览器音频已开启（实验性）','Browser audio enabled (experimental)'],audioPending:['浏览器音频 · 点按启动（实验性）','Browser audio · Tap to start (experimental)'],
     buffer:['音频缓冲','Audio buffer'], transport:['视频传输','Video transport'], auto:['自动 WebRTC / JPEG','Automatic WebRTC / JPEG'],
+    musicVolume:['音乐音量','Music volume'],navigationVolume:['导航音量','Navigation volume'],
+    volumeHint:['仅调低浏览器内对应声音，立即生效并在此浏览器记住，无需重连。100% 不额外衰减，0% 静音；不会自动压低音乐。旧版主机未标记的音频不受影响。','Lowers each browser audio channel immediately and remembers it in this browser; no reconnect needed. 100% adds no attenuation; 0% mutes. No automatic music ducking. Untagged audio from older hosts is unchanged.'],
     audioBlocked:['请再次点按允许声音；已恢复 Android 音频。','Tap again to allow sound; Android playback restored.'],
     displayHint:['右侧与全屏尺寸独立保存，下次连接生效。','Right and full sizes are saved independently for the next connection.'],
     transportHint:['视频传输在保存后立即切换。','Video transport switches immediately after saving.'],
@@ -40,6 +42,7 @@ import {createRtcRenderer} from './rtc-renderer.js';
     unavailable:['此浏览器不支持全屏，请使用 Tesla 的窗口控制。','Fullscreen is unavailable; use Tesla window controls.']
   };
   const arabic={
+    musicVolume:'مستوى صوت الموسيقى',navigationVolume:'مستوى صوت الملاحة',volumeHint:'يخفض كل قناة صوت في المتصفح فورًا ويتذكرها هذا المتصفح دون إعادة اتصال. 100% دون خفض إضافي و0% كتم. لا تُخفض الموسيقى تلقائيًا. لا يتغير الصوت غير المصنّف من الأجهزة المضيفة القديمة.',
     renderer:'طريقة عرض WebRTC',nativeRenderer:'الفيديو الأصلي (افتراضي)',canvasRenderer:'Canvas (تجريبي)',rendererHint:'قد يساعد Canvas في مشاكل عرض الفيديو في المتصفح ويزيد عمل الرسم. يُطبّق عند الحفظ دون إعادة اتصال CarPlay.',rendererFailed:'تعذّر الرسم على Canvas؛ استُعيد الفيديو الأصلي.',
     recovery:'مهلة استعادة WebRTC',quickRecovery:'4 ثوانٍ · انتقال سريع',balancedRecovery:'10 ثوانٍ · متوازن (افتراضي)',patientRecovery:'30 ثانية · انتظار الاستعادة',recoveryHint:'تُحفظ الصورة الأخيرة أثناء الانقطاع القصير، ثم ينتقل العرض إلى JPEG بعد المهلة. يعيد الحفظ اتصال وسائط المتصفح فقط؛ ولا يزيد تخزين الفيديو أو يعيد اتصال iPhone.',jpegLimit:'يتوفر 60 إطارًا في الثانية لـ WebRTC؛ تحويل JPEG محدود بـ 30 إطارًا. يسري معدل الإطارات المحفوظ عند اتصال CarPlay التالي.',
     recovering:'تجري استعادة الفيديو',videoQueue:'قائمة انتظار الفيديو المضغوط',queueBudget:'مهلة انتظار الفيديو',expiredFrames:'الإطارات المنتهية',overflowFrames:'الإطارات المتجاوزة للسعة',keyframeSkips:'الإطارات المتخطاة حتى الإطار الرئيسي',sendFailures:'إخفاقات الإرسال المحلي',fallbackReason:'سبب الانتقال إلى JPEG',
@@ -100,6 +103,12 @@ import {createRtcRenderer} from './rtc-renderer.js';
   });
   $('audioBuffer').value=localStorage.getItem('diplay-audio-buffer')||'200';
   media.audio.setBuffer(Number($('audioBuffer').value));
+  for (const role of ['music','navigation']) {
+    const slider = $(role+'Volume'), output = $(role+'VolumeValue');
+    const show = percent => { slider.value=String(percent); output.value=percent+'%'; slider.setAttribute('aria-valuetext',percent+'%'); };
+    show(media.audio.volumes[role]);
+    slider.addEventListener('input',()=>show(media.setAudioVolume(role,slider.value)));
+  }
   $('audioButton').addEventListener('click',async()=>{
     const enabled=await media.audioPreference.toggle();
     if(!enabled && media.audioPreference.wanted)$('status').textContent=t('audioBlocked');
