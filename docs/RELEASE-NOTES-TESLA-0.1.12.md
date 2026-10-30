@@ -1,8 +1,8 @@
-# DiPlay Tesla 0.1.12 — 独立测试版（本地构建，尚未发布）
+# DiPlay Tesla 0.1.12 — 独立测试版
 
-> **本包是 `com.diplay.tesla.debug` 独立测试应用，可与原正式包并存，不能覆盖升级原正式包或继承其应用数据。** 使用既有 debug 签名，原发布 keystore 仍不可用。不建议作为生产稳定版使用。
+> **本包是 `com.diplay.tesla.debug` 独立测试应用，可与原正式包并存，不能覆盖升级原正式包或继承其应用数据。** 签名与原正式版不同。不建议作为生产稳定版使用。
 
-版本 **0.1.12／versionCode 13**。本地构建和制品核验已完成，APK 尚未上传；GitHub 上尚无 0.1.12 Release、草稿或 tag。原 [0.1.10 完整连接包](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10)保持原样；安装前请认清应用包名。
+版本 **0.1.12／versionCode 13**，已建立[对应发布页](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.12)。这是独立测试版本，版本号或发布平台标记不代表已完成稳定性与实车验收。原 [0.1.10 历史版本](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10)仍保留；安装前请认清包名。
 
 ## 本次整合
 
@@ -15,24 +15,24 @@
 
 ## 构建与验证
 
-APK 从精确源码提交 [`ed62af2a5aac2dc40c0aeb996046a2bc498370f2`](https://github.com/WangZhuo2015/DiPlay-tesla/commit/ed62af2a5aac2dc40c0aeb996046a2bc498370f2) 构建；发布准备分支另外包含仅文档的构建记录更新，没有新的产品代码差异。
+APK 从精确源码提交 [`ed62af2a5aac2dc40c0aeb996046a2bc498370f2`](https://github.com/WangZhuo2015/DiPlay-tesla/commit/ed62af2a5aac2dc40c0aeb996046a2bc498370f2) 构建；`tesla-v0.1.12` tag 固定于该提交；后续发布说明更新没有产品代码差异。
 
-- 单 worker、低优先级执行 `assembleStandaloneDebug`、Tesla 测试和 lint，以及浏览器测试和 lint，Gradle **BUILD SUCCESSFUL in 51s**。
+- 独立构建执行 `assembleStandaloneDebug`、Tesla 测试和 lint，以及浏览器测试和 lint，Gradle **BUILD SUCCESSFUL in 51s**。
 - Tesla **12/12** 测试通过；浏览器 **82/82** 的未改动源码结果被 Gradle 标记为 `UP-TO-DATE` 重用。两项 lint 均无错误／致命问题，合计 27 项警告（Tesla 17、browser 10）。
 - 本轮浏览器／代理 Node 回归 **92/92** 通过，无失败或跳过。
 - APK 实际包名、0.1.12／code 13、签名均核验通过，签名证书与既有 debug 包一致；RTC 库包含 **arm64-v8a、armeabi-v7a、x86_64**。
-- 包内认证资源与明确选定的 **Tesla 0.1.10 release APK** 逐字节匹配；无额外私钥／证书文件或签名 keystore 容器。
+- 包内认证资源与 **Tesla 0.1.10 release APK** 逐字节匹配；无额外私钥／证书文件或签名 keystore 容器。
 
 **完整 Android gate 仍不能称为全绿。** 此前整合提交 `d5ecfac202b55da13886512e7b65f9008e825bc7` 的 3,645 项单元测试为 **3,641 通过、3 失败、1 跳过、0 错误**。失败是原有 Mac 双栈网络用例；没有禁用或改写测试。本轮没有重跑这套完整门禁。[完整整合记录](testing/tesla/README.md#release-integration-preparation--2026-10-30-not-published) · [本次制品核验](testing/tesla/standalone-debug-0.1.12-20261030.json)
 
-本轮没有 V50、iPhone 或 Tesla 实机验证，也没有使用 ADB／GUI。编码繁忙时静态源结束发送仍是条件性待测场景，尚未确认为实车缺陷。持续高分辨率性能、温度、延迟、音乐与导航并播、断线恢复及 Tesla 固件兼容性仍需实机检查。
+0.1.12 尚未完成 V50、iPhone 或 Tesla 实机验证。编码繁忙时静态源结束发送仍是条件性待测场景，尚未确认为实车缺陷。持续高分辨率性能、温度、延迟、音乐与导航并播、断线恢复及 Tesla 固件兼容性仍需实机检查。
 
-## 下载与校验
+## 版本与制品核验
 
-本地拟发布文件仅有 **`DiPlay-TeslaDebug-0.1.12.apk`** 和 **`SHA256SUMS.txt`**，尚未上传。测试 APK 包名与文件名均和正式包区分，需要手动下载确认安装。
+发布页中的独立测试 APK 为 **`DiPlay-TeslaDebug-0.1.12.apk`**；以下元数据与已核验制品一致。源码／CI 普通调试构建默认不含独立连接所需认证资源，不能视作同一完整连接包。
 
 - APK 大小：**46,361,711 bytes**。
 - SHA-256：`ff0d1b3f6a15fc72794636cbdc287a097238481c7dd86a10a588fcdbc19ea011`。
 - 最低 Android 7.1／API 25。实际连接能力取决于设备、iPhone、网络和 Tesla 固件。
 
-本测试包显式包含既有 0.1.10 认证资源，用于独立连接；这些资源不替代 Android 发布签名。原始认证文件、签名 keystore、密码、构建日志及私人配置不作为独立附件上传，也不进入 Git。保留项目许可证和上游署名。
+认证资源和 APK 签名用途不同。原始认证文件、签名 keystore、密码及私人配置不进入 Git。保留项目许可证和上游署名。

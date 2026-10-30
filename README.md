@@ -2,9 +2,9 @@
 
 让 Tesla 浏览器使用 CarPlay 的 Android 接收端。Android 主机连接 iPhone，Tesla 在同一网络打开网页，显示 CarPlay 画面并接收触控、音乐和导航提示音。
 
-[下载 0.1.10 原完整连接版](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10) · **[中文使用指南](docs/TESLA-QUICKSTART.zh-CN.md)** · [English guide](docs/TESLA-QUICKSTART.md) · [问题反馈](https://github.com/WangZhuo2015/DiPlay-tesla/issues)
+[0.1.12 发布页](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.12) · [0.1.10 历史版本](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10) · **[中文使用指南](docs/TESLA-QUICKSTART.zh-CN.md)** · [English guide](docs/TESLA-QUICKSTART.md) · [问题反馈](https://github.com/WangZhuo2015/DiPlay-tesla/issues)
 
-> **0.1.12 独立测试 APK 已在本地构建，尚未发布**，包名为 `com.diplay.tesla.debug`，已配置原 0.1.10 认证资源。可与原正式包并存，**不能覆盖升级或继承原正式包数据**；原发布签名仍不可用，不建议作为生产稳定版。导航音量、视频状态和性能调整尚未完成新一轮实车验证。[测试版范围与已知限制](docs/RELEASE-NOTES-TESLA-0.1.12.md)
+> 当前版本为 **0.1.12／code 13**，发布页已上线。独立测试包为 `com.diplay.tesla.debug`，可与原正式包并存，**不能覆盖升级或继承原正式包数据**。该版本尚未完成新一轮实车验收，不建议作为生产稳定版。[版本说明与已知限制](docs/RELEASE-NOTES-TESLA-0.1.12.md)
 
 ## 需要什么
 
@@ -13,7 +13,7 @@
 - Tesla 与 Android 主机之间可达的网络。可以使用主机热点，也可以按使用指南配置现有局域网。
 - 若固件限制浏览器访问内网地址，还需要自行配置可达的网关、DNS 和可信 HTTPS 入口。
 
-**历史实测组合：** 0.1.10 在 2026 Model Y Juniper、ZTE V50、iPhone 16 Pro Max／17 Pro Max（iOS 27.0.1）上确认音频和触摸正常。这不覆盖其他车型、固件，也不等于新候选版本已经完成实车验证。[查看实测范围](docs/testing/tesla/README.md#model-y-juniper-vehicle-report--2026-10-12)
+**历史实测组合：** 0.1.10 在 2026 Model Y Juniper、ZTE V50、iPhone 16 Pro Max／17 Pro Max（iOS 27.0.1）上确认音频和触摸正常。这不覆盖其他车型、固件，也不等于 0.1.12 已经完成实车验证。[查看实测范围](docs/testing/tesla/README.md#model-y-juniper-vehicle-report--2026-10-12)
 
 ## 安装与连接
 
@@ -35,7 +35,7 @@ iPhone／iPad 需要 iOS／iPadOS 17 或更高版本；Mac 需要 Apple 芯片�
 
 ### 入口与 HTTPS
 
-APK 自身提供 HTTP 服务；HTTPS 需要单独部署。可参考[Android 本机网关](proxy/android-root/README.md)（需要 root）或[独立 proxy](proxy/README.md)，使用自己的域名、DNS 和证书。公开文件不包含用户的 HTTPS 私钥、热点密码或路由配置。
+APK 自身提供 HTTP 服务；HTTPS 需要单独部署。可参考[Android 本机网关](proxy/android-root/README.md)（需要 root）或[独立 proxy](proxy/README.md)，使用自己的域名、DNS 和证书。公开源码不包含 HTTPS 私钥、热点密码或私人路由配置。
 
 部分 Tesla 固件会限制内网 IP 访问。手机或电脑能打开入口，不能证明车机也能打开；仅换域名或加 HTTPS 也不能保证解决。[内网访问限制与配置说明](docs/TESLA-QUICKSTART.zh-CN.md#tesla-内网-ip-访问限制)
 
@@ -87,7 +87,7 @@ APK 自身提供 HTTP 服务；HTTPS 需要单独部署。可参考[Android 本�
 | `common`／`shared` | Android 界面、CarPlay 核心与连接能力 |
 | `proxy` | 可单独部署的网关，不承接核心 CarPlay 连接 |
 
-Tesla 源码调试构建选择 `:tesla:assembleDebug`。独立连接构建需显式提供有权使用的外部认证资源；Android APK 发布签名另行配置，不进入 Git。
+Tesla 源码调试构建选择 `:tesla:assembleDebug`。独立连接构建需另行配置外部认证资源和 Android APK 签名，二者均不进入 Git。
 
 [构建说明](docs/BUILD.md) · [Tesla 技术说明](docs/TESLA.md) · [0.1.12 测试版说明](docs/RELEASE-NOTES-TESLA-0.1.12.md) · [验证记录](docs/testing/tesla/README.md)
 

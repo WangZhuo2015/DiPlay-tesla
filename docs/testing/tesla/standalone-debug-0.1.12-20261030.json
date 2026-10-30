@@ -67,6 +67,9 @@
     "result": "failed; unchanged host dual-stack network cases"
   },
   "disk_free_gib": 19.09,
-  "publication_state": "not_published",
-  "release_tag_created": false
+  "publication_state": "published",
+  "release_tag_created": true,
+  "release_url": "https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.12",
+  "release_tag_source_commit": "ed62af2a5aac2dc40c0aeb996046a2bc498370f2",
+  "release_metadata_checked_on": "2026-10-30"
 }

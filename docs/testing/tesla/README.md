@@ -1,10 +1,10 @@
 # Tesla port verification
 
-## 0.1.12 standalone debug preparation — 2026-10-30 (not published)
+## 0.1.12 standalone debug verification — 2026-10-30
 
 A provisioned **0.1.12 / versionCode 13** APK was built from exactly
 `ed62af2a5aac2dc40c0aeb996046a2bc498370f2`, using the existing debug signing key
-and the previously selected Tesla 0.1.10 external authentication input. It is
+and the Tesla 0.1.10 external authentication input. It is
 `com.diplay.tesla.debug`: a separate test application that cannot update or inherit
 data from the original release. No new signing key was generated.
 
@@ -20,33 +20,18 @@ key/certificate or signing-keystore container is bundled.
 The APK is **46,361,711 bytes**, SHA-256
 `ff0d1b3f6a15fc72794636cbdc287a097238481c7dd86a10a588fcdbc19ea011`.
 [Machine-readable artifact verification](standalone-debug-0.1.12-20261030.json)
-contains public metadata only. The preparation branch additionally includes documentation
-updates; product code is unchanged from the recorded build source. No 0.1.12 release,
-draft, tag or asset was created/uploaded. The earlier full
+contains public metadata only. The [0.1.12 release page](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.12)
+uses tag `tesla-v0.1.12` at the recorded product source. Later differences are
+documentation only. The earlier full
 Android gate below remains failed (three host dual-stack cases and one skip); it
 was not rerun or disabled. No physical-device, ADB or GUI validation was performed.
 [Download and limitations](../../RELEASE-NOTES-TESLA-0.1.12.md).
 
-## Version preparation — 0.1.12 / versionCode 13 — 2026-10-30
-
-The user selected **0.1.12**. Remote release/tag checks still show the published
-0.1.10 package (code 11), with 0.1.11/code 12 on `main`; no 0.1.11 or 0.1.12
-release/tag exists. The local candidate is now 0.1.12/code 13. Historical APK
-metadata, hashes and exact-commit test results below remain unchanged.
-
-Only version/documentation preparation was performed in this step. No Android
-build, test, lint, ADB or GUI run was started while audio API testing has priority.
-The next standalone build must use the already authorized Tesla 0.1.10 external
-authentication input and verify its identity/content. The original Android release
-signing key remains unavailable, and acceptance of a separate debug package is
-still pending; no replacement release key, push or publication was performed.
-[Current release candidate and remaining checks](../../RELEASE-NOTES-TESLA-0.1.12.md).
-
 ## Release integration preparation — 2026-10-30 (not published)
 
-The isolated preparation branch combines current `main` (`f39ab328`) with performance
+This historical validation combined baseline `f39ab328` with performance
 PR #5 head `b4493e635072f07f5cf69a39af07e0cf15635579` and the navigation/video-status
-implementation originally committed as `9904b44c`. Existing branches/checkouts are preserved.
+implementation originally committed as `9904b44c`. Current release status is recorded above.
 
 Two overlaps were resolved: `app.js` retains the performance branch's `presentJpegFrame`
 path and feeds measured dimensions/FPS only after a frame is shown; `BrowserServerTest`
@@ -58,8 +43,7 @@ Lightweight integrated validation: **92/92 Node browser/proxy tests passed**, al
 JavaScript syntax checks passed, and public-source/diff checks passed.
 
 The full Android task list was then run at exactly
-`d5ecfac202b55da13886512e7b65f9008e825bc7`, after other Gradle builds were idle, using
-one worker, `nice=10` and `--continue`. Gradle completed all requested phases in
+`d5ecfac202b55da13886512e7b65f9008e825bc7`, using one worker and `--continue`. Gradle completed all requested phases in
 **13m 14s** and returned failure for the two unit-test tasks containing the three
 unchanged host-network failures documented below. No tests were disabled.
 
@@ -90,8 +74,7 @@ No ADB, emulator, GUI capture, cache deletion or additional tool installation wa
 Earlier validation records below remain scoped to their own exact commits.
 
 The latest checked PR #5 [CI run 41044572300](https://github.com/WangZhuo2015/DiPlay-tesla/actions/runs/41044572300)
-is successful for exactly `b4493e63`; PR #5 is still open. No GitHub approval, merge,
-push or Release was performed by this preparation task.
+was successful for exactly `b4493e63`, independently of this integrated validation.
 
 The existing authenticated private debug APK is from `9904b44c` and does not contain
 PR #5. The new integrated source-only APK is not a final standalone or upgrade-compatible
@@ -99,8 +82,7 @@ release. Release signing still requires the original keystore; the provisioned
 authentication input is separate. No new authenticated integration APK was generated.
 
 The Chinese-first README draft removes the appended older BYD/general-app promotion
-while retaining current identifiers and required license/author notices. Any new brand
-or identifier change remains a user decision. [Current candidate release notes](../../RELEASE-NOTES-TESLA-0.1.12.md)
+while retaining current identifiers and required license/author notices. [Current release notes](../../RELEASE-NOTES-TESLA-0.1.12.md)
 record the remaining publication limits.
 
 
