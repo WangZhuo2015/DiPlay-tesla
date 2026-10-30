@@ -25,6 +25,14 @@
 
 完整连接版包含明确配置的实验性配件身份，用于本地 iPhone 认证；它不是 Apple 为本项目新签发的 MFi 身份。[来源和范围说明](docs/THIRD_PARTY_NOTICES.md#experimental-authentication-data)保留在源码中。
 
+### 用 RemoteOrbit 管理无屏设备
+
+使用 V50 这类无屏 Android 主机时，推荐搭配我们开发的 **RemoteOrbit** iOS／macOS App。在 iPhone、iPad 或 Mac 上查看主机画面、操作设置和输入文字，方便打开 DiPlay Tesla、配置连接和排查问题。RemoteOrbit 用于管理 Android 主机；CarPlay 画面、触控和音频仍通过 DiPlay Tesla 与 Tesla 浏览器完成。
+
+连接时，两端应处于同一可互访的局域网，并允许 App 使用本地网络。主机须已开启网络 ADB：已有 ADB TCP 的设备可输入 IP 和连接端口；支持 Android 11 及以上无线调试的设备，也可通过系统配对码或二维码配对。首次配对和授权确认仍须按设备固件提供的方式完成，无屏设备也要先解决这一步。传统 ADB TCP 不加密，仅在可信网络使用，不要将 ADB 端口开放到公网。
+
+iPhone／iPad 需要 iOS／iPadOS 17 或更高版本；Mac 需要 Apple 芯片和 macOS 14 或更高版本。[iOS 下载](https://apps.apple.com/us/app/remoteorbit/id6813802244?platform=iphone) · [macOS 下载](https://apps.apple.com/us/app/remoteorbit/id6813802244?platform=mac) · [连接指南](https://wangzhuo2015.github.io/droiddeck-support/support.html)。App Store 链接为美区入口，能否下载以 Apple ID 所在商店为准。
+
 ### 入口与 HTTPS
 
 APK 自身提供 HTTP 服务；HTTPS 需要单独部署。可参考[Android 本机网关](proxy/android-root/README.md)（需要 root）或[独立 proxy](proxy/README.md)，使用自己的域名、DNS 和证书。公开文件不包含用户的 HTTPS 私钥、热点密码或路由配置。
