@@ -133,11 +133,13 @@ byte ownership, conversion pacing, close and failed-copy behavior, demand expiry
 HTTP authorization, cropped/padded/strided YUV planes, AVCC validation and queue ownership,
 RTC recovery, Canvas callback recovery, audio acknowledgements, and stale JPEG disposal.
 
-The final local run on 2026-10-30 passed all 3,641 Android unit tests (shared 1,798;
+For PR #5 head `b4493e635072f07f5cf69a39af07e0cf15635579`, the final local run on 2026-10-30 passed all 3,641 Android unit tests (shared 1,798;
 common 1,736; home 14; browser 82; Tesla 11), all 84 Node tests, five requested lint
 gates, four Debug APK builds, and RTC native builds for arm64-v8a, armeabi-v7a, and
 x86_64. There were no failed or skipped tests. Instrumentation code was compiled;
 the actual device-side instrumentation test was not run.
+
+These results belong to that performance-only head and its [successful exact-head CI run](https://github.com/WangZhuo2015/DiPlay-tesla/actions/runs/41044572300). They do not validate a later integration with navigation-volume or video-status changes.
 
 Run the full gate from `.github/workflows/android.yml`:
 
@@ -171,6 +173,11 @@ workload for at least twenty minutes in each of these cases:
    and ensure no stale JPEG appears over the replacement stream.
 4. Brief Wi-Fi interruptions followed by recovery, including concurrent music/navigation
    audio and touch input.
+5. End a burst of motion on a static screen while compression is busy. Record whether
+   the final visual state arrives and whether a later source update or keyframe refreshes it.
+   The bounded single-slot policy can reject arrivals while busy; whether the real CarPlay
+   source then stops sending frames is unverified. This is a device-validation condition,
+   not a confirmed vehicle defect, and no extra frame copy is introduced for it.
 
 Record process CPU, memory/GC activity, Android thermal status and available temperature
 sensors, decoded/presented FPS, queue/recovery counters, audio underruns, and touch-to-display

@@ -1,5 +1,37 @@
 # Tesla port verification
 
+## Release integration preparation — 2026-10-30 (not published)
+
+The isolated preparation branch combines current `main` (`f39ab328`) with performance
+PR #5 head `b4493e635072f07f5cf69a39af07e0cf15635579` and the navigation/video-status
+implementation originally committed as `9904b44c`. Existing branches/checkouts are preserved.
+
+Two overlaps were resolved: `app.js` retains the performance branch's `presentJpegFrame`
+path and feeds measured dimensions/FPS only after a frame is shown; `BrowserServerTest`
+retains both authenticated JPEG-demand checks and navigation range/conflict checks, with
+an additional assertion that navigation controls do not renew JPEG demand. The bounded
+encoder/queue implementation remains unchanged from PR #5; no extra frame copy was added.
+
+Lightweight integrated validation: **92/92 Node browser/proxy tests passed**, all browser
+JavaScript syntax checks passed, and public-source/diff checks passed. Android gates for
+this combination are **not yet run**: large compilation and ADB are deferred while real
+audio connection testing on the same Mac takes priority. Earlier results below belong
+to their exact recorded commits and must not be transferred to this integration.
+
+The latest checked PR #5 [CI run 41044572300](https://github.com/WangZhuo2015/DiPlay-tesla/actions/runs/41044572300)
+is successful for exactly `b4493e63`; PR #5 is still open. No GitHub approval, merge,
+push or Release was performed by this preparation task.
+
+The existing private debug APK is from `9904b44c` and does not contain PR #5. No final
+integrated APK or upgrade-compatible release has been produced. Release signing still
+requires the original keystore; the provisioned authentication input is separate.
+
+The Chinese-first README draft removes the appended older BYD/general-app promotion
+while retaining current identifiers and required license/author notices. Any new brand
+or identifier change remains a user decision. [Candidate release notes](../../RELEASE-NOTES-TESLA-0.1.11.md)
+record the remaining publication limits.
+
+
 ## Browser navigation volume and visible video status — 2026-10-30 (unreleased)
 
 Product implementation commit: `9904b44cc0600cc415d16a76f6a1486c75f547bd`, based on
