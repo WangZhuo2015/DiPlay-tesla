@@ -1,8 +1,8 @@
-# DiPlay Tesla 0.1.12 — 独立测试版
+# DiPlay Tesla 0.1.12 — 独立测试版（本地构建，尚未发布）
 
 > **本包是 `com.diplay.tesla.debug` 独立测试应用，可与原正式包并存，不能覆盖升级原正式包或继承其应用数据。** 使用既有 debug 签名，原发布 keystore 仍不可用。不建议作为生产稳定版使用。
 
-版本 **0.1.12／versionCode 13**，以 GitHub **prerelease** 形式提供：[下载页](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.12)。原 [0.1.10 完整连接包](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10)保持原样；安装前请认清应用包名。
+版本 **0.1.12／versionCode 13**。本地构建和制品核验已完成，APK 尚未上传；GitHub 上尚无 0.1.12 Release、草稿或 tag。原 [0.1.10 完整连接包](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10)保持原样；安装前请认清应用包名。
 
 ## 本次整合
 
@@ -15,7 +15,7 @@
 
 ## 构建与验证
 
-APK 从精确源码提交 [`ed62af2a5aac2dc40c0aeb996046a2bc498370f2`](https://github.com/WangZhuo2015/DiPlay-tesla/commit/ed62af2a5aac2dc40c0aeb996046a2bc498370f2) 构建；发布 tag 另外包含仅文档的发布记录更新，没有新的产品代码差异。
+APK 从精确源码提交 [`ed62af2a5aac2dc40c0aeb996046a2bc498370f2`](https://github.com/WangZhuo2015/DiPlay-tesla/commit/ed62af2a5aac2dc40c0aeb996046a2bc498370f2) 构建；发布准备分支另外包含仅文档的构建记录更新，没有新的产品代码差异。
 
 - 单 worker、低优先级执行 `assembleStandaloneDebug`、Tesla 测试和 lint，以及浏览器测试和 lint，Gradle **BUILD SUCCESSFUL in 51s**。
 - Tesla **12/12** 测试通过；浏览器 **82/82** 的未改动源码结果被 Gradle 标记为 `UP-TO-DATE` 重用。两项 lint 均无错误／致命问题，合计 27 项警告（Tesla 17、browser 10）。
@@ -29,7 +29,7 @@ APK 从精确源码提交 [`ed62af2a5aac2dc40c0aeb996046a2bc498370f2`](https://g
 
 ## 下载与校验
 
-仅附加 **`DiPlay-TeslaDebug-0.1.12.apk`** 和 **`SHA256SUMS.txt`** 两个文件。测试 APK 包名与文件名均和正式包区分，需要手动下载确认安装。
+本地拟发布文件仅有 **`DiPlay-TeslaDebug-0.1.12.apk`** 和 **`SHA256SUMS.txt`**，尚未上传。测试 APK 包名与文件名均和正式包区分，需要手动下载确认安装。
 
 - APK 大小：**46,361,711 bytes**。
 - SHA-256：`ff0d1b3f6a15fc72794636cbdc287a097238481c7dd86a10a588fcdbc19ea011`。

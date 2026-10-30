@@ -1,6 +1,6 @@
 # Tesla port verification
 
-## 0.1.12 standalone debug prerelease — 2026-10-30
+## 0.1.12 standalone debug preparation — 2026-10-30 (not published)
 
 A provisioned **0.1.12 / versionCode 13** APK was built from exactly
 `ed62af2a5aac2dc40c0aeb996046a2bc498370f2`, using the existing debug signing key
@@ -20,8 +20,9 @@ key/certificate or signing-keystore container is bundled.
 The APK is **46,361,711 bytes**, SHA-256
 `ff0d1b3f6a15fc72794636cbdc287a097238481c7dd86a10a588fcdbc19ea011`.
 [Machine-readable artifact verification](standalone-debug-0.1.12-20261030.json)
-contains public metadata only. The release tag additionally includes documentation
-updates; product code is unchanged from the recorded build source. The earlier full
+contains public metadata only. The preparation branch additionally includes documentation
+updates; product code is unchanged from the recorded build source. No 0.1.12 release,
+draft, tag or asset was created/uploaded. The earlier full
 Android gate below remains failed (three host dual-stack cases and one skip); it
 was not rerun or disabled. No physical-device, ADB or GUI validation was performed.
 [Download and limitations](../../RELEASE-NOTES-TESLA-0.1.12.md).

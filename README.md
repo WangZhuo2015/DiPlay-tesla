@@ -2,9 +2,9 @@
 
 让 Tesla 浏览器使用 CarPlay 的 Android 接收端。Android 主机连接 iPhone，Tesla 在同一网络打开网页，显示 CarPlay 画面并接收触控、音乐和导航提示音。
 
-[下载 0.1.12 独立测试版](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.12) · [下载 0.1.10 原完整连接版](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10) · **[中文使用指南](docs/TESLA-QUICKSTART.zh-CN.md)** · [English guide](docs/TESLA-QUICKSTART.md) · [问题反馈](https://github.com/WangZhuo2015/DiPlay-tesla/issues)
+[下载 0.1.10 原完整连接版](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10) · **[中文使用指南](docs/TESLA-QUICKSTART.zh-CN.md)** · [English guide](docs/TESLA-QUICKSTART.md) · [问题反馈](https://github.com/WangZhuo2015/DiPlay-tesla/issues)
 
-> **0.1.12 是独立测试版**，包名为 `com.diplay.tesla.debug`，已配置原 0.1.10 认证资源。可与原正式包并存，**不能覆盖升级或继承原正式包数据**；原发布签名仍不可用，不建议作为生产稳定版。导航音量、视频状态和性能调整尚未完成新一轮实车验证。[测试版范围与已知限制](docs/RELEASE-NOTES-TESLA-0.1.12.md)
+> **0.1.12 独立测试 APK 已在本地构建，尚未发布**，包名为 `com.diplay.tesla.debug`，已配置原 0.1.10 认证资源。可与原正式包并存，**不能覆盖升级或继承原正式包数据**；原发布签名仍不可用，不建议作为生产稳定版。导航音量、视频状态和性能调整尚未完成新一轮实车验证。[测试版范围与已知限制](docs/RELEASE-NOTES-TESLA-0.1.12.md)
 
 ## 需要什么
 
