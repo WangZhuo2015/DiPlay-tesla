@@ -5,6 +5,7 @@ import com.diplay.browser.BrowserDisplay
 import com.diplay.browser.BrowserMode
 import com.diplay.browser.BrowserResolution
 import com.shilapi.xcertplay.AppLocale
+import com.shilapi.xcertplay.NavigationAudioSettings
 import com.shilapi.xcertplay.airplay.AirPlayConfig
 import com.shilapi.xcertplay.airplay.AirPlayDisplayConfig
 import org.junit.After
@@ -51,6 +52,18 @@ class TeslaBrowserOutputTest {
         assertTrue(state.getBoolean("pendingReconnect"))
         assertEquals("RIGHT",state.getJSONObject("activeDisplay").getString("mode"))
         assertEquals("FULL",state.getJSONObject("display").getString("mode"))
+    }
+    @Test fun browserNavigationLevelUsesTheHostSettingAndSurvivesOutputRecreation() {
+        NavigationAudioSettings.save(context, -8)
+        val first = TeslaBrowserOutput(context)
+        assertEquals(-8, first.status().getInt("navigationAttenuationDb"))
+        assertTrue(first.saveNavigationLevel(-8, -14))
+        val restored = TeslaBrowserOutput(context)
+        assertEquals(-14, restored.status().getInt("navigationAttenuationDb"))
+        assertFalse(restored.saveNavigationLevel(-8, -5))
+        NavigationAudioSettings.save(context, -6)
+        assertEquals(-6, first.status().getInt("navigationAttenuationDb"))
+        assertFalse(first.status().getBoolean("pendingReconnect"))
     }
     @Test @Config(qualifiers = "fr") fun cnLanguageFallbackRunsOnceAndPreservesTheChosenLanguage() {
         TeslaLocaleDefault.apply(context)

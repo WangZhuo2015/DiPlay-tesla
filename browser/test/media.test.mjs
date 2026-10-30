@@ -279,6 +279,22 @@ test('browser decoder samples merge with server queue diagnostics and preserve n
   } finally { await f.dispose(); }
 });
 
+test('a failed or hanging stats read clears the previous fps while a stationary decoded stream measures zero',async()=>{
+  const f=fixture({grace:10000});
+  try {
+    const peer=await f.ready();await f.advance(1000);
+    peer.decoded=31;await f.advance(1000);assert.equal(f.stats().decodedFps,30);
+    await f.advance(1000);assert.equal(f.stats().decodedFps,0);
+    peer.behavior.stats=()=>Promise.reject(new Error('Counters unavailable'));
+    await f.advance(1000);assert.equal(f.stats().decodedFps,null);assert.equal(f.stats().dropped,null);
+    peer.behavior.stats=()=>Promise.resolve(peer.report());
+    peer.decoded=61;await f.advance(1000);assert.ok(f.stats().decodedFps>0);
+    peer.behavior.stats=()=>new Promise(()=>{});
+    await f.advance(2000);assert.equal(f.stats().decodedFps,null);
+    assert.equal(f.media.displayed,true);assert.equal(f.fallback().length,0);
+  } finally { await f.dispose(); }
+});
+
 test('an offer whose negotiation never resolves still reaches its first-frame deadline',async()=>{
   const f=fixture(),pending=deferred();
   try {

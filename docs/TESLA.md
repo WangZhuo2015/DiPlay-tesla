@@ -160,6 +160,14 @@ leaving a 12 px strip. Clicking it opens the menu; keyboard focus reveals the fu
 Browser audio defaults on, starts at the next gesture if autoplay is blocked and remembers
 manual disabling per browser origin. Reconnection preserves that preference.
 
+The unreleased browser menu also provides **Navigation volume**, a slider and −/+ buttons
+using the same −20…0 dB setting as **Android Settings → Audio → Audio routing**.
+0 dB preserves the original guidance level; negative values lower guidance without changing
+music or the car's system volume. Changes apply to the next PCM block without reconnecting.
+Requests use the existing pairing authorization. Fast gestures are coalesced; a change made
+elsewhere produces a conflict/readback rather than silently overwriting it. After a failed
+save, controls wait for a fresh host read because a timed-out write may already have applied.
+
 ## Right window and full window
 
 Use **Settings → Display → Tesla resolution**, or the browser's **Menu → Display settings**.
@@ -218,7 +226,7 @@ with an appropriate stable signing key before using this update flow.
 ## Browser protocol and boundaries
 
 Public GET routes: `/`, `/index.html`, `/app.js`, `/media.js`, `/browser-audio.js`,
-`/rtc-health.js`, `/rtc-renderer.js`, `/display-presets.js`, `/browser-touch.js`, `/stream-summary.js`,
+`/rtc-health.js`, `/rtc-renderer.js`, `/display-presets.js`, `/browser-touch.js`, `/stream-summary.js`, `/navigation-volume.js`,
 `/style.css`, `/rtc-licenses.txt`. HTTP API routes require `Authorization: Bearer ACCESS_TOKEN`.
 WebSocket `/api/media` requires a same-host Origin and a first `hello` message containing
 the access token; only one authenticated media viewer owns the session. Foreign Origins are rejected;
@@ -232,6 +240,7 @@ the browser address bar after loading and saved in this browser origin's local s
 | `/api/touch` | POST | `{client, contacts:[{id,x,y,down}]}`; normalized coordinates, max two contacts |
 | `/api/action` | POST | `{action}`: home/back/siri/play/next/previous/reconnect |
 | `/api/display` | POST | `{mode,right:{width,height},full:{width,height},fps,jpegQuality}` |
+| `/api/navigation-volume` | POST | `{db,expectedDb}`; integer −20…0 dB, returns status or 409 with the current level |
 | `/api/media` | WebSocket | Authenticated RTC offer/answer/feedback and optional binary PCM |
 
 JSON HTTP bodies are capped at 8 KiB; masked, unfragmented WebSocket messages at 32 KiB,
@@ -335,6 +344,14 @@ and rebuffer counts. Android memory, available named thermal sensor temperatures
 CPU policies are sampled every two seconds on a separate browser worker. A snapshot
 older than six seconds is labeled stale; unavailable fields are unknown. Sensor names
 are preserved; policy limits are not interpreted as proof of thermal throttling.
+
+The unreleased menu keeps the actual route, received size and measured FPS visible above
+the controls. Before the first decoded image or while counters are unavailable, it shows
+unknown rather than negotiated target values or 0 fps. WebRTC FPS uses receiver decode
+counters; JPEG FPS counts successfully decoded and drawn images. A quiet source can measure
+0 fps. JPEG selection, unsupported WebRTC and concrete fallback reasons have separate text;
+the existing automatic retry and JPEG fallback behavior remains enabled. These readouts
+help collect evidence and do not establish the cause of any reported vehicle slowdown.
 
 The browser and Android video watchdogs distinguish a quiet source from a decoder stall.
 A stationary screen with fresh viewer feedback stays on WebRTC. The unreleased source

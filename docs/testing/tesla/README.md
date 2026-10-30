@@ -1,5 +1,54 @@
 # Tesla port verification
 
+## Browser navigation volume and visible video status — 2026-10-30 (unreleased)
+
+This change was developed from `f39ab328` on an isolated local branch. It does not
+publish a new APK, establish the cause of the reported V50/Tesla slowdown, or extend
+any historical vehicle validation to this change.
+
+- Browser/proxy Node regression suite: **82 passed, 0 failed, 0 skipped**.
+  New cases cover serialized/coalesced gestures, stale reads, conflicting clients,
+  uncertain writes, reconnect fencing, JPEG sampling and unavailable vs zero RTC FPS.
+- Production HTML/CSS/JS passed headless checks at **1920×1080 English**, **1024×768
+  Chinese**, and **360×740 Arabic**, all at **130% font size**. No horizontal overflow;
+  volume buttons and slider each retain a minimum **48×48 CSS px** touch area.
+  Checks include external-setting readback, failed-save recovery, persistence after
+  reload, expired pairing and re-pairing, and keeping the media socket during volume changes.
+- JPEGs were actually decoded in Chromium 151.0.7922.34. A deliberately invalid RTC
+  offer verified the visible `negotiation-failed` explanation while JPEG remained usable.
+  The configured 1920×1080/60 fps was not substituted for the measured 960×540 image
+  or the stationary stream's 0 fps. This is synthetic HTTP/signaling, not Android H.264
+  or end-to-end car performance validation.
+- `python3 scripts/check_public_tree.py`, JavaScript syntax checks and `git diff --check`
+  passed. No new dependency or credential container was added.
+- The full required Android CI command, including browser/Tesla checks, was attempted
+  offline with automatic toolchain downloads disabled. It stopped before compilation:
+  **JDK 25 is absent** (installed Android Studio JBR is 21). SDK 37, NDK 28.2.13676358
+  and CMake 3.22.1 are also absent. The new Android HTTP/persistence/concurrency tests
+  therefore remain **unexecuted**, as do Android lint and APK assembly.
+- The existing `browser/scripts/verify-ui.mjs` real RTC loopback check did not reach
+  connected ICE on this Mac (`checking`, sender `connecting`, zero encoded frames).
+  No product transport workaround was added. The separate feedback harness requires
+  no successful UDP peer; working H.264 transport still needs another environment or a device.
+
+[Machine-readable UI results](browser-feedback-20261030/feedback-browser-verification.json)
+· [English full menu](browser-feedback-20261030/feedback-menu-full-en-font130.jpg)
+· [Chinese compact menu](browser-feedback-20261030/feedback-menu-compact-zh-font130.jpg)
+· [Arabic narrow menu](browser-feedback-20261030/feedback-menu-narrow-ar-font130.jpg)
+· [Visible fallback reason](browser-feedback-20261030/feedback-fallback-full-en-font130.jpg)
+
+Rerun with an existing Playwright installation:
+
+```sh
+DIPLAY_PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.js node browser/scripts/verify-feedback-ui.mjs
+```
+
+Before release, run the full Android gates in the required toolchain and verify music
+and navigation together on V50/Tesla: independent guidance gain, live Android/browser
+changes, reconnect persistence, and actual RTC/JPEG diagnostics. Use the original release
+signature and intentionally provisioned authentication inputs; this branch contains neither.
+
+
 Historical build checks below ran on Windows with JDK 25 and Android SDK 37. The
 2026-10-20 source checks use Linux, JDK 25 and Android SDK 37. Historical 0.1.0/0.1.1
 device checks used a dedicated Android 10/API 29 emulator without an iPhone or Tesla.

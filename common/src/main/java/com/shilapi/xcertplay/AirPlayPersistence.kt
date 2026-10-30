@@ -326,6 +326,15 @@ object AirPlayPersistence {
             .apply()
     }
 
+    internal fun observeNavigationAudioAttenuation(context: Context, changed: () -> Unit): java.io.Closeable {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == null || key == KEY_NAVIGATION_AUDIO_ATTENUATION) changed()
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        return java.io.Closeable { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
+
     /** Applies a nonzero setup-guide default only when no current or legacy choice exists. */
     fun applySetupNavigationAudioChannelDefault(context: Context, channel: Int): Boolean {
         if (channel !in AUDIO_CHANNELS || channel == 0) return false

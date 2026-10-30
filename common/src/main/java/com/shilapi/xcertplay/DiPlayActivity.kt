@@ -2116,11 +2116,27 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
                 getString(R.string.settings_navigation_attenuation_value,
                     AirPlayPersistence.loadNavigationAudioAttenuationDb(this))
             gainSlider.onSave = { db ->
-                AirPlayPersistence.saveNavigationAudioAttenuationDb(this, db)
-                CarPlayBackgroundSession.snapshot()?.sink?.setNavigationAttenuationDb(db)
+                NavigationAudioSettings.save(this, db)
                 gainSlider.slider.contentDescription = gainTitle + ": " +
                     getString(R.string.settings_navigation_attenuation_value, db)
             }
+            val refreshGain = {
+                if (gainSlider.isAttachedToWindow && !gainSlider.slider.isPressed) {
+                    val db = NavigationAudioSettings.level(this)
+                    gainSlider.slider.progress = db - com.shilapi.xcertplay.media.NavigationAudioGain.MIN_DB
+                    gainSlider.slider.contentDescription = gainTitle + ": " +
+                        getString(R.string.settings_navigation_attenuation_value, db)
+                }
+            }
+            gainSlider.onCommit = refreshGain
+            gainSlider.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                private var observation: java.io.Closeable? = null
+                override fun onViewAttachedToWindow(view: View) {
+                    observation = NavigationAudioSettings.observe(this@DiPlayActivity) { gainSlider.post { refreshGain() } }
+                    refreshGain()
+                }
+                override fun onViewDetachedFromWindow(view: View) { observation?.close(); observation = null }
+            })
             card.addView(gainSlider)
             card.addView(label(getString(R.string.settings_navigation_attenuation_description), 14, MUTED).apply {
                 setPadding(0, dp(SETTINGS_BLOCK_GAP_DP), 0, 0)

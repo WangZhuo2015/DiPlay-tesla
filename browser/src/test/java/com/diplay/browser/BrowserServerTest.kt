@@ -20,11 +20,18 @@ class BrowserServerTest {
         val frames = LatestFrame()
         var selected = BrowserDisplay()
         var touches = 0
+        var navigationLevel = -10
+        var navigationWrites = 0
         val target = object : BrowserTarget {
             override fun status() = JSONObject().put("display", BrowserDisplayJson.encode(selected))
+                .put("navigationAttenuationDb", navigationLevel)
             override fun touch(contacts: List<AirPlayContact>): Boolean { touches++; return true }
             override fun action(name: String) = true
             override fun saveDisplay(display: BrowserDisplay) { selected = display }
+            @Synchronized override fun saveNavigationLevel(expectedDb: Int, db: Int): Boolean {
+                if (navigationLevel != expectedDb) return false
+                navigationLevel = db; navigationWrites++; return true
+            }
         }
         val pairing = BrowserPairing(nextCode = { 123456 })
         pairing.begin()
@@ -61,7 +68,7 @@ class BrowserServerTest {
             val presets = request("/display-presets.js", auth = false)
             assertEquals(200, presets.first)
             assertTrue(String(presets.second).contains("export function displayPreset"))
-            for (asset in listOf("browser-touch.js", "stream-summary.js", "rtc-renderer.js", "rtc-health.js", "media.js")) {
+            for (asset in listOf("browser-touch.js", "stream-summary.js", "rtc-renderer.js", "rtc-health.js", "media.js", "navigation-volume.js")) {
                 assertEquals(200, request("/$asset", auth = false).first)
             }
             assertEquals(401, request("/api/status",auth = false).first)
@@ -83,6 +90,30 @@ class BrowserServerTest {
             assertEquals(403, request("/api/frame", origin = "http://elsewhere").first)
             assertEquals(405, request("/api/frame", body = "{}").first)
             assertFalse("Rejected frame requests must not start decoding", frames.hasDemand())
+            val navigationBody = """{"db":-12,"expectedDb":-10}"""
+            assertEquals(401, request("/api/navigation-volume", auth = false, body = navigationBody).first)
+            assertEquals(403, request("/api/navigation-volume", body = navigationBody, origin = "https://elsewhere").first)
+            assertEquals(405, request("/api/navigation-volume").first)
+            for (invalid in listOf("{}", """{"db":-21,"expectedDb":-10}""", """{"db":1,"expectedDb":-10}""",
+                """{"db":-3.5,"expectedDb":-10}""", """{"db":"-5","expectedDb":-10}""",
+                """{"db":null,"expectedDb":-10}""", """{"db":-5,"expectedDb":1}""")) {
+                assertEquals(invalid, 400, request("/api/navigation-volume", body = invalid).first)
+            }
+            assertEquals(0, navigationWrites)
+            assertEquals(200, request("/api/navigation-volume", body = navigationBody).first)
+            assertEquals(-12, navigationLevel)
+            // A second browser with an old value cannot overwrite the first browser's change.
+            val conflict = request("/api/navigation-volume", body = """{"db":-5,"expectedDb":-10}""")
+            assertEquals(409, conflict.first)
+            assertEquals(-12, JSONObject(String(conflict.second)).getInt("navigationAttenuationDb"))
+            assertEquals(1, navigationWrites)
+            for (db in listOf(-20, 0)) {
+                assertEquals(200, request("/api/navigation-volume", body = """{"db":$db,"expectedDb":$navigationLevel}""").first)
+                assertEquals(db, navigationLevel)
+            }
+            assertEquals(BrowserDisplay(), selected)
+            assertEquals(0, touches)
+            assertFalse("Navigation volume must not renew JPEG demand", frames.hasDemand())
             assertEquals(204, request("/api/frame").first)
             assertTrue("An authenticated viewer should wake the decoder", frames.hasDemand())
             frames.publish(byteArrayOf(1,2,3))

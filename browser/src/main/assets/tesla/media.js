@@ -182,7 +182,10 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
   function pollStats(state,at) {
     if (state.statsRequest) {
       // One getStats call per peer. A never-settling Promise still has a recovery deadline.
-      if (at - state.statsRequest.started >= 1000) state.health.statsFailed(state.statsRequest.started);
+      if (at - state.statsRequest.started >= 1000) {
+        state.health.statsFailed(state.statsRequest.started);
+        publishStats({decodedFps:null,dropped:null});
+      }
       if (checkHealth(state,at)) publishRecovery(state,at);
       return;
     }
@@ -193,7 +196,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
       if (!valid()) return;
       state.statsRequest = null;
       state.health.statsFailed(now());
-      if (checkHealth(state,now())) publishRecovery(state,now());
+      if (checkHealth(state,now())) publishRecovery(state,now(),{decodedFps:null,dropped:null});
     };
     let pending;
     try { pending = state.rtc.getStats(); } catch (_) { failed(); return; }
@@ -300,6 +303,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     close(); open();
   }
   return {open,close,audio,audioPreference,configureVideo,
+    get mode() { return selectedMode; },
     useVideo(mode) { configureVideo(mode,selectedGrace); },
     get recoveryGraceMs() { return selectedGrace; },
     get displayed() { return displayed; },

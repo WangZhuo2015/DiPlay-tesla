@@ -17,8 +17,9 @@
   </header>
     <div class="menuConnection">
       <p id="status" role="status" aria-live="polite">连接 CarPlay / Connect CarPlay</p>
-      <p id="transportStatus">JPEG</p>
+      <p id="transportStatus" data-i18n="waitingVideo">等待视频</p>
     </div>
+    <p id="videoExplanation" class="videoExplanation" role="status"></p>
     <div class="menuActions">
     <button id="settingsButton" data-i18n="settings">显示设置</button>
     <button id="keysButton" aria-pressed="false" data-i18n="showKeys">显示虚拟按键</button>
@@ -30,6 +31,16 @@
       <label class="audioBuffer"><span data-i18n="buffer">音频缓冲</span><select id="audioBuffer"><option value="80">80 ms</option><option value="200" selected>200 ms</option><option value="400">400 ms</option></select></label>
       <p data-i18n="audio">网页音频用于音乐与导航；通话、Siri 语音和麦克风目前由 Android 主机处理。</p>
     </div>
+    <section class="navigationVolume" aria-labelledby="navigationTitle">
+      <div class="navigationHeading"><label id="navigationTitle" for="navigationLevel" data-i18n="navigationVolume">导航音量</label><output id="navigationValue" for="navigationLevel" dir="ltr">—</output></div>
+      <div class="navigationControls">
+        <button id="navigationDown" type="button" disabled aria-label="降低导航音量">−</button>
+        <input id="navigationLevel" type="range" min="-20" max="0" step="1" value="0" disabled aria-describedby="navigationHint navigationState">
+        <button id="navigationUp" type="button" disabled aria-label="提高导航音量">+</button>
+      </div>
+      <p id="navigationHint" data-i18n="navigationHint">只降低导航提示音，音乐音量不变。0 dB 为原始音量。立即生效，并与 Android 设置同步。</p>
+      <p id="navigationState" role="status" aria-live="polite"></p>
+    </section>
     <details id="diagnostics"><summary data-i18n="diagnostics">实时诊断</summary><dl id="diagnosticValues"></dl></details>
     <p><a href="/rtc-licenses.txt">Licenses</a></p>
   </div>

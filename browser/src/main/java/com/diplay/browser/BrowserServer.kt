@@ -2,6 +2,7 @@ package com.diplay.browser
 
 import android.content.res.AssetManager
 import com.shilapi.xcertplay.airplay.AirPlayContact
+import com.shilapi.xcertplay.media.NavigationAudioGain
 import fi.iki.elonen.NanoHTTPD
 import fi.iki.elonen.NanoWSD
 import fi.iki.elonen.NanoHTTPD.AsyncRunner
@@ -26,6 +27,7 @@ interface BrowserTarget {
     fun touch(contacts: List<AirPlayContact>): Boolean
     fun action(name: String): Boolean
     fun saveDisplay(display: BrowserDisplay)
+    fun saveNavigationLevel(expectedDb: Int, db: Int): Boolean = false
 }
 
 class BrowserServer(
@@ -84,7 +86,7 @@ class BrowserServer(
                     "/", "/index.html" -> "index.html" to "text/html; charset=utf-8"
                     "/app.js" -> "app.js" to "text/javascript; charset=utf-8"
                     "/media.js", "/browser-audio.js", "/rtc-health.js", "/rtc-renderer.js", "/display-presets.js",
-                    "/browser-touch.js", "/stream-summary.js" -> session.uri.drop(1) to "text/javascript; charset=utf-8"
+                    "/browser-touch.js", "/stream-summary.js", "/navigation-volume.js" -> session.uri.drop(1) to "text/javascript; charset=utf-8"
                     "/style.css" -> "style.css" to "text/css; charset=utf-8"
                     "/rtc-licenses.txt" -> "rtc-licenses.txt" to "text/plain; charset=utf-8"
                     else -> return reply(Response.Status.NOT_FOUND)
@@ -140,6 +142,16 @@ class BrowserServer(
                     target.saveDisplay(display)
                     json(target.status())
                 }
+                "/api/navigation-volume" -> {
+                    if (session.method != Method.POST) return reply(Response.Status.METHOD_NOT_ALLOWED)
+                    val body = body(session) ?: return reply(Response.Status.BAD_REQUEST)
+                    val db = body.get("db")
+                    val expected = body.get("expectedDb")
+                    val range = NavigationAudioGain.MIN_DB..NavigationAudioGain.MAX_DB
+                    require(db is Int && db in range && expected is Int && expected in range)
+                    if (target.saveNavigationLevel(expected, db)) json(target.status())
+                    else json(target.status(), Response.Status.CONFLICT)
+                }
                 else -> reply(Response.Status.NOT_FOUND)
             }
         } catch (_: IllegalArgumentException) { return reply(Response.Status.BAD_REQUEST) }
@@ -160,7 +172,8 @@ class BrowserServer(
         }
         return JSONObject(String(bytes, Charsets.UTF_8))
     }
-    private fun json(value: JSONObject) = decorate(newFixedLengthResponse(Response.Status.OK, "application/json", value.toString()))
+    private fun json(value: JSONObject, status: Response.Status = Response.Status.OK) =
+        decorate(newFixedLengthResponse(status, "application/json", value.toString()))
     private fun reply(status: Response.Status) = decorate(newFixedLengthResponse(status, "text/plain", status.description))
     private fun decorate(response: Response): Response = response.apply {
         addHeader("Cache-Control", "no-store")
