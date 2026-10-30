@@ -4,4 +4,4 @@
 
 [下载 0.1.10 完整连接版](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10) · [中文使用指南](docs/TESLA-QUICKSTART.zh-CN.md) · [English guide](docs/TESLA-QUICKSTART.md) · [来源与许可](docs/THIRD_PARTY_NOTICES.md)
 
-0.1.11 仍是待发布候选源码；独立 debug 测试包不能覆盖正式版。版本与制品状态以主说明和对应 Release 为准。
+0.1.12 仍是待发布候选源码；独立 debug 测试包不能覆盖正式版。版本与制品状态以主说明和对应 Release 为准。

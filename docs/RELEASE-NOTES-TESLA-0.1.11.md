@@ -1,6 +1,6 @@
-# DiPlay Tesla 0.1.11 — 待发布候选
+# DiPlay Tesla 0.1.11 — 历史候选记录（未发布）
 
-本候选仍在整理验证，**尚未发布新的 GitHub Release 或正式 APK**。发布包名保持 `com.diplay.tesla`，versionCode 为 12；覆盖 0.1.10 并保留数据需要原发布签名。独立 `.debug` 包不是正式覆盖升级包。
+本轮候选现改以 **[0.1.12／versionCode 13](RELEASE-NOTES-TESLA-0.1.12.md)** 准备。本页保留 0.1.11 阶段的实现与验证记录，尚未发布 0.1.11 的 GitHub Release 或正式 APK。该阶段配置的发布包名为 `com.diplay.tesla`、versionCode 为 12；覆盖 0.1.10 并保留数据需要原发布签名。独立 `.debug` 包不是正式覆盖升级包。
 
 ## 本次整合
 

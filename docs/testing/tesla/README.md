@@ -1,5 +1,20 @@
 # Tesla port verification
 
+## Version preparation — 0.1.12 / versionCode 13 — 2026-10-30
+
+The user selected **0.1.12**. Remote release/tag checks still show the published
+0.1.10 package (code 11), with 0.1.11/code 12 on `main`; no 0.1.11 or 0.1.12
+release/tag exists. The local candidate is now 0.1.12/code 13. Historical APK
+metadata, hashes and exact-commit test results below remain unchanged.
+
+Only version/documentation preparation was performed in this step. No Android
+build, test, lint, ADB or GUI run was started while audio API testing has priority.
+The next standalone build must use the already authorized Tesla 0.1.10 external
+authentication input and verify its identity/content. The original Android release
+signing key remains unavailable, and acceptance of a separate debug package is
+still pending; no replacement release key, push or publication was performed.
+[Current release candidate and remaining checks](../../RELEASE-NOTES-TESLA-0.1.12.md).
+
 ## Release integration preparation — 2026-10-30 (not published)
 
 The isolated preparation branch combines current `main` (`f39ab328`) with performance
@@ -58,7 +73,7 @@ authentication input is separate. No new authenticated integration APK was gener
 
 The Chinese-first README draft removes the appended older BYD/general-app promotion
 while retaining current identifiers and required license/author notices. Any new brand
-or identifier change remains a user decision. [Candidate release notes](../../RELEASE-NOTES-TESLA-0.1.11.md)
+or identifier change remains a user decision. [Current candidate release notes](../../RELEASE-NOTES-TESLA-0.1.12.md)
 record the remaining publication limits.
 
 
