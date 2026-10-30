@@ -1,0 +1,223 @@
+{
+  "baseline": "f39ab328d2a061c28adb192cc121a2d39792e0d7",
+  "head": "f39ab328d2a061c28adb192cc121a2d39792e0d7",
+  "sourceSha256": {
+    "browser/src/main/java/com/diplay/browser/YuvPlanes.kt": "5dcfc2900f0435e6bd12c82532f1cfd81903ce931ec16065f297b2f4bc3dce1a",
+    "browser/src/main/java/com/diplay/browser/rtc/RtcAccessUnit.kt": "e6c908347b2cc86efd5cf9ff840829f434e70d038ba8e3b9f10ed5632a8e375e"
+  },
+  "worktreeChanges": [
+    "M  browser/src/androidTest/java/com/diplay/browser/JpegVideoSinkInstrumentedTest.kt",
+    "M  browser/src/main/assets/tesla/app.js",
+    "M  browser/src/main/assets/tesla/browser-audio.js",
+    "M  browser/src/main/assets/tesla/media.js",
+    "M  browser/src/main/assets/tesla/rtc-renderer.js",
+    "M  browser/src/main/java/com/diplay/browser/BrowserServer.kt",
+    "A  browser/src/main/java/com/diplay/browser/JpegFrameDemand.kt",
+    "A  browser/src/main/java/com/diplay/browser/JpegFrameEncoder.kt",
+    "M  browser/src/main/java/com/diplay/browser/JpegVideoSink.kt",
+    "M  browser/src/main/java/com/diplay/browser/LatestFrame.kt",
+    "M  browser/src/main/java/com/diplay/browser/YuvPlanes.kt",
+    "M  browser/src/main/java/com/diplay/browser/rtc/BrowserVideoOutput.kt",
+    "A  browser/src/main/java/com/diplay/browser/rtc/RtcAccessUnit.kt",
+    "M  browser/src/main/java/com/diplay/browser/rtc/RtcFrameQueue.kt",
+    "M  browser/src/test/java/com/diplay/browser/BrowserServerTest.kt",
+    "A  browser/src/test/java/com/diplay/browser/JpegFrameDemandTest.kt",
+    "A  browser/src/test/java/com/diplay/browser/JpegFrameEncoderTest.kt",
+    "A  browser/src/test/java/com/diplay/browser/LatestFrameTest.kt",
+    "M  browser/src/test/java/com/diplay/browser/YuvPlanesTest.kt",
+    "M  browser/src/test/java/com/diplay/browser/rtc/BrowserVideoOutputTest.kt",
+    "A  browser/src/test/java/com/diplay/browser/rtc/RtcAccessUnitTest.kt",
+    "M  browser/src/test/java/com/diplay/browser/rtc/RtcFrameQueueTest.kt",
+    "M  browser/test/audio.test.mjs",
+    "A  browser/test/jpeg-renderer.test.mjs",
+    "M  browser/test/rtc-renderer.test.mjs",
+    "A  docs/browser-performance.md",
+    "A  scripts/benchmark-browser-media.py",
+    "?? docs/benchmarks/"
+  ],
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "java": "openjdk version \"25.0.5\" 2026-10-20 LTS\nOpenJDK Runtime Environment Temurin-25.0.5+8 (build 25.0.5+8-LTS)\nOpenJDK 64-Bit Server VM Temurin-25.0.5+8 (build 25.0.5+8-LTS, mixed mode, sharing)",
+  "kotlinCompiler": "kotlin-compiler-embeddable-2.3.20.jar",
+  "jvmOptions": [
+    "-Xms256m",
+    "-Xmx256m"
+  ],
+  "warmupMsPerVariant": 500,
+  "samplesPerVariant": 9,
+  "sampleOrder": "alternating forward/reverse",
+  "limitations": "Synthetic host JVM; excludes decoding, JPEG compression, networking, Android/ART and thermal behavior. Classification workload is 31 P access units per IDR; NV21 verifies full output equivalence before timing.",
+  "results": [
+    {
+      "scenario": "annex-b-20KiB-31P-1IDR",
+      "variant": "baseline",
+      "iterationsPerSample": 8192,
+      "samplesNsPerOperation": [
+        12403.180297851562,
+        12289.671264648438,
+        12599.422119140625,
+        13644.173950195312,
+        12374.937133789062,
+        12284.397216796875,
+        12677.270874023438,
+        11830.900146484375,
+        11207.014892578125
+      ],
+      "checksum": 256,
+      "medianNsPerOperation": 12374.937133789062,
+      "baselineMedianDividedByMedian": 1.0
+    },
+    {
+      "scenario": "annex-b-20KiB-31P-1IDR",
+      "variant": "current",
+      "iterationsPerSample": 67108864,
+      "samplesNsPerOperation": [
+        2.148933231830597,
+        2.085031434893608,
+        2.1890028566122055,
+        2.2109489887952805,
+        2.1422197073698044,
+        1.9900092333555222,
+        2.0535325556993484,
+        1.9510982781648636,
+        2.2307585179805756
+      ],
+      "checksum": 2097152,
+      "medianNsPerOperation": 2.1422197073698044,
+      "baselineMedianDividedByMedian": 5776.689053515844
+    },
+    {
+      "scenario": "annex-b-50KiB-31P-1IDR",
+      "variant": "baseline",
+      "iterationsPerSample": 4096,
+      "samplesNsPerOperation": [
+        32247.423828125,
+        32325.336181640625,
+        39867.702392578125,
+        35029.213623046875,
+        43555.493408203125,
+        33349.177734375,
+        31800.14990234375,
+        30421.6181640625,
+        30356.0166015625
+      ],
+      "checksum": 128,
+      "medianNsPerOperation": 32325.336181640625,
+      "baselineMedianDividedByMedian": 1.0
+    },
+    {
+      "scenario": "annex-b-50KiB-31P-1IDR",
+      "variant": "current",
+      "iterationsPerSample": 67108864,
+      "samplesNsPerOperation": [
+        2.6177021861076355,
+        2.1801090389490128,
+        2.27049021422863,
+        2.4199909567832947,
+        2.426972731947899,
+        2.3450504690408707,
+        1.991089254617691,
+        1.9870349615812302,
+        1.9961669892072678
+      ],
+      "checksum": 2097152,
+      "medianNsPerOperation": 2.27049021422863,
+      "baselineMedianDividedByMedian": 14237.161639836771
+    },
+    {
+      "scenario": "annex-b-100KiB-31P-1IDR",
+      "variant": "baseline",
+      "iterationsPerSample": 2048,
+      "samplesNsPerOperation": [
+        62826.91259765625,
+        60409.40673828125,
+        58924.59423828125,
+        60466.34716796875,
+        63692.1318359375,
+        59965.32666015625,
+        65951.7060546875,
+        62831.56787109375,
+        83211.93310546875
+      ],
+      "checksum": 64,
+      "medianNsPerOperation": 62826.91259765625,
+      "baselineMedianDividedByMedian": 1.0
+    },
+    {
+      "scenario": "annex-b-100KiB-31P-1IDR",
+      "variant": "current",
+      "iterationsPerSample": 33554432,
+      "samplesNsPerOperation": [
+        2.6672023832798004,
+        2.706522971391678,
+        2.542412430047989,
+        2.578225702047348,
+        3.0769789814949036,
+        2.5575099885463715,
+        2.6467511355876923,
+        2.65349805355072,
+        2.691429615020752
+      ],
+      "checksum": 1048576,
+      "medianNsPerOperation": 2.65349805355072,
+      "baselineMedianDividedByMedian": 23677.01476682291
+    },
+    {
+      "scenario": "nv21-1920x1080-direct-padded-chroma-stride2",
+      "variant": "baseline-allocate",
+      "iterationsPerSample": 32,
+      "samplesNsPerOperation": [
+        3440137.96875,
+        3361895.59375,
+        3268133.375,
+        3528073.6875,
+        3330844.34375,
+        3475384.625,
+        3420812.6875,
+        3588181.59375,
+        3004759.03125
+      ],
+      "checksum": 11888,
+      "medianNsPerOperation": 3420812.6875,
+      "baselineMedianDividedByMedian": 1.0
+    },
+    {
+      "scenario": "nv21-1920x1080-direct-padded-chroma-stride2",
+      "variant": "current-allocate",
+      "iterationsPerSample": 64,
+      "samplesNsPerOperation": [
+        1340643.375,
+        1324050.40625,
+        1318044.125,
+        1477284.890625,
+        1360061.78125,
+        1508853.375,
+        1431918.09375,
+        1461618.484375,
+        1333729.609375
+      ],
+      "checksum": 23968,
+      "medianNsPerOperation": 1360061.78125,
+      "baselineMedianDividedByMedian": 2.5151891882117394
+    },
+    {
+      "scenario": "nv21-1920x1080-direct-padded-chroma-stride2",
+      "variant": "current-reuse",
+      "iterationsPerSample": 128,
+      "samplesNsPerOperation": [
+        1174413.65625,
+        1193790.21875,
+        1009089.1953125,
+        946316.4921875,
+        1063514.6484375,
+        1093870.6953125,
+        918908.6484375,
+        910137.046875,
+        1070885.2421875
+      ],
+      "checksum": 48384,
+      "medianNsPerOperation": 1063514.6484375,
+      "baselineMedianDividedByMedian": 3.216516756516525
+    }
+  ]
+}

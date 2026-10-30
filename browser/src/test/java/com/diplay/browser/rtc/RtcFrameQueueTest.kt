@@ -4,6 +4,35 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RtcFrameQueueTest {
+    @Test fun conversionRunsOnlyForAdmittedFramesAndKeepsTheOwnedResult() {
+        val queue = RtcFrameQueue()
+        var copies = 0
+        val owned = byteArrayOf(1)
+        fun offer(key: Boolean, now: Long = 0, size: Int = 1) =
+            queue.offer(size, now, key, now) { copies++; owned }
+
+        repeat(60) { assertFalse(offer(key = false)) }
+        assertEquals("Waiting for IDR must not convert/copy discarded P frames", 0, copies)
+        assertTrue(offer(key = true))
+        assertSame("The queue must not copy an already-owned conversion a second time", owned, queue.poll(0)!!.bytes)
+        assertEquals(1, copies)
+
+        repeat(RtcFrameQueue.MAX_FRAMES) { assertTrue(offer(key = false)) }
+        val beforeOverflow = copies
+        assertFalse(offer(key = false))
+        assertEquals(beforeOverflow, copies)
+        assertTrue(queue.needsKey)
+        assertFalse(offer(key = true, size = RtcFrameQueue.MAX_BYTES + 1))
+        assertEquals(beforeOverflow, copies)
+
+        assertTrue(offer(key = true))
+        val beforeExpiry = copies
+        assertFalse(offer(key = false, now = RtcFrameQueue.MAX_AGE_NS))
+        assertEquals(beforeExpiry, copies)
+        assertNull(queue.poll(RtcFrameQueue.MAX_AGE_NS))
+        assertTrue(queue.needsKey)
+    }
+
     @Test fun overflowAndStaleFramesRequireNewKeyframe() {
         val queue=RtcFrameQueue()
         assertFalse(queue.offer(byteArrayOf(1),0,false,0))

@@ -109,13 +109,13 @@ class BrowserVideoOutput internal constructor(
         receivedFrames++
         if (!displayed) jpeg.onVideoFrame(type, naluBytes, senderNanos, arrivalNanos)
         if (!connected) return
-        val annex = MediaCodecSupport.toAnnexB(naluBytes)
-        if (annex.isEmpty()) return
-        val key = MediaCodecSupport.isRandomAccess(annex, VideoCodec.H264)
+        val frame = RtcAccessUnit.inspect(naluBytes) ?: return
         val needsKey = synchronized(lock) {
             if (closed || !connected) return
-            queue.offer(annex, senderNanos, key, clock(), if (key) parameters.size else 0)
-            if (!draining) { draining = true; execute { drain() } }
+            val prefix = if (frame.key) parameters else EMPTY
+            queue.offer(frame.size, senderNanos, frame.key, clock(), prefix.size) { frame.copyAnnexB(prefix) }
+            // Rejected dependent frames need recovery, but do not need an empty worker task.
+            if (!draining && queue.size > 0) { draining = true; execute { drain() } }
             queue.needsKey
         }
         if (needsKey) requestKey()
@@ -175,8 +175,7 @@ class BrowserVideoOutput internal constructor(
             if (peer == null || !connected) return@repeat
             if (origin < 0L) origin = frame.nanos
             val timestamp = ((frame.nanos - origin).coerceAtLeast(0) / 1000 * 90 / 1000) and 0xffff_ffffL
-            val data = if (frame.key) parameters + frame.bytes else frame.bytes
-            if (runCatching { peer?.send(data, timestamp) == true }.getOrDefault(false)) {
+            if (runCatching { peer?.send(frame.bytes, timestamp) == true }.getOrDefault(false)) {
                 sentFrames++; health?.sent(clock())
             }
             else {
@@ -248,6 +247,7 @@ class BrowserVideoOutput internal constructor(
     companion object {
         private const val MAIN_SCREEN = 110
         private val START = byteArrayOf(0,0,0,1)
+        private val EMPTY = ByteArray(0)
         private val OFFER_IDS = AtomicLong()
     }
 }

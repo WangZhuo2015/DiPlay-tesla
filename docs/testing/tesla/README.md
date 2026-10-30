@@ -1,9 +1,180 @@
 # Tesla port verification
 
-Historical build checks below ran on Windows with JDK 25 and Android SDK 37. The
-2026-10-20 source checks use Linux, JDK 25 and Android SDK 37. Historical 0.1.0/0.1.1
-device checks used a dedicated Android 10/API 29 emulator without an iPhone or Tesla.
-The local V50/iPhone tests are recorded separately below.
+## 0.1.12 standalone debug verification — 2026-10-30
+
+A provisioned **0.1.12 / versionCode 13** APK was built from exactly
+`ed62af2a5aac2dc40c0aeb996046a2bc498370f2`, using the existing debug signing key
+and the Tesla 0.1.10 external authentication input. It is
+`com.diplay.tesla.debug`: a separate test application that cannot update or inherit
+data from the original release. No new signing key was generated.
+
+The single-worker, low-priority standalone build and selected tests/lint completed
+with `BUILD SUCCESSFUL in 51s`. Tesla tests passed **12/12**; browser **82/82**
+results for unchanged source were reused as `UP-TO-DATE`. Tesla/browser lint had
+zero errors/fatal issues and 27 warnings (17/10). The Node suite was freshly run:
+**92 passed, zero failed/skipped**. Package/version, APK signature, existing signer
+fingerprint, three RTC ABIs and the exact two authentication entries were verified.
+Authentication bytes match the original selected 0.1.10 APK; no additional private
+key/certificate or signing-keystore container is bundled.
+
+The APK is **46,361,711 bytes**, SHA-256
+`ff0d1b3f6a15fc72794636cbdc287a097238481c7dd86a10a588fcdbc19ea011`.
+[Machine-readable artifact verification](standalone-debug-0.1.12-20261030.json)
+contains public metadata only. The [0.1.12 release page](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.12)
+uses tag `tesla-v0.1.12` at the recorded product source. Later differences are
+documentation only. The earlier full
+Android gate below remains failed (three host dual-stack cases and one skip); it
+was not rerun or disabled. No physical-device, ADB or GUI validation was performed.
+[Download and limitations](../../RELEASE-NOTES-TESLA-0.1.12.md).
+
+## Release integration preparation — 2026-10-30 (not published)
+
+This historical validation combined baseline `f39ab328` with performance
+PR #5 head `b4493e635072f07f5cf69a39af07e0cf15635579` and the navigation/video-status
+implementation originally committed as `9904b44c`. Current release status is recorded above.
+
+Two overlaps were resolved: `app.js` retains the performance branch's `presentJpegFrame`
+path and feeds measured dimensions/FPS only after a frame is shown; `BrowserServerTest`
+retains both authenticated JPEG-demand checks and navigation range/conflict checks, with
+an additional assertion that navigation controls do not renew JPEG demand. The bounded
+encoder/queue implementation remains unchanged from PR #5; no extra frame copy was added.
+
+Lightweight integrated validation: **92/92 Node browser/proxy tests passed**, all browser
+JavaScript syntax checks passed, and public-source/diff checks passed.
+
+The full Android task list was then run at exactly
+`d5ecfac202b55da13886512e7b65f9008e825bc7`, using one worker and `--continue`. Gradle completed all requested phases in
+**13m 14s** and returned failure for the two unit-test tasks containing the three
+unchanged host-network failures documented below. No tests were disabled.
+
+| Unit-test module | Tests | Passed | Failed | Skipped |
+| --- | ---: | ---: | ---: | ---: |
+| shared | 1,798 | 1,795 | 2 | 1 |
+| common | 1,739 | 1,738 | 1 | 0 |
+| home | 14 | 14 | 0 | 0 |
+| browser | 82 | 82 | 0 | 0 |
+| tesla | 12 | 12 | 0 | 0 |
+| Total | **3,645** | **3,641** | **3** | **1** |
+
+There were zero test errors. All five debug lint targets completed with **zero
+errors/fatal issues and 56 warnings**. All four source-only debug APKs built and
+passed APK signature verification; none contains `offline-mfi` authentication
+assets or signing-keystore containers. The Tesla APK includes the native RTC library
+for **arm64-v8a, armeabi-v7a and x86_64**. Its identity is `com.diplay.tesla.debug`,
+version **0.1.11 / versionCode 12**, SHA-256
+`1f91d077e4f7a044a29b9b7dd73ebb520fe6658aa75155345a030be5b3d4204d`.
+It is a source-validation artifact without provisioned standalone authentication,
+and its debug signature cannot update the original release. The complete Android
+gate remains **not green** on this Mac. No product-code repair was needed.
+
+[Machine-readable integrated Android result](release-integration-20261030.json)
+records module totals, failures, lint and APK hashes. Gradle/test/native processes
+were confirmed exited after verification; approximately **20.97 GiB** remained free.
+No ADB, emulator, GUI capture, cache deletion or additional tool installation was used.
+Earlier validation records below remain scoped to their own exact commits.
+
+The latest checked PR #5 [CI run 41044572300](https://github.com/WangZhuo2015/DiPlay-tesla/actions/runs/41044572300)
+was successful for exactly `b4493e63`, independently of this integrated validation.
+
+The existing authenticated private debug APK is from `9904b44c` and does not contain
+PR #5. The new integrated source-only APK is not a final standalone or upgrade-compatible
+release. Release signing still requires the original keystore; the provisioned
+authentication input is separate. No new authenticated integration APK was generated.
+
+The Chinese-first README draft removes the appended older BYD/general-app promotion
+while retaining current identifiers and required license/author notices. [Current release notes](../../RELEASE-NOTES-TESLA-0.1.12.md)
+record the remaining publication limits.
+
+
+## Browser navigation volume and visible video status — 2026-10-30 (unreleased)
+
+Product implementation commit: `9904b44cc0600cc415d16a76f6a1486c75f547bd`, based on
+`f39ab328`. The subsequent validation-record commit changes documentation only.
+This work does not establish the cause of the reported V50/Tesla slowdown or extend
+historical vehicle validation to the new controls.
+
+### Android validation on this Mac
+
+Installed official Temurin **25.0.5+8 arm64**, Android SDK **37.0 r2**, NDK
+**28.2.13676358** and CMake **3.22.1**; reused Gradle **9.5.0** and Build-Tools
+**36.0.0**. The required Android CI command was run with two workers. Its unit-test
+phase failed on the unchanged host-network cases below. The remaining CI tasks were
+then run separately with `--continue`, preserving the original failure reports.
+
+| Unit-test module | Tests | Passed | Failed | Skipped |
+| --- | ---: | ---: | ---: | ---: |
+| shared | 1,798 | 1,795 | 2 | 1 |
+| common | 1,739 | 1,738 | 1 | 0 |
+| home | 14 | 14 | 0 | 0 |
+| browser | 61 | 61 | 0 | 0 |
+| tesla | 12 | 12 | 0 | 0 |
+| Total | **3,624** | **3,620** | **3** | **1** |
+
+No test errors were reported. The failures are:
+
+- `AirPlayDualListenerTest.acceptsBothFamiliesOnTheSamePort`: accept timeout.
+- `AirPlayTcpAcceptTest.bothAddressFamiliesReportOwnerAndOldCleanupPreservesNewListener`:
+  no accepted TCP event.
+- `CarPlayBonjourDualStackTest.dualLanThenSingleP2pThenDualLanServesAirPlayInfo`:
+  expected HTTP response was absent.
+
+Those network sources/tests are unchanged from `f39ab328`. An independent plain-Java
+probe reproduced the `::1` accept timeout under both Temurin 25 and the pre-existing
+JBR 21; IPv4 succeeded. This isolates an observable host IPv6 limitation without
+asserting a particular system-permission or routing cause. No network settings were
+changed and no tests were disabled. The skipped wildcard-port test reports that this
+host permits wildcard and specific-address listeners to overlap. **The complete gate
+is therefore not green on this Mac.**
+
+Feature suites passed: navigation gain **21/21**, shared navigation settings **3/3**,
+adaptive Android UI **69/69**, the HTTP server test including new authentication,
+range and conflict cases **1/1**, and Tesla output tests **5/5**. No product-code repair
+was needed after compilation/testing.
+
+All five debug lint targets (`mobile`, `home`, `maphost`, `browser`, `tesla`) completed
+with **zero errors/fatal issues** and **56 warnings**. Four ordinary debug APKs built
+successfully and were checked to contain no `offline-mfi` assets. The native RTC
+library built for **arm64-v8a**, **armeabi-v7a** and **x86_64**.
+
+A separate **standalone debug** build also completed, with application output redirected
+to a repository-external private directory. Its package is `com.diplay.tesla.debug`,
+version **0.1.11 / versionCode 12**. APK signature verification passed. Its two authentication
+entries match the explicitly selected **Tesla 0.1.10 release** byte for byte; no Android
+signing-keystore container is bundled. Inputs, logs and APK remain local/private and
+are excluded from Git. This debug-signed package **cannot update the original release**.
+The original release keystore remains unavailable; no replacement release key was created.
+No APK was uploaded or published. Disk free after validation was approximately **23.6 GiB**.
+
+### Browser validation and remaining limits
+
+- Browser/proxy Node regression suite: **82 passed, 0 failed, 0 skipped**.
+  New cases cover serialized/coalesced gestures, stale reads, conflicting clients,
+  uncertain writes, reconnect fencing, JPEG sampling and unavailable vs zero RTC FPS.
+- Production HTML/CSS/JS passed headless checks at **1920×1080 English**, **1024×768
+  Chinese**, and **360×740 Arabic**, all at **130% font size**. No horizontal overflow;
+  volume buttons and slider each retain a minimum **48×48 CSS px** touch area.
+  Checks include external-setting readback, failed-save recovery, persistence after
+  reload, expired pairing and re-pairing, and keeping the media socket during volume changes.
+- JPEGs were actually decoded in Chromium 151.0.7922.34. A deliberately invalid RTC
+  offer verified the visible `negotiation-failed` explanation while JPEG remained usable.
+  The configured 1920×1080/60 fps was not substituted for the measured 960×540 image
+  or the stationary stream's 0 fps. This is synthetic HTTP/signaling, not vehicle performance.
+- `python3 scripts/check_public_tree.py`, JavaScript syntax checks and `git diff --check`
+  passed. No credential container or new product dependency was added to public source.
+- The existing real RTC loopback harness previously did not reach connected ICE on
+  this Mac. Working H.264 transport still needs another suitable environment or a device.
+  No product transport workaround was added.
+
+[Machine-readable UI results](browser-feedback-20261030/feedback-browser-verification.json)
+· [English full menu](browser-feedback-20261030/feedback-menu-full-en-font130.jpg)
+· [Chinese compact menu](browser-feedback-20261030/feedback-menu-compact-zh-font130.jpg)
+· [Arabic narrow menu](browser-feedback-20261030/feedback-menu-narrow-ar-font130.jpg)
+· [Visible fallback reason](browser-feedback-20261030/feedback-fallback-full-en-font130.jpg)
+
+Before release, resolve or independently validate the host-network failures in a suitable
+environment, then test music and navigation together on V50/Tesla: independent guidance
+gain, live Android/browser changes, reconnect persistence, and actual RTC/JPEG diagnostics.
+The original release signature is still required for an in-place update.
 
 ## WheelPlay-inspired source changes — 2026-10-20
 

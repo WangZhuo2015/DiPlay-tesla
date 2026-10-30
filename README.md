@@ -1,132 +1,98 @@
 # DiPlay Tesla
 
-This fork adds a Tesla browser output to the existing Android CarPlay receiver. A separate
-`tesla` APK composes the core with the `browser` library; the optional Node.js `proxy/`
-process is deployed independently. Tesla and the Android host share a local network.
+让 Tesla 浏览器使用 CarPlay 的 Android 接收端。Android 主机连接 iPhone，Tesla 在同一网络打开网页，显示 CarPlay 画面并接收触控、音乐和导航提示音。
 
-[Download complete 0.1.10 APK](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10) · **[Installation and browser setup](docs/TESLA-QUICKSTART.md)** · [中文使用指南](docs/TESLA-QUICKSTART.zh-CN.md)
+[0.1.12 发布页](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.12) · [0.1.10 历史版本](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10) · **[中文使用指南](docs/TESLA-QUICKSTART.zh-CN.md)** · [English guide](docs/TESLA-QUICKSTART.md) · [问题反馈](https://github.com/WangZhuo2015/DiPlay-tesla/issues)
 
-**Tested in a 2026 Model Y Juniper: CarPlay audio and touch work normally.** The Android
-host is a **ZTE V50 mobile Wi-Fi**, with **iPhone 16 Pro Max and iPhone 17 Pro Max,
-both on iOS 27.0.1**. This is the owner's confirmed setup; other combinations need
-their own checks.
+> 当前版本为 **0.1.12／code 13**，发布页已上线。独立测试包为 `com.diplay.tesla.debug`，可与原正式包并存，**不能覆盖升级或继承原正式包数据**。该版本尚未完成新一轮实车验收，不建议作为生产稳定版。[版本说明与已知限制](docs/RELEASE-NOTES-TESLA-0.1.12.md)
 
-![Model Y Juniper vehicle photo with the address-bar domain redacted](docs/testing/tesla/model-y-juniper-v50-redacted.png)
+## 需要什么
 
-Install `DiPlay-Tesla-0.1.10.apk` on the Android host, enable its hotspot and connect
-the iPhone in DiPlay. Connect Tesla to that hotspot. Android **Settings → Connection →
-Tesla browser (experimental)** shows the entry and six-digit pairing code. Open the
-entry in Tesla and pair; this browser remembers the connection. Codes last five minutes.
+- 允许安装 APK 的 Android 主机，Android 7.1／API 25 或更高版本。
+- 支持 CarPlay 的 iPhone，以及带浏览器的 Tesla。
+- Tesla 与 Android 主机之间可达的网络。可以使用主机热点，也可以按使用指南配置现有局域网。
+- 若固件限制浏览器访问内网地址，还需要自行配置可达的网关、DNS 和可信 HTTPS 入口。
 
-The complete APK includes the explicitly provisioned experimental accessory identity
-for local iPhone authentication, so end users do not need to compile it. It is not a new
-Apple-issued DiPlay identity.
-[Provenance and scope](docs/THIRD_PARTY_NOTICES.md#experimental-authentication-data)
-are documented. Source archives and the independent proxy omit that identity, and the
-Android signing private key stays local.
+**历史实测组合：** 0.1.10 在 2026 Model Y Juniper、ZTE V50、iPhone 16 Pro Max／17 Pro Max（iOS 27.0.1）上确认音频和触摸正常。这不覆盖其他车型、固件，也不等于 0.1.12 已经完成实车验证。[查看实测范围](docs/testing/tesla/README.md#model-y-juniper-vehicle-report--2026-10-12)
 
-**Configure your own HTTPS entry separately.** Downloads and public files contain no
-user domains, HTTPS certificates/private keys, hotspot passwords or device routing
-configuration. Use the [rooted Android gateway](proxy/android-root/README.md) or the
-[independent proxy](proxy/README.md) with your own domain, DNS and certificate. Android
-can display the configured HTTPS entry. Routing is configured on Android/the gateway;
-Tesla connects through the hotspot's default gateway.
+## 安装与连接
 
-**Tesla firmware can restrict private-IP access.** An HTTP address working on a phone
-or computer does not establish vehicle access; a domain or HTTPS alone may not fix it.
-Read the [private-IP entry notes](docs/TESLA-QUICKSTART.md#tesla-private-ip-access-restrictions)
-and configure your own reachable gateway address, DNS and trusted certificate.
+1. 将完整连接 APK 安装到 **Android 主机**，打开应用并授予连接所需权限。
+2. 按[中文使用指南](docs/TESLA-QUICKSTART.zh-CN.md)配置 iPhone 与主机的连接。无线连接时保存实际使用的热点信息，保持 iPhone 蓝牙和 Wi-Fi 开启，选择手机并连接。
+3. 让 Tesla 连接同一网络。在 Android 的 **设置 → 连接 → Tesla 浏览器（实验性）**查看入口地址及六位配对码。
+4. 在 Tesla 浏览器打开入口，输入配对码。配对码有效五分钟；过期后重新打开 Android 连接页获取。配对成功后，该浏览器会记住连接。
+5. 播放音乐。若浏览器要求手势，点一下页面启动声音；此前手动关闭过音频时，在菜单中重新开启。
 
-0.1.10 defaults browser music/navigation audio on and remembers manual disabling.
-Tap the page when the browser requires interaction. The top-center menu handle retracts
-after two seconds; virtual keys are hidden by default. The 0.1.9 touch fix preserves
-release coordinates and orders press/release events, repairing dock/home activation.
-Diagnostics use named thermal sensors and no longer show a misleading battery reading
-on powered hosts.
+完整连接版包含明确配置的实验性配件身份，用于本地 iPhone 认证；它不是 Apple 为本项目新签发的 MFi 身份。[来源和范围说明](docs/THIRD_PARTY_NOTICES.md#experimental-authentication-data)保留在源码中。
 
-Display presets offer Fit window, 720p, 1080p and 2K (up to 2560×1440), with 1/2, 3/4
-and 1× Fit scaling. Right/full dimensions save independently and apply on the next
-connection or an explicit Apply and reconnect. H.264 WebRTC is preferred with automatic
-JPEG fallback. The menu groups actual transport, received dimensions, decoded fps and
-readable SoC temperature. [Preset details and screen sources](docs/TESLA-DISPLAY-PRESETS.md)
-include synthetic screenshots without real accounts, vehicles or private configuration.
+### 用 RemoteOrbit 管理无屏设备
 
-![Synthetic compact menu and stream summary](docs/testing/tesla/browser-0.1.10-menu-compact-font130.jpg)
+使用 V50 这类无屏 Android 主机时，推荐搭配我们开发的 **RemoteOrbit** iOS／macOS App。在 iPhone、iPad 或 Mac 上查看主机画面、操作设置和输入文字，方便打开 DiPlay Tesla、配置连接和排查问题。RemoteOrbit 用于管理 Android 主机；CarPlay 画面、触控和音频仍通过 DiPlay Tesla 与 Tesla 浏览器完成。
 
-The Model Y Juniper test confirms working audio and touch on 0.1.10. Earlier V50 checks
-also confirmed default audio and idle handle retraction. Calls, Siri voice and microphone
-input still use Android; the page has no microphone capture. Sustained 2K performance and
-voice were not separately validated in this report. [Release notes](docs/RELEASE-NOTES-TESLA-0.1.10.md)
-and [vehicle validation](docs/testing/tesla/README.md#model-y-juniper-vehicle-report--2026-10-12)
-record the scope.
+连接时，两端应处于同一可互访的局域网，并允许 App 使用本地网络。主机须已开启网络 ADB：已有 ADB TCP 的设备可输入 IP 和连接端口；支持 Android 11 及以上无线调试的设备，也可通过系统配对码或二维码配对。首次配对和授权确认仍须按设备固件提供的方式完成，无屏设备也要先解决这一步。传统 ADB TCP 不加密，仅在可信网络使用，不要将 ADB 端口开放到公网。
 
-[Technical/build guide](docs/TESLA.md) · [Independent proxy](proxy/README.md).
-Normal source builds omit accessory authentication; standalone builds need authorized
-external assets. The upstream DiPlay documentation follows. For this Tesla port, start
-with the quick-start guide above.
+iPhone／iPad 需要 iOS／iPadOS 17 或更高版本；Mac 需要 Apple 芯片和 macOS 14 或更高版本。[iOS 下载](https://apps.apple.com/us/app/remoteorbit/id6813802244?platform=iphone) · [macOS 下载](https://apps.apple.com/us/app/remoteorbit/id6813802244?platform=mac) · [连接指南](https://wangzhuo2015.github.io/droiddeck-support/support.html)。App Store 链接为美区入口，能否下载以 Apple ID 所在商店为准。
 
-[English](README.md) · [简体中文](README.zh-CN.md) · [繁體中文](README.zh-TW.md)
+### 入口与 HTTPS
 
-**CarPlay for compatible BYD Android head units.** Wired and wireless, with the familiar DiAuto interface. Independent app: `com.shihab.diplay`.
+APK 自身提供 HTTP 服务；HTTPS 需要单独部署。可参考[Android 本机网关](proxy/android-root/README.md)（需要 root）或[独立 proxy](proxy/README.md)，使用自己的域名、DNS 和证书。公开源码不包含 HTTPS 私钥、热点密码或私人路由配置。
 
-> **BYD support scope:** These projects focus on BYD cars. They may work on other brands, but other brands are unsupported and there are no plans to add support or fix brand-specific incompatibilities.
+部分 Tesla 固件会限制内网 IP 访问。手机或电脑能打开入口，不能证明车机也能打开；仅换域名或加 HTTPS 也不能保证解决。[内网访问限制与配置说明](docs/TESLA-QUICKSTART.zh-CN.md#tesla-内网-ip-访问限制)
 
-[Download & website](https://shihabal3amri.github.io/DiPlay/) · [Release](https://github.com/shihabal3amri/DiPlay/releases/tag/v0.2.21) · [Report a problem](https://github.com/shihabal3amri/DiPlay/issues/new/choose)
+## 常用设置
 
-![DiPlay home](site/assets/home.png)
+顶部中央的小把手打开菜单，闲置约两秒后收起。虚拟按键默认隐藏，可在菜单中展开；画面和触控坐标不会随按键区域缩放。
 
-## 0.2.21 — public preview
+| 设置 | 用途与生效方式 |
+| --- | --- |
+| 显示预设 | 适配窗口、720p、1080p、2K，最高 2560×1440；适配缩放支持 1/2、3/4、1×。先选车机当前窗口，再选预设。 |
+| 右侧／全屏 | 两份尺寸独立保存。尺寸和请求帧率在下次 CarPlay 连接生效，需要立即使用时明确选择“应用并重新连接”。 |
+| 视频传输 | 默认优先 H.264 WebRTC；失败时回退 JPEG。JPEG 画质只影响回退画面，调高画质或分辨率会增加负载。 |
+| 浏览器音频 | 用于音乐和导航提示，默认开启并记住手动关闭状态。音频缓冲可选 80／200／400 ms。 |
+| 导航音量（0.1.12 测试版） | 网页提供滑块和 ± 按钮，范围 −20～0 dB；0 dB 保留原音量，只降低导航提示，音乐音量不变。与 Android 设置共用保存值，立即生效。 |
+| 实际视频状态（0.1.12 测试版） | 菜单直接显示实际路线、收到的尺寸、实测帧率及回退原因。统计不可用显示“未知”；静止画面可以实测为 0 fps。 |
 
-Install on the **car**, not the iPhone. No jailbreak, dongle, Mac, account or authentication server is required for use. Core CarPlay does not require ADB; optional dashboard, battery, wheel-speed and parked-video features do. Your head unit must permit APK installation. The APK supports Android 7.0+ (API 24); Android 7.0–8.1 support is not yet confirmed on a vehicle. Wireless supports Wi-Fi Direct, the car’s existing hotspot or Existing Wi-Fi / Same LAN. Android 7.0–9 Wi-Fi Direct uses a firmware-dependent legacy path with generated group credentials and unverified requested frequency; see [Android 9 Wi-Fi Direct](docs/ANDROID9_WIFI_DIRECT.md). Android 10+ verifies its negotiated group frequency.
+[显示预设与屏幕说明](docs/TESLA-DISPLAY-PRESETS.md) · [连接和媒体边界](docs/TESLA.zh-CN.md)
 
-- Wired USB and wireless CarPlay with local authentication.
-- BYD HUD navigation with arrows, distance and street names on verified firmware.
-- Car hotspot support, improved audio buffering and saved receive diagnostics.
-- Automatic address discovery, fixed-channel Wi-Fi fallbacks and successful-configuration memory.
-- Icon/text size, resolution and frame rate; applying a display change reconnects CarPlay.
-- Local diagnostic export. Reports are sent only if you choose to share them.
-- Separate installation alongside DiAuto. Run one projection app at a time.
+![导航音量与实际视频状态界面示例，内容来自合成测试](docs/testing/tesla/browser-feedback-20261030/feedback-menu-compact-zh-font130.jpg)
 
-This is **not an Apple-certified product**. The APK bundles an experimental accessory identity recovered from public Carlinkit firmware, not a newly provisioned MFi identity for DiPlay. Acceptance after future iOS updates, reliability across head units and suitability of that identity for general distribution are unresolved. This release invites community testing; it is not a guarantee of universal compatibility.
+0.1.12 测试版还整合了有界 JPEG 工作、缓冲复用、按浏览器需求启停转换、RTC 排队路径和可选 Canvas 显示的性能调整。它们旨在减少不必要的工作；已有主机基准不代表车机帧率、温度或延迟已经改善。[性能说明与实测计划](docs/browser-performance.md)
 
-Earlier releases were tested on the development DiLink5.1 car: live windshield guidance and street names work, Car hotspot now starts CarPlay, and Wi-Fi Direct performance is substantially improved. Audio underrun recovery is improved in 0.2.15; remaining cutouts need current diagnostic reports. The 0.2.16 software Opus microphone fallback was accepted on a BOS Mini A1 head unit (Android 9) with an iPhone 12 on iOS 27. The floating-map test build was installed on the development DiLink 5.1 car; feedback led to the pinch corrections in 0.2.9. Earlier wheel-speed and video contributions were tested on a BYD Tang with DiLink 5.0 and an iPhone 15 Pro on iOS 27; wheel-speed dead reckoning in tunnels remains unverified. Broader head-unit and iOS compatibility is not guaranteed. The HUD firmware scope and cleanup limits are documented in [BYD navigation](docs/BYD_NAVIGATION.md).
+## 故障排查
 
-## What’s new in 0.2.21
+| 现象 | 先检查什么 |
+| --- | --- |
+| 车机打不开入口 | 车机与主机的网络是否可达，以及当前 Tesla 固件的内网访问限制。按上面的入口指南检查网关、DNS 和证书。 |
+| 一直显示 JPEG／画面较慢 | 视频传输是否选了“自动”；记录实际分辨率、fps 和回退原因。WebRTC 还需要浏览器能直达 Android 的媒体通路，HTTP／HTTPS 网关并不转发该 UDP 通路。 |
+| 没声音 | 点一下页面解锁自动播放，检查浏览器音频开关及主机音频。缓冲增加会增加延迟。 |
+| 导航太响 | 0.1.12 测试版可调“导航音量”；车上的总音量按钮仍可能同时改变网页音乐与导航音量。 |
+| 保存尺寸后没变化 | 查看是否提示等待下次连接；准备好后选择“应用并重新连接”。 |
+| 配对失效 | 重新打开 Android 连接页获取新码。连接中断或保存未确认时，先等待状态回读再操作。 |
 
-- Music plays in step with the iPhone again: on 0.2.20, pause, skip and track changes could come seconds late, and the speed could wobble.
-- Wired CarPlay recovers by itself when the iPhone never opens CarPlay, no longer waits forever after **Disconnect**, and keeps a connection that has already recovered.
-- DiPlay no longer closes when the microphone is used on head units without Android's own Opus encoder, and music comes back after a call or a short interruption.
-- Wireless CarPlay says why it cannot start; on BYD head units the dashboard is handed back to the car when CarPlay ends, and DiPlay no longer closes from the DiYou desktop card.
-- DiPlay installs on Android 7.0 and is available in Italian.
-- New options, off by default: temporary system bars, black rounded corners, a play/pause wheel key, double press for Siri, importing the car hotspot details, a home-screen bubble and the car's own music rhythm.
+反馈时注明 APK 版本、Android 主机型号与系统、Tesla 型号及固件、iPhone／iOS、网络方式、窗口和分辨率、问题发生时间，并提供菜单中的实际路线、帧率和回退原因。请先检查诊断内容，移除域名、热点密码、配对凭据和其他私人信息，再[提交问题](https://github.com/WangZhuo2015/DiPlay-tesla/issues)。
 
-See [0.2.21 release notes](docs/RELEASE-NOTES-0.2.21.md) and [validation](docs/VALIDATION.md) for contribution links and remaining physical tests. General stutter, calls/Siri, decoder and model-specific reports still need current-device evidence. [0.2.20 notes](docs/RELEASE-NOTES-0.2.20.md) remain available as historical guidance.
+## 当前限制
 
-If a problem remains, reproduce it on **0.2.21**, then use **Settings → Diagnostics → Save diagnostic report**. Android 10+ normally saves to **Downloads/DiPlay**; Android 7.0–9 asks for storage access and saves there too. If unavailable, use **View report** or **Share** from the confirmation, which identifies external/private fallback storage. Review the `.txt` and add it to a matching [existing issue](https://github.com/shihabal3amri/DiPlay/issues), or [create one](https://github.com/shihabal3amri/DiPlay/issues/new/choose). Include vehicle/head-unit model, exact firmware and Android/DiLink, phone/iOS, connection backend, relevant settings, steps and failure time. Reports are shared only when you choose; never post your hotspot password.
+- 通话、Siri 语音和麦克风仍由 Android 主机处理；网页不采集或回传麦克风。
+- 不保证所有 Tesla 固件、Android 主机和 iOS 组合均可用；持续高分辨率播放、发热和音视频延迟需要分别验证。
+- 0.1.12 测试版尚未完成 V50／Tesla 实车续测。操作设置与比较版本时请先停车。
+- 普通源码／CI 调试包默认不含独立连接所需的认证资源。覆盖更新需要相同包名和原发布签名；独立 debug 包不能覆盖正式版。
 
-## Documentation
+## 开发与版本
 
-[Existing Wi-Fi / Same LAN](docs/EXISTING_WIFI.md) keeps the iPhone and head unit
-on an external router. See the guide for setup, build requirements and the
-BYD DiLink 4.0 / Android 10 clean-install validation result.
+| 目录 | 职责 |
+| --- | --- |
+| `tesla` | Tesla 版 Android APK 与应用装配 |
+| `browser` | 网页、HTTP／WebSocket、WebRTC 和 JPEG 回退 |
+| `common`／`shared` | Android 界面、CarPlay 核心与连接能力 |
+| `proxy` | 可单独部署的网关，不承接核心 CarPlay 连接 |
 
-- [Install and connect](docs/INSTALL.md)
-- [Compatibility and troubleshooting](docs/COMPATIBILITY.md)
-- [Smooth wireless CarPlay](docs/SMOOTH_WIRELESS.md)
-- [Privacy and diagnostic reports](docs/PRIVACY.md)
-- [Build from source](docs/BUILD.md) — select `mobile` for the main DiPlay app; `maphost` is a map sample.
-- [Validation](docs/VALIDATION.md)
-- [Release notes](CHANGELOG.md)
-- [Credits and licenses](docs/THIRD_PARTY_NOTICES.md)
+Tesla 源码调试构建选择 `:tesla:assembleDebug`。独立连接构建需另行配置外部认证资源和 Android APK 签名，二者均不进入 Git。
 
-The app and the website source include English, Arabic, Russian, Ukrainian, Spanish, Simplified Chinese, Traditional Chinese (Taiwan), and Japanese. Traditional Chinese uses Taiwan wording; the app also recognizes Hong Kong/Macao and explicit Hant selections without claiming separate regional translations. Choose the app language in Settings; on Android 13+, it stays synchronized with Android’s per-app language setting. See the [Traditional Chinese guide](README.zh-TW.md) for installation, settings, troubleshooting, privacy and build instructions.
+[构建说明](docs/BUILD.md) · [Tesla 技术说明](docs/TESLA.md) · [0.1.12 测试版说明](docs/RELEASE-NOTES-TESLA-0.1.12.md) · [验证记录](docs/testing/tesla/README.md)
 
-## Source and credits
+## 来源与许可
 
-Based on [xcertplay](https://github.com/shilapi/xcertplay), GPL-3.0. The home/settings UI and website adapt [DiAuto](https://github.com/shihabal3amri/DiAuto), AGPL-3.0; that license is included in `docs/licenses`. Preserve those notices when distributing modifications. CarPlay and its icon belong to Apple Inc.; no Apple or BYD affiliation or endorsement is implied.
+本项目沿用 [DiPlay](https://github.com/shihabal3amri/DiPlay)／[xcertplay](https://github.com/shilapi/xcertplay) 的接收端代码；界面与网站的部分内容适配自 [DiAuto](https://github.com/shihabal3amri/DiAuto)。Tesla 传输与策略还参考了 tepla、DiPlay-CN、WheelPlay 等项目，具体范围与作者署名见[第三方声明](docs/THIRD_PARTY_NOTICES.md)。
 
-This repository starts with a clean public source snapshot. Local research, tester reports and release-signing secrets are excluded. The complete source corresponding to the APK is provided with every release; experimental runtime identity assets are described separately in the build instructions and notices.
-
-## Local release packaging
-
-Standalone builds explicitly select an authorized external asset directory and contain the experimental accessory identity. The public Tesla 0.1.0/0.1.1 APKs and source/CI builds omit it. The Git repository and source archive exclude all accessory and Android signing keys; tests generate synthetic identities at runtime.
+保留根目录 [LICENSE](LICENSE)（GPL-3.0）、相关 AGPL-3.0 组件许可及其他依赖声明。CarPlay 和相关图标属于 Apple；Tesla 商标属于其权利人。本项目不表示获得 Apple 或 Tesla 的认证、认可或合作关系。

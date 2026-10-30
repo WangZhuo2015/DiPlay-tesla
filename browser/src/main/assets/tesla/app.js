@@ -1,7 +1,8 @@
-import {createMedia} from './media.js';
+import {createMedia,presentJpegFrame} from './media.js';
 import {displayPreset} from './display-presets.js';
 import {createTouchSender} from './browser-touch.js';
-import {streamSummary} from './stream-summary.js';
+import {streamSummary,createJpegMetrics} from './stream-summary.js';
+import {createNavigationVolume} from './navigation-volume.js';
 import {createRtcRenderer} from './rtc-renderer.js';
 /* Local H.264/WebRTC with JPEG fallback; optional PCM playback is independent of video. */
 (() => {
@@ -10,6 +11,16 @@ import {createRtcRenderer} from './rtc-renderer.js';
   const language=(new URLSearchParams(location.search).get('lang')||navigator.language).toLowerCase();
   const zh=language.startsWith('zh'), ar=language.startsWith('ar');
   const copy = {
+    navigationVolume:['导航音量','Navigation volume'], navigationDown:['降低导航音量','Lower navigation volume'],navigationUp:['提高导航音量','Raise navigation volume'],
+    navigationHint:['只降低导航提示音，音乐音量不变。0 dB 为原始音量。立即生效，并与 Android 设置同步。','Lowers guidance only; music stays unchanged. 0 dB is the original level. Applies immediately and shares the Android setting.'],
+    navigationLoading:['连接后读取已保存音量','Read saved level when connected'],navigationSaving:['正在保存…','Saving…'],navigationSaved:['已保存 · 立即生效','Saved · Applies immediately'],
+    navigationConflict:['音量已在另一处更改，已读取最新值。请重新调整。','Changed elsewhere. The latest level is shown; adjust again.'],navigationFailed:['保存未确认，正在重新读取音量。','Save unconfirmed; reading the level again.'],navigationRecovered:['已重新读取当前音量，可继续调整。','Current level refreshed. You can adjust again.'],
+    actualTransport:['实际视频','Actual video'],waitingVideo:['等待视频','Waiting for video'],measured:['实测显示帧率','Measured video frame rate'],
+    jpegSelected:['已手动选择 JPEG；可在显示设置切回自动模式。','JPEG selected manually. Choose automatic mode in Display settings to try WebRTC.'],
+    rtcUnavailable:['浏览器没有提供 WebRTC，使用 JPEG。','WebRTC is unavailable in this browser; using JPEG.'],
+    rtcWaiting:['正在等待 WebRTC 视频；收到画面后显示实际路线。','Waiting for WebRTC video. The route appears once frames arrive.'],
+    rtcFallback:['WebRTC 暂不可用，使用 JPEG。','WebRTC unavailable; using JPEG.'],rtcRetry:['将自动重试 WebRTC。','WebRTC will retry automatically.'],rtcBlocked:['浏览器报告不支持此次视频连接；可检查固件和显示设置。','The browser reported an unsupported video connection. Check firmware and display settings.'],
+    reasonFirst:['首帧等待超时','First video frame timed out'],reasonConnection:['媒体连接失败','Media connection failed'],reasonDecoder:['解码未继续','Video decoding stalled'],reasonStats:['浏览器统计读取失败','Browser statistics unavailable'],reasonUnsupported:['浏览器拒绝视频格式','Browser rejected the video format'],reasonPlayback:['浏览器未能播放视频','Browser could not play the video'],reasonNegotiation:['视频协商失败','Video negotiation failed'],
     menu:['菜单','Menu'], close:['关闭','Close'], showKeys:['显示虚拟按键','Show virtual keys'], hideKeys:['隐藏按键','Hide keys'], diagnostics:['实时诊断','Live diagnostics'],
     fitWindow:['适配窗口（推荐）','Fit window (recommended)'], fitHint:['先在 Tesla 选好窗口，再点预设。只修改所选尺寸；两种窗口共用帧率。','Choose the window in Tesla first, then a preset. Only the selected size changes; both windows share frame rate.'],
     fitScale:['适配缩放','Fit scale'], scaleHalf:['1/2（推荐）','1/2 (recommended)'], scaleThreeQuarters:['3/4','3/4'], scaleFull:['1×','1×'], scaleHint:['缩放宽和高；1/2 的像素量为 1/4。小窗口最低保留 320×240，实际尺寸见下方。保存后下次连接生效。','Scales width and height; 1/2 uses one quarter of the pixels. Small windows stop at 320×240 minimum; see the actual size below. Save for the next connection.'],
@@ -40,6 +51,10 @@ import {createRtcRenderer} from './rtc-renderer.js';
     unavailable:['此浏览器不支持全屏，请使用 Tesla 的窗口控制。','Fullscreen is unavailable; use Tesla window controls.']
   };
   const arabic={
+    navigationVolume:'مستوى صوت الملاحة',navigationDown:'خفض صوت الملاحة',navigationUp:'رفع صوت الملاحة',navigationHint:'يخفض إرشادات الملاحة فقط دون تغيير الموسيقى. \u20660 dB\u2069 هو المستوى الأصلي. يُطبّق فورًا ويستخدم إعداد Android نفسه.',
+    navigationLoading:'ستُقرأ القيمة المحفوظة بعد الاتصال',navigationSaving:'جارٍ الحفظ…',navigationSaved:'تم الحفظ · يُطبّق فورًا',navigationConflict:'تغيّر المستوى في مكان آخر. تظهر أحدث قيمة؛ اضبطه مجددًا.',navigationFailed:'لم يُؤكّد الحفظ؛ تجري قراءة المستوى مجددًا.',navigationRecovered:'قُرئ المستوى الحالي؛ يمكنك ضبطه مجددًا.',
+    actualTransport:'الفيديو الفعلي',waitingVideo:'بانتظار الفيديو',measured:'معدل عرض الفيديو المقاس',jpegSelected:'اختير JPEG يدويًا. اختر الوضع التلقائي في إعدادات العرض لتجربة WebRTC.',rtcUnavailable:'WebRTC غير متاح في هذا المتصفح؛ يُستخدم JPEG.',rtcWaiting:'بانتظار فيديو WebRTC. يظهر المسار عند وصول الإطارات.',rtcFallback:'WebRTC غير متاح حاليًا؛ يُستخدم JPEG.',rtcRetry:'ستُعاد محاولة WebRTC تلقائيًا.',rtcBlocked:'أبلغ المتصفح عن اتصال فيديو غير مدعوم. تحقّق من البرنامج الثابت وإعدادات العرض.',
+    reasonFirst:'انتهت مهلة أول إطار',reasonConnection:'فشل اتصال الوسائط',reasonDecoder:'توقف فك ترميز الفيديو',reasonStats:'إحصاءات المتصفح غير متاحة',reasonUnsupported:'رفض المتصفح تنسيق الفيديو',reasonPlayback:'تعذّر تشغيل الفيديو',reasonNegotiation:'فشل تفاوض الفيديو',
     renderer:'طريقة عرض WebRTC',nativeRenderer:'الفيديو الأصلي (افتراضي)',canvasRenderer:'Canvas (تجريبي)',rendererHint:'قد يساعد Canvas في مشاكل عرض الفيديو في المتصفح ويزيد عمل الرسم. يُطبّق عند الحفظ دون إعادة اتصال CarPlay.',rendererFailed:'تعذّر الرسم على Canvas؛ استُعيد الفيديو الأصلي.',
     recovery:'مهلة استعادة WebRTC',quickRecovery:'4 ثوانٍ · انتقال سريع',balancedRecovery:'10 ثوانٍ · متوازن (افتراضي)',patientRecovery:'30 ثانية · انتظار الاستعادة',recoveryHint:'تُحفظ الصورة الأخيرة أثناء الانقطاع القصير، ثم ينتقل العرض إلى JPEG بعد المهلة. يعيد الحفظ اتصال وسائط المتصفح فقط؛ ولا يزيد تخزين الفيديو أو يعيد اتصال iPhone.',jpegLimit:'يتوفر 60 إطارًا في الثانية لـ WebRTC؛ تحويل JPEG محدود بـ 30 إطارًا. يسري معدل الإطارات المحفوظ عند اتصال CarPlay التالي.',
     recovering:'تجري استعادة الفيديو',videoQueue:'قائمة انتظار الفيديو المضغوط',queueBudget:'مهلة انتظار الفيديو',expiredFrames:'الإطارات المنتهية',overflowFrames:'الإطارات المتجاوزة للسعة',keyframeSkips:'الإطارات المتخطاة حتى الإطار الرئيسي',sendFailures:'إخفاقات الإرسال المحلي',fallbackReason:'سبب الانتقال إلى JPEG',
@@ -68,7 +83,8 @@ import {createRtcRenderer} from './rtc-renderer.js';
   const client = 'client-' + Array.from(crypto.getRandomValues(new Uint8Array(12)), x => x.toString(16).padStart(2,'0')).join('');
   const canvas = $('picture'), drawing = canvas.getContext('2d');
   const screen = $('screen'), video = $('video');
-  let videoMetrics = {}, rendererNotice = null;
+  let videoMetrics = {}, rendererNotice = null, videoTransport='jpeg';
+  const jpegMetrics=createJpegMetrics();
   const renderer = createRtcRenderer({video,canvas,onError:()=>{
     rendererNotice=t('rendererFailed');
     localStorage.setItem('diplay-rtc-renderer','native');$('renderer').value='native';
@@ -94,7 +110,10 @@ import {createRtcRenderer} from './rtc-renderer.js';
   $('keysButton').addEventListener('click',()=>{ showKeys($('virtualKeys').hidden); closeMenu(); });
   $('hideKeys').addEventListener('click',()=>{ showKeys(false); $('menuButton').focus(); });
   const media = createMedia({video,getToken:()=>token,
-    onTransport:mode=>{renderer.setActive(mode==='webrtc');releaseTouches();},
+    onTransport:mode=>{
+      if(mode!==videoTransport){jpegMetrics.reset();sequence=-1;}
+      videoTransport=mode;renderer.setActive(mode==='webrtc');releaseTouches();
+    },
     onStats:metrics=>{videoMetrics=metrics;},
     onAudio:state=>{const button=$('audioButton'),label=t(state.enabled?'audioOn':media.audioPreference.wanted?'audioPending':'browserAudio');if(button.textContent!==label)button.textContent=label;button.setAttribute('aria-pressed',String(state.enabled));}
   });
@@ -110,11 +129,39 @@ import {createRtcRenderer} from './rtc-renderer.js';
   document.addEventListener('pointerup',startPreferredAudio,true);
   document.addEventListener('keydown',event=>{if(!event.repeat)startPreferredAudio(event);},true);
   $('audioBuffer').addEventListener('change',()=>{localStorage.setItem('diplay-audio-buffer',$('audioBuffer').value);media.audio.setBuffer(Number($('audioBuffer').value));});
+  const navigationVolume=createNavigationVolume({
+    save:async body=>{
+      const response=await api('/api/navigation-volume',body,false,true);
+      const state=await response.json();
+      return {value:state.navigationAttenuationDb,conflict:response.status===409};
+    },
+    onState:state=>{
+      const level=$('navigationLevel');
+      if(state.value!==null)level.value=String(state.value);
+      level.disabled=!state.ready;
+      level.setAttribute('aria-busy',String(state.busy));
+      $('navigationDown').disabled=!state.ready || state.value<=-20;
+      $('navigationUp').disabled=!state.ready || state.value>=0;
+      $('navigationValue').textContent=state.value===null?'—':`${state.value} dB`;
+      level.setAttribute('aria-valuetext',state.value===null?t('unknown'):`${state.value} dB`);
+      const key=state.busy?'navigationSaving':state.issue==='conflict'?'navigationConflict':state.issue==='failed'?(state.ready?'navigationRecovered':'navigationFailed'):state.ready?'navigationSaved':'navigationLoading';
+      $('navigationState').textContent=t(key);
+      $('navigationState').dataset.issue=String(state.issue==='conflict' || state.issue==='failed' && !state.ready);
+    }
+  });
+  $('navigationDown').setAttribute('aria-label',t('navigationDown'));
+  $('navigationUp').setAttribute('aria-label',t('navigationUp'));
+  $('navigationLevel').addEventListener('input',()=>navigationVolume.set(Number($('navigationLevel').value)));
+  $('navigationDown').addEventListener('click',()=>navigationVolume.step(-1));
+  $('navigationUp').addEventListener('click',()=>navigationVolume.step(1));
+  navigationVolume.unavailable();
+  let requestedStatus=0,appliedStatus=0;
+  let statusAvailable=false;
   let current = null, sequence = -1, live = false, failures = 0, streamEpoch = 0;
   const fingers = new Map();
   const touchSender=createTouchSender({send:contacts=>api('/api/touch',{client,contacts}),onError:()=>fingers.clear()});
   const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-  async function api(path, body, keepalive = false) {
+  async function api(path, body, keepalive = false, allowConflict = false) {
     const requestToken = token;
     const abort = new AbortController();
     const timer = setTimeout(() => abort.abort(), 5000);
@@ -123,17 +170,25 @@ import {createRtcRenderer} from './rtc-renderer.js';
         headers:{ Authorization:'Bearer ' + requestToken, ...(body === undefined ? {} : {'Content-Type':'application/json'}) },
         body:body === undefined ? undefined : JSON.stringify(body), cache:'no-store', signal:abort.signal, keepalive });
       if (response.status === 401) {
-        if (requestToken === token) { live = false; media.close(); token=''; localStorage.removeItem('diplay-token'); sessionStorage.removeItem('diplay-token'); $('pairing').hidden = false; }
+        if (requestToken === token) {
+          live=false;statusAvailable=false;media.close();resetPicture();navigationVolume.unavailable();token='';
+          localStorage.removeItem('diplay-token');sessionStorage.removeItem('diplay-token');
+          closeMenu();$('displayPanel').hidden=true;$('reconnectPanel').hidden=true;$('pending').hidden=true;
+          $('pairing').hidden=false;$('token').focus();
+        }
         throw new Error(t('invalid'));
       }
-      if (!response.ok) throw new Error(t('invalid'));
+      if (!response.ok && !(allowConflict && response.status===409)) throw new Error(t('invalid'));
       return response;
     } finally { clearTimeout(timer); }
   }
-  function resetPicture() { drawing.clearRect(0,0,canvas.width,canvas.height); sequence = -1; }
+  function resetPicture() { drawing.clearRect(0,0,canvas.width,canvas.height); sequence = -1; jpegMetrics.reset(); }
   async function status() {
+    const request=++requestedStatus, readEpoch=navigationVolume.epoch;
     const state = await (await api('/api/status')).json();
-    current = state;
+    if(request<appliedStatus)return current;
+    appliedStatus=request;current = state;statusAvailable=true;
+    navigationVolume.observe(state.navigationAttenuationDb,readEpoch);
     $('status').textContent = state.error || rendererNotice || (videoMetrics.recovering ? t('recovering') : null) || state.stage || (state.connected ? 'CarPlay' : t('waiting'));
     $('pending').hidden = !state.pendingReconnect || !$('reconnectPanel').hidden;
     document.querySelectorAll('[data-action]').forEach(button => { button.disabled = !state.connected; });
@@ -143,20 +198,33 @@ import {createRtcRenderer} from './rtc-renderer.js';
   }
   function updateDiagnostics(state) {
     const audio=media.audio.stats();
-    const now=performance.now();
-    if(now-jpegSample>=1000){jpegFps=jpegCount*1000/(now-jpegSample);jpegCount=0;jpegSample=now;}
-    const fps=media.displayed ? videoMetrics.decodedFps : jpegFps;
-    const device=state.device, fresh=device && device.ageMs<=6000;
+    const jpeg=jpegMetrics.sample();
+    const connected=Boolean(statusAvailable && state.connected && token && !document.hidden);
+    const fps=connected?(media.displayed?videoMetrics.decodedFps:jpeg.fps):null;
+    const device=state.device, fresh=device && device.ageMs>=0 && device.ageMs<=6000;
     const unknown=t('unknown'), stale=t('stale'), rows=[];
     const add=(name,value)=>rows.push([name,String(value)]);
-    const width=media.displayed?video.videoWidth:sequence>=0?canvas.width:0;
-    const height=media.displayed?video.videoHeight:sequence>=0?canvas.height:0;
-    $('transportStatus').replaceChildren(...streamSummary({transport:media.displayed?'H.264 / WebRTC':'JPEG',width,height,fps,device},{stale:t('stale')}).flatMap((part,index)=>{
+    const width=connected?(media.displayed?video.videoWidth:jpeg.width):0;
+    const height=connected?(media.displayed?video.videoHeight:jpeg.height):0;
+    const route=connected && width>0?(media.displayed?'H.264 / WebRTC':'JPEG'):t('waitingVideo');
+    $('transportStatus').replaceChildren(...[t('actualTransport'),...streamSummary({transport:route,width,height,fps,device},{stale,unknown})].flatMap((part,index)=>{
       const span=document.createElement('span');span.dir=/^(?:H\.264|JPEG|SoC|\d)/.test(part)?'ltr':'auto';span.textContent=part;
       return index?[document.createTextNode(' · '),span]:[span];
     }));
+    const reason=videoMetrics.fallbackReason;
+    const reasonKeys={'first-frame-timeout':'reasonFirst','connection-failed':'reasonConnection','connection-timeout':'reasonConnection','disconnected-timeout':'reasonConnection','decoder-stall':'reasonDecoder','stats-timeout':'reasonStats','video-unsupported':'reasonUnsupported','playback-failed':'reasonPlayback','negotiation-failed':'reasonNegotiation','answer-rejected':'reasonNegotiation'};
+    let explanation='';
+    if(!connected)explanation=t(statusAvailable && token?'waiting':'disconnected');
+    else if(!media.displayed) {
+      if(media.mode==='jpeg')explanation=t('jpegSelected');
+      else if(typeof RTCPeerConnection!=='function')explanation=t('rtcUnavailable');
+      else if(reason)explanation=t(reasonKeys[reason]||'rtcFallback')+` (${reason}). `+t(videoMetrics.rtcRetryBlocked?'rtcBlocked':'rtcRetry');
+      else explanation=t('rtcWaiting');
+    }
+    $('videoExplanation').textContent=explanation;
+    $('videoExplanation').hidden=!explanation;
     add(t('resolution'),width && height?`${width} × ${height}`:unknown);
-    add(t('decoded'),media.displayed && Number.isFinite(fps)?fps.toFixed(1)+' fps':unknown);
+    add(t('measured'),Number.isFinite(fps) && fps>=0?fps.toFixed(1)+' fps':unknown);
     add(t('dropped'),videoMetrics.dropped??unknown);
     if(Number.isFinite(videoMetrics.queueFrames))add(t('videoQueue'),`${videoMetrics.queueFrames} / ${Math.round(videoMetrics.queueBytes/1024)} KiB`);
     if(Number.isFinite(videoMetrics.queueBudgetMs))add(t('queueBudget'),videoMetrics.queueBudgetMs+' ms');
@@ -176,7 +244,7 @@ import {createRtcRenderer} from './rtc-renderer.js';
     const list=$('diagnosticValues'); list.textContent='';
     for(const [name,value] of rows) {const term=document.createElement('dt'),detail=document.createElement('dd');term.textContent=name;detail.textContent=value;list.append(term,detail);}
   }
-  let jpegFps=null, jpegCount=0, jpegSample=performance.now();
+  setInterval(()=>{if(current)updateDiagnostics(current);},1000);
   async function stream() {
     if (live) return;
     live = true;
@@ -191,23 +259,12 @@ import {createRtcRenderer} from './rtc-renderer.js';
         if (media.displayed) { sequence=-1; await delay(100); continue; }
         const start = Date.now();
         const response = await api('/api/frame?after=' + sequence);
+        jpegMetrics.activity();
         if (response.status === 200) {
-          const blob = await response.blob();
-          let picture;
-          if (typeof createImageBitmap === 'function') picture = await createImageBitmap(blob);
-          else {
-            const url = URL.createObjectURL(blob);
-            try { picture = await new Promise((resolve,reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = reject; img.src = url; }); }
-            finally { URL.revokeObjectURL(url); }
-          }
-          // A JPEG request can finish after WebRTC takes over this same Canvas.
-          if(media.displayed || !live || epoch!==streamEpoch || document.hidden) { if(picture.close)picture.close(); continue; }
-          // Reassigning either dimension clears and reallocates the canvas backing store.
-          if (canvas.width !== picture.width) canvas.width = picture.width;
-          if (canvas.height !== picture.height) canvas.height = picture.height;
-          drawing.drawImage(picture,0,0);
-          jpegCount++;
-          if (picture.close) picture.close();
+          const shown = await presentJpegFrame({response,canvas,drawing,
+            isCurrent:()=>!media.displayed && live && epoch===streamEpoch && !document.hidden});
+          if (!shown) continue;
+          jpegMetrics.frame(canvas.width,canvas.height);
           sequence = Number(response.headers.get('X-Frame-Sequence'));
         }
         failures = 0;
@@ -215,7 +272,8 @@ import {createRtcRenderer} from './rtc-renderer.js';
         const fps = profile.jpegFps || Math.min(profile.fps,30);
         await delay(Math.max(15,1000/fps - (Date.now()-start)));
       } catch (error) {
-        resetPicture(); releaseTouches();
+        statusAvailable=false; resetPicture(); releaseTouches(); navigationVolume.unavailable();
+        if(current)updateDiagnostics({...current,connected:false});
         $('status').textContent = error.message || t('disconnected');
         $('pairError').textContent = error.message || t('disconnected');
         await delay(Math.min(5000,250 * 2 ** Math.min(++failures,5)));
@@ -262,8 +320,8 @@ import {createRtcRenderer} from './rtc-renderer.js';
   }));
   setInterval(()=>touchSender.heartbeat(Array.from(fingers.values())),50);
   window.addEventListener('blur',releaseTouches);
-  window.addEventListener('pagehide',() => { media.close(); fingers.clear(); if (token) api('/api/touch',{client,contacts:[]},true).catch(() => {}); });
-  document.addEventListener('visibilitychange',() => { if (document.hidden) {releaseTouches();media.close();} else media.open(); });
+  window.addEventListener('pagehide',() => { navigationVolume.unavailable(); media.close(); fingers.clear(); if (token) api('/api/touch',{client,contacts:[]},true).catch(() => {}); });
+  document.addEventListener('visibilitychange',() => { if (document.hidden) {releaseTouches();media.close();navigationVolume.unavailable();} else {media.open();status().catch(()=>navigationVolume.unavailable());} });
   document.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click',() => {
     releaseTouches(); api('/api/action',{action:button.dataset.action}).catch(error => { $('status').textContent = error.message; });
   }));

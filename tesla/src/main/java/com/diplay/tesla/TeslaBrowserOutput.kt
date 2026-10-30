@@ -21,6 +21,7 @@ import com.diplay.browser.rtc.BrowserVideoOutput
 import com.shilapi.xcertplay.AppLocale
 import com.shilapi.xcertplay.CarPlayOutput
 import com.shilapi.xcertplay.CarPlayOutputExtension
+import com.shilapi.xcertplay.NavigationAudioSettings
 import com.shilapi.xcertplay.airplay.AirPlayConfig
 import com.shilapi.xcertplay.airplay.AirPlayContact
 import com.shilapi.xcertplay.airplay.AirPlayDisplayConfig
@@ -126,7 +127,11 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
         this.display = display
         handler.post { CarPlayOutput.markReconnectNeeded() }
     }
+    override fun saveNavigationLevel(expectedDb: Int, db: Int): Boolean =
+        NavigationAudioSettings.compareAndSave(context, expectedDb, db)
+
     override fun status(): JSONObject = JSONObject()
+        .put("navigationAttenuationDb", NavigationAudioSettings.level(context))
         .put("connected", controller?.activeAirPlaySessionToken() != null)
         .put("stage", stage).put("error", serverError ?: error ?: JSONObject.NULL)
         .put("display", BrowserDisplayJson.encode(display))

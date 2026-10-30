@@ -32,6 +32,7 @@ class JpegVideoSinkInstrumentedTest {
             var count = 0
             val deadline = System.nanoTime()+20_000_000_000L
             while (frames.after(0) == null && System.nanoTime() < deadline) {
+                frames.request()
                 if (count < 40) {
                     val input = encoder.dequeueInputBuffer(10_000)
                     if (input >= 0) {

@@ -1,0 +1,114 @@
+{
+  "scope": "Production browser assets; synthetic HTTP and invalid RTC offer; real JPEG decoding. No Android, vehicle or working H.264 transport claim.",
+  "browser": "151.0.7922.34",
+  "fontScale": 1.3,
+  "checks": [
+    {
+      "scenario": "full-en",
+      "layout": {
+        "width": 1886,
+        "scroll": 1886,
+        "viewport": 1920,
+        "document": 1920,
+        "controls": [
+          {
+            "width": 48,
+            "height": 48
+          },
+          {
+            "width": 1692,
+            "height": 48
+          },
+          {
+            "width": 48,
+            "height": 48
+          }
+        ]
+      },
+      "rapidGestures": true,
+      "slider": true,
+      "externalChangeSync": true,
+      "conflictReadback": true,
+      "failedSaveRecovery": true,
+      "reloadPersistence": true,
+      "volumePreservesMedia": true,
+      "unavailableDistinctFromZero": true,
+      "actualDimensions": true,
+      "fallbackReasonVisible": true
+    },
+    {
+      "scenario": "compact-zh",
+      "layout": {
+        "width": 990,
+        "scroll": 990,
+        "viewport": 1024,
+        "document": 1024,
+        "controls": [
+          {
+            "width": 48,
+            "height": 48
+          },
+          {
+            "width": 796,
+            "height": 48
+          },
+          {
+            "width": 48,
+            "height": 48
+          }
+        ]
+      },
+      "rapidGestures": true,
+      "slider": true,
+      "externalChangeSync": true,
+      "conflictReadback": true,
+      "failedSaveRecovery": true,
+      "reloadPersistence": true,
+      "volumePreservesMedia": true,
+      "unavailableDistinctFromZero": true,
+      "actualDimensions": true,
+      "fallbackReasonVisible": true
+    },
+    {
+      "scenario": "narrow-ar",
+      "layout": {
+        "width": 342,
+        "scroll": 342,
+        "viewport": 360,
+        "document": 360,
+        "controls": [
+          {
+            "width": 48,
+            "height": 48
+          },
+          {
+            "width": 164,
+            "height": 48
+          },
+          {
+            "width": 48,
+            "height": 48
+          }
+        ]
+      },
+      "rapidGestures": true,
+      "slider": true,
+      "externalChangeSync": true,
+      "conflictReadback": true,
+      "failedSaveRecovery": true,
+      "reloadPersistence": true,
+      "volumePreservesMedia": true,
+      "unavailableDistinctFromZero": true,
+      "actualDimensions": true,
+      "fallbackReasonVisible": true
+    }
+  ],
+  "screenshots": [
+    "feedback-menu-full-en-font130.jpg",
+    "feedback-fallback-full-en-font130.jpg",
+    "feedback-menu-compact-zh-font130.jpg",
+    "feedback-menu-narrow-ar-font130.jpg"
+  ],
+  "reauthenticationRecovery": true,
+  "result": "passed"
+}

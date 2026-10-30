@@ -18,13 +18,19 @@ internal class RtcFrameQueue {
     var keyframeSkips = 0L; private set
     var invalidatedFrames = 0L; private set
 
-    fun offer(frame: ByteArray, nanos: Long, key: Boolean, now: Long, extraBytes: Int = 0): Boolean {
+    fun offer(frame: ByteArray, nanos: Long, key: Boolean, now: Long, extraBytes: Int = 0): Boolean =
+        offer(frame.size, nanos, key, now, extraBytes) { frame.copyOf() }
+
+    /** copyFrame runs only after admission, and must return bytes owned exclusively by this queue. */
+    fun offer(size: Int, nanos: Long, key: Boolean, now: Long, extraBytes: Int = 0,
+              copyFrame: () -> ByteArray): Boolean {
+        require(size >= 0)
         require(extraBytes >= 0)
         // A still screen's idle time is not active keyframe recovery time.
         if (lastOffered?.let { now - it >= SOURCE_QUIET_NS } == true) waitingSince = null
         lastOffered = now
         expire(now)
-        val cost = frame.size.toLong() + extraBytes
+        val cost = size.toLong() + extraBytes
         if (cost > MAX_BYTES) {
             overflowFrames += frames.size + 1L
             markSendFailure(now)
@@ -41,7 +47,7 @@ internal class RtcFrameQueue {
             keyframeSkips++
             return false
         }
-        frames.addLast(Frame(frame.copyOf(), nanos, now, key, cost.toInt()))
+        frames.addLast(Frame(copyFrame(), nanos, now, key, cost.toInt()))
         bytes += cost.toInt(); needsKey = false; waitingSince = null
         return true
     }
