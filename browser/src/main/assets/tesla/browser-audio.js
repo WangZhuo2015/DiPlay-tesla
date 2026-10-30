@@ -29,7 +29,7 @@ export function createAudioPreference({audio,storedValue=null,save=()=>{}}) {
 export function createBrowserAudio({send,onState=()=>{},createContext=()=>new (window.AudioContext||window.webkitAudioContext)({latencyHint:'playback'})}) {
   let context = null, enabled = false, generation = 0, bufferMs = 200;
   const streams = new Map(), nodes = new Set();
-  let underruns = 0;
+  let underruns = 0, publishedState = null;
   function stop(stream = null) {
     for (const node of [...nodes]) if (stream === null || node.stream === stream) {
       try { node.stop(); node.disconnect(); } catch (_) {}
@@ -37,7 +37,14 @@ export function createBrowserAudio({send,onState=()=>{},createContext=()=>new (w
     }
     if (stream === null) streams.clear(); else streams.delete(stream);
   }
-  function publish() { send({type:'audio-ready',playback:enabled && context && context.state === 'running'}); onState({enabled,bufferMs,underruns}); }
+  function notifyState() {
+    // PCM packets arrive much more often than the controls change. Keep transport
+    // acknowledgements at packet cadence without rewriting the audio UI each time.
+    if (publishedState && publishedState.enabled === enabled && publishedState.bufferMs === bufferMs && publishedState.underruns === underruns) return;
+    publishedState = {enabled,bufferMs,underruns};
+    onState({...publishedState});
+  }
+  function publish() { send({type:'audio-ready',playback:enabled && context && context.state === 'running'}); notifyState(); }
   function disable() { generation++; enabled = false; stop(); publish(); }
   async function enable() {
     const ticket = ++generation;
@@ -80,7 +87,7 @@ export function createBrowserAudio({send,onState=()=>{},createContext=()=>new (w
     node.connect(context.destination); nodes.add(node);
     node.onended = () => { nodes.delete(node); node.disconnect(); };
     node.start(stream.next); stream.next += duration; streams.set(frame.stream,stream);
-    onState({enabled,bufferMs,underruns}); return true;
+    notifyState(); return true;
   }
   return {enable,disable,receive,
     heartbeat:publish,

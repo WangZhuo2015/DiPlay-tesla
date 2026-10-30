@@ -8,12 +8,12 @@ function packet(stream,rate=48000,channels=2,frames=960) {
   new Int16Array(bytes,20).fill(16384);return bytes;
 }
 function fixture() {
-  const started=[],messages=[];
+  const started=[],messages=[],states=[];
   const context={state:'running',currentTime:0,resume:async()=>{},close:async()=>{},destination:{},
     createBuffer(channels,count,rate){const data=Array.from({length:channels},()=>new Float32Array(count));return{rate,getChannelData:i=>data[i]};},
     createBufferSource(){return{connect(){},disconnect(){},stop(){this.stopped=true;},start(time){this.time=time;started.push(this);}};}};
-  const audio=createBrowserAudio({createContext:()=>context,send:data=>messages.push(data)});
-  return{audio,context,started,messages};
+  const audio=createBrowserAudio({createContext:()=>context,send:data=>messages.push(data),onState:state=>states.push(state)});
+  return{audio,context,started,messages,states};
 }
 test('continuous PCM keeps original sample rate and bridges a 120ms scheduling pause',async()=>{
   const{audio,context,started}=fixture();await audio.enable();
@@ -68,4 +68,32 @@ test('a gesture can unlock default audio while the first autoplay resume is pend
   assert.equal(audio.enabled,false);assert.ok(!messages.some(item=>item.playback));
   assert.equal(await preference.start(),true);assert.equal(await autoplay,false);
   assert.equal(audio.enabled,true);assert.equal(messages.at(-1).playback,true);audio.close();
+});
+
+test('continuous audio acknowledges every packet without publishing unchanged controls',async()=>{
+  const{audio,context,started,messages,states}=fixture();await audio.enable();
+  for(let i=0;i<50;i++) {
+    context.currentTime=i*.02;
+    audio.receive(packet(1));
+    // Simulate played nodes ending so the fixture retains only scheduled audio.
+    if(i>=12)started[i-12].onended();
+  }
+  audio.heartbeat();audio.heartbeat();
+  assert.equal(started.length,50);
+  assert.equal(messages.filter(message=>message.type==='audio-ack').length,50);
+  assert.equal(messages.filter(message=>message.type==='audio-ready' && message.playback).length,3);
+  assert.deepEqual(states,[{enabled:true,bufferMs:200,underruns:0}]);
+  context.currentTime=2;audio.receive(packet(1));
+  assert.deepEqual(states.at(-1),{enabled:true,bufferMs:200,underruns:1});assert.equal(states.length,2);
+  audio.setBuffer(400);assert.deepEqual(states.at(-1),{enabled:true,bufferMs:400,underruns:1});
+  audio.disable();assert.deepEqual(states.at(-1),{enabled:false,bufferMs:400,underruns:1});
+  const count=states.length;audio.heartbeat();audio.disable();assert.equal(states.length,count);
+  await audio.enable();assert.equal(states.length,count+1);assert.equal(states.at(-1).enabled,true);
+  audio.close();
+});
+
+test('caller changes to a reported state do not invalidate change detection',async()=>{
+  const{audio,states}=fixture();await audio.enable();
+  states[0].enabled=false;audio.heartbeat();assert.equal(states.length,1);
+  audio.disable();assert.equal(states.length,2);audio.close();
 });

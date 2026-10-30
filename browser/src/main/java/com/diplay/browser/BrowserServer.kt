@@ -110,6 +110,7 @@ class BrowserServer(
                 "/api/status" -> if (session.method == Method.GET) json(target.status()) else reply(Response.Status.METHOD_NOT_ALLOWED)
                 "/api/frame" -> {
                     if (session.method != Method.GET) return reply(Response.Status.METHOD_NOT_ALLOWED)
+                    frames.request()
                     val sequence = session.parameters["after"]?.firstOrNull()?.toLongOrNull() ?: -1
                     val frame = frames.after(sequence) ?: return reply(Response.Status.NO_CONTENT)
                     decorate(newFixedLengthResponse(Response.Status.OK, "image/jpeg", ByteArrayInputStream(frame.jpeg), frame.jpeg.size.toLong()))

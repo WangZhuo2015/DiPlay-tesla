@@ -7,9 +7,10 @@ export function createRtcRenderer({
   video, canvas, onError = () => {}, onFrame = () => {},
   requestFrame = callback => requestAnimationFrame(callback),
   cancelFrame = id => cancelAnimationFrame(id), now = () => performance.now(),
+  schedule = (callback, delay) => setTimeout(callback, delay), cancelScheduled = id => clearTimeout(id),
 }) {
   let mode = 'native', active = false, disposed = false, generation = 0;
-  let source = null, context = null, presented = false, videoCallback = null, animationCallback = null;
+  let source = null, context = null, presented = false, videoCallback = null, animationCallback = null, watchdog = null;
   let lastFrameKey = null, lastVideoCallbackAt = 0, usesVideoCallbacks = false;
 
   function cancel() {
@@ -20,7 +21,10 @@ export function createRtcRenderer({
     if (animationCallback !== null) {
       try { cancelFrame(animationCallback); } catch (_) { /* Late callbacks are fenced below. */ }
     }
-    videoCallback = animationCallback = null;
+    if (watchdog !== null) {
+      try { cancelScheduled(watchdog); } catch (_) { /* Late callbacks are fenced below. */ }
+    }
+    videoCallback = animationCallback = watchdog = null;
     context = null;
     presented = false;
     lastFrameKey = null;
@@ -92,8 +96,15 @@ export function createRtcRenderer({
         if (!current()) return;
         videoCallback = null;
         lastVideoCallbackAt = now();
+        if (animationCallback !== null) {
+          try { cancelFrame(animationCallback); } catch (_) { /* The callback identity is fenced below. */ }
+          animationCallback = null;
+        }
         draw(metadata);
-        if (current()) scheduleVideo();
+        if (current()) {
+          scheduleVideo();
+          scheduleRefresh();
+        }
       };
       const scheduleVideo = () => {
         if (!usesVideoCallbacks) return;
@@ -102,19 +113,44 @@ export function createRtcRenderer({
       };
       const refresh = () => {
         if (!current()) return;
-        animationCallback = null;
         // Some embedded compositors stop video callbacks while decoding continues.
         // Use media time once they stall: their presented-frame counter can freeze too.
         if (!usesVideoCallbacks) draw();
         else if (now() - lastVideoCallbackAt >= 250) draw(null, true);
-        if (current()) {
-          try { animationCallback = requestFrame(refresh); } catch (error) { fail(error); }
-        }
+        if (current()) scheduleRefresh();
+      };
+      const scheduleRefresh = () => {
+        if (!current()) return;
+        try {
+          const remaining = 250 - (now() - lastVideoCallbackAt);
+          if (usesVideoCallbacks && remaining > 0) {
+            // Healthy frame callbacks already provide presentation pacing. Check their
+            // deadline without waking JavaScript at the display's refresh rate as well.
+            if (watchdog === null) {
+              const id = schedule(() => {
+                if (!current() || watchdog !== id) return;
+                watchdog = null;
+                refresh();
+              }, remaining);
+              watchdog = id;
+            }
+          } else {
+            if (watchdog !== null) { cancelScheduled(watchdog); watchdog = null; }
+            if (animationCallback === null) {
+              const id = requestFrame(() => {
+                if (!current() || animationCallback !== id) return;
+                animationCallback = null;
+                refresh();
+              });
+              animationCallback = id;
+            }
+          }
+        } catch (error) { fail(error); }
       };
       draw();
       if (!current()) return;
       scheduleVideo();
-      animationCallback = requestFrame(refresh);
+      scheduleRefresh();
     } catch (error) { if (current()) fail(error); }
   }
 

@@ -4,6 +4,36 @@ import {createRtcHealth} from './rtc-health.js';
 // NotAllowedError is a current playback/activation restriction, not permanent codec absence.
 const retryableRtcError = error => error?.name !== 'NotSupportedError';
 
+async function decodeJpeg(blob) {
+  if (typeof createImageBitmap === 'function') return createImageBitmap(blob);
+  const url = URL.createObjectURL(blob);
+  try {
+    return await new Promise((resolve,reject) => {
+      const image = new Image(); image.onload = () => resolve(image); image.onerror = reject; image.src = url;
+    });
+  } finally { URL.revokeObjectURL(url); }
+}
+
+// An in-flight fallback request can outlive page visibility or WebRTC takeover.
+// Check ownership before each expensive stage and always release decoded bitmaps.
+export async function presentJpegFrame({response,canvas,drawing,isCurrent,decode = decodeJpeg}) {
+  if (!isCurrent()) {
+    try { await response.body?.cancel(); } catch (_) { /* The response may already be closed. */ }
+    return false;
+  }
+  const blob = await response.blob();
+  if (!isCurrent()) return false;
+  const picture = await decode(blob);
+  try {
+    if (!isCurrent()) return false;
+    // Reassigning dimensions clears and reallocates the Canvas backing store.
+    if (canvas.width !== picture.width) canvas.width = picture.width;
+    if (canvas.height !== picture.height) canvas.height = picture.height;
+    drawing.drawImage(picture,0,0);
+    return true;
+  } finally { picture.close?.(); }
+}
+
 // Recovery waiting follows WheelPlay's 4/10/30-second policy; media queues stay bounded separately.
 export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},onStats=()=>{}}) {
   const recoveryKey = 'diplay-rtc-recovery-ms';

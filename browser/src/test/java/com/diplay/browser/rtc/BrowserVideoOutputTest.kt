@@ -17,6 +17,25 @@ import java.util.concurrent.atomic.AtomicLong
 
 @RunWith(RobolectricTestRunner::class) @Config(sdk=[29])
 class BrowserVideoOutputTest {
+    @Test fun avccFramesKeepOneOwnedAnnexBPayloadAndOnlyIdrCarriesParameters() {
+        Fixture(4_000).use { fixture ->
+            val idr = byteArrayOf(0, 0, 0, 2, 0x09, 0x10, 0, 0, 0, 3, 0x65, 0x20, 0x30)
+            val predictive = byteArrayOf(0, 0, 0, 2, 0x41, 0x40)
+            fixture.withWorkerPaused {
+                fixture.output.onVideoFrame(110, idr)
+                fixture.output.onVideoFrame(110, predictive)
+                idr.fill(0); predictive.fill(0)
+            }
+            val key = fixture.peer.frames.poll(2, TimeUnit.SECONDS)!!
+            val next = fixture.peer.frames.poll(2, TimeUnit.SECONDS)!!
+            assertArrayEquals(
+                byteArrayOf(0, 0, 0, 1, 0x67, 0x42, 0, 0x1f, 0, 0, 0, 1, 0x68, 0,
+                    0, 0, 0, 1, 0x09, 0x10, 0, 0, 0, 1, 0x65, 0x20, 0x30), key)
+            assertArrayEquals(byteArrayOf(0, 0, 0, 1, 0x41, 0x40), next)
+            assertEquals(0, fixture.jpegFrames.get())
+        }
+    }
+
     @Test fun aSendFailureThatRecoversBetweenHealthTicksStillInterruptsTheHealthyMinute() {
         Fixture(4_000).use { fixture ->
             fixture.peer.event("failed", ""); fixture.message("rtc-stop")

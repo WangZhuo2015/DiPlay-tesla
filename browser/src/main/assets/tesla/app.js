@@ -1,4 +1,4 @@
-import {createMedia} from './media.js';
+import {createMedia,presentJpegFrame} from './media.js';
 import {displayPreset} from './display-presets.js';
 import {createTouchSender} from './browser-touch.js';
 import {streamSummary} from './stream-summary.js';
@@ -192,22 +192,10 @@ import {createRtcRenderer} from './rtc-renderer.js';
         const start = Date.now();
         const response = await api('/api/frame?after=' + sequence);
         if (response.status === 200) {
-          const blob = await response.blob();
-          let picture;
-          if (typeof createImageBitmap === 'function') picture = await createImageBitmap(blob);
-          else {
-            const url = URL.createObjectURL(blob);
-            try { picture = await new Promise((resolve,reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = reject; img.src = url; }); }
-            finally { URL.revokeObjectURL(url); }
-          }
-          // A JPEG request can finish after WebRTC takes over this same Canvas.
-          if(media.displayed || !live || epoch!==streamEpoch || document.hidden) { if(picture.close)picture.close(); continue; }
-          // Reassigning either dimension clears and reallocates the canvas backing store.
-          if (canvas.width !== picture.width) canvas.width = picture.width;
-          if (canvas.height !== picture.height) canvas.height = picture.height;
-          drawing.drawImage(picture,0,0);
+          const shown = await presentJpegFrame({response,canvas,drawing,
+            isCurrent:()=>!media.displayed && live && epoch===streamEpoch && !document.hidden});
+          if (!shown) continue;
           jpegCount++;
-          if (picture.close) picture.close();
           sequence = Number(response.headers.get('X-Frame-Sequence'));
         }
         failures = 0;
