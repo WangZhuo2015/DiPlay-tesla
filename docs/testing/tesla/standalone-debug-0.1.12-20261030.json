@@ -1,0 +1,70 @@
+{
+  "source_commit": "ed62af2a5aac2dc40c0aeb996046a2bc498370f2",
+  "version_name": "0.1.12",
+  "version_code": 13,
+  "application_id": "com.diplay.tesla.debug",
+  "build_type": "standaloneDebug",
+  "gradle_result": "BUILD SUCCESSFUL in 51s",
+  "workers": 1,
+  "nice": 10,
+  "unit_tests": [
+    {
+      "module": "tesla",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "execution": "executed"
+    },
+    {
+      "module": "browser",
+      "tests": 82,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "execution": "UP-TO-DATE; existing unchanged-source result"
+    }
+  ],
+  "lint": [
+    {
+      "module": "tesla",
+      "Warning": 17
+    },
+    {
+      "module": "browser",
+      "Warning": 10
+    }
+  ],
+  "node_tests": {
+    "tests": 92,
+    "passed": 92,
+    "failed": 0,
+    "skipped": 0
+  },
+  "artifact": "DiPlay-TeslaDebug-0.1.12.apk",
+  "bytes": 46361711,
+  "sha256": "ff0d1b3f6a15fc72794636cbdc287a097238481c7dd86a10a588fcdbc19ea011",
+  "signature_verified": true,
+  "signing_certificate_sha256": "5bffae46bb8603ff0b4ef34ca9d963234a61daf24e5548e2c2d83547039278c2",
+  "authentication_source": "DiPlay Tesla release 0.1.10",
+  "authentication_bytes_match": true,
+  "only_selected_authentication_entries": true,
+  "signing_keystore_bundled": false,
+  "rtc_libraries": [
+    "lib/arm64-v8a/libdiplay-rtc.so",
+    "lib/armeabi-v7a/libdiplay-rtc.so",
+    "lib/x86_64/libdiplay-rtc.so"
+  ],
+  "can_update_original_release": false,
+  "physical_device_validation": false,
+  "prior_full_gate": {
+    "source_commit": "d5ecfac202b55da13886512e7b65f9008e825bc7",
+    "tests": 3645,
+    "passed": 3641,
+    "failed": 3,
+    "skipped": 1,
+    "errors": 0,
+    "result": "failed; unchanged host dual-stack network cases"
+  },
+  "disk_free_gib": 19.09
+}

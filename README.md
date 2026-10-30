@@ -2,9 +2,9 @@
 
 让 Tesla 浏览器使用 CarPlay 的 Android 接收端。Android 主机连接 iPhone，Tesla 在同一网络打开网页，显示 CarPlay 画面并接收触控、音乐和导航提示音。
 
-[下载 0.1.10 完整连接版](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10) · **[中文使用指南](docs/TESLA-QUICKSTART.zh-CN.md)** · [English guide](docs/TESLA-QUICKSTART.md) · [问题反馈](https://github.com/WangZhuo2015/DiPlay-tesla/issues)
+[下载 0.1.12 独立测试版](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.12) · [下载 0.1.10 原完整连接版](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10) · **[中文使用指南](docs/TESLA-QUICKSTART.zh-CN.md)** · [English guide](docs/TESLA-QUICKSTART.md) · [问题反馈](https://github.com/WangZhuo2015/DiPlay-tesla/issues)
 
-> 当前公开下载仍为 **0.1.10**。本分支在准备 **0.1.12**：导航音量、视频状态和性能调整均属于尚未发布的候选源码，不能把下面的介绍当作旧 APK 已有的功能或新版本的实车验证。
+> **0.1.12 是独立测试版**，包名为 `com.diplay.tesla.debug`，已配置原 0.1.10 认证资源。可与原正式包并存，**不能覆盖升级或继承原正式包数据**；原发布签名仍不可用，不建议作为生产稳定版。导航音量、视频状态和性能调整尚未完成新一轮实车验证。[测试版范围与已知限制](docs/RELEASE-NOTES-TESLA-0.1.12.md)
 
 ## 需要什么
 
@@ -49,14 +49,14 @@ APK 自身提供 HTTP 服务；HTTPS 需要单独部署。可参考[Android 本�
 | 右侧／全屏 | 两份尺寸独立保存。尺寸和请求帧率在下次 CarPlay 连接生效，需要立即使用时明确选择“应用并重新连接”。 |
 | 视频传输 | 默认优先 H.264 WebRTC；失败时回退 JPEG。JPEG 画质只影响回退画面，调高画质或分辨率会增加负载。 |
 | 浏览器音频 | 用于音乐和导航提示，默认开启并记住手动关闭状态。音频缓冲可选 80／200／400 ms。 |
-| 导航音量（0.1.12 候选） | 网页提供滑块和 ± 按钮，范围 −20～0 dB；0 dB 保留原音量，只降低导航提示，音乐音量不变。与 Android 设置共用保存值，立即生效。 |
-| 实际视频状态（0.1.12 候选） | 菜单直接显示实际路线、收到的尺寸、实测帧率及回退原因。统计不可用显示“未知”；静止画面可以实测为 0 fps。 |
+| 导航音量（0.1.12 测试版） | 网页提供滑块和 ± 按钮，范围 −20～0 dB；0 dB 保留原音量，只降低导航提示，音乐音量不变。与 Android 设置共用保存值，立即生效。 |
+| 实际视频状态（0.1.12 测试版） | 菜单直接显示实际路线、收到的尺寸、实测帧率及回退原因。统计不可用显示“未知”；静止画面可以实测为 0 fps。 |
 
 [显示预设与屏幕说明](docs/TESLA-DISPLAY-PRESETS.md) · [连接和媒体边界](docs/TESLA.zh-CN.md)
 
 ![导航音量与实际视频状态界面示例，内容来自合成测试](docs/testing/tesla/browser-feedback-20261030/feedback-menu-compact-zh-font130.jpg)
 
-0.1.12 候选还整合了有界 JPEG 工作、缓冲复用、按浏览器需求启停转换、RTC 排队路径和可选 Canvas 显示的性能调整。它们旨在减少不必要的工作；已有主机基准不代表车机帧率、温度或延迟已经改善。[性能说明与实测计划](docs/browser-performance.md)
+0.1.12 测试版还整合了有界 JPEG 工作、缓冲复用、按浏览器需求启停转换、RTC 排队路径和可选 Canvas 显示的性能调整。它们旨在减少不必要的工作；已有主机基准不代表车机帧率、温度或延迟已经改善。[性能说明与实测计划](docs/browser-performance.md)
 
 ## 故障排查
 
@@ -65,7 +65,7 @@ APK 自身提供 HTTP 服务；HTTPS 需要单独部署。可参考[Android 本�
 | 车机打不开入口 | 车机与主机的网络是否可达，以及当前 Tesla 固件的内网访问限制。按上面的入口指南检查网关、DNS 和证书。 |
 | 一直显示 JPEG／画面较慢 | 视频传输是否选了“自动”；记录实际分辨率、fps 和回退原因。WebRTC 还需要浏览器能直达 Android 的媒体通路，HTTP／HTTPS 网关并不转发该 UDP 通路。 |
 | 没声音 | 点一下页面解锁自动播放，检查浏览器音频开关及主机音频。缓冲增加会增加延迟。 |
-| 导航太响 | 0.1.12 候选可调“导航音量”；车上的总音量按钮仍可能同时改变网页音乐与导航音量。 |
+| 导航太响 | 0.1.12 测试版可调“导航音量”；车上的总音量按钮仍可能同时改变网页音乐与导航音量。 |
 | 保存尺寸后没变化 | 查看是否提示等待下次连接；准备好后选择“应用并重新连接”。 |
 | 配对失效 | 重新打开 Android 连接页获取新码。连接中断或保存未确认时，先等待状态回读再操作。 |
 
@@ -75,7 +75,7 @@ APK 自身提供 HTTP 服务；HTTPS 需要单独部署。可参考[Android 本�
 
 - 通话、Siri 语音和麦克风仍由 Android 主机处理；网页不采集或回传麦克风。
 - 不保证所有 Tesla 固件、Android 主机和 iOS 组合均可用；持续高分辨率播放、发热和音视频延迟需要分别验证。
-- 新候选版本尚未完成 V50／Tesla 实车续测。操作设置与比较版本时请先停车。
+- 0.1.12 测试版尚未完成 V50／Tesla 实车续测。操作设置与比较版本时请先停车。
 - 普通源码／CI 调试包默认不含独立连接所需的认证资源。覆盖更新需要相同包名和原发布签名；独立 debug 包不能覆盖正式版。
 
 ## 开发与版本
@@ -89,7 +89,7 @@ APK 自身提供 HTTP 服务；HTTPS 需要单独部署。可参考[Android 本�
 
 Tesla 源码调试构建选择 `:tesla:assembleDebug`。独立连接构建需显式提供有权使用的外部认证资源；Android APK 发布签名另行配置，不进入 Git。
 
-[构建说明](docs/BUILD.md) · [Tesla 技术说明](docs/TESLA.md) · [0.1.12 候选说明](docs/RELEASE-NOTES-TESLA-0.1.12.md) · [验证记录](docs/testing/tesla/README.md)
+[构建说明](docs/BUILD.md) · [Tesla 技术说明](docs/TESLA.md) · [0.1.12 测试版说明](docs/RELEASE-NOTES-TESLA-0.1.12.md) · [验证记录](docs/testing/tesla/README.md)
 
 ## 来源与许可
 

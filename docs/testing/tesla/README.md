@@ -1,5 +1,31 @@
 # Tesla port verification
 
+## 0.1.12 standalone debug prerelease — 2026-10-30
+
+A provisioned **0.1.12 / versionCode 13** APK was built from exactly
+`ed62af2a5aac2dc40c0aeb996046a2bc498370f2`, using the existing debug signing key
+and the previously selected Tesla 0.1.10 external authentication input. It is
+`com.diplay.tesla.debug`: a separate test application that cannot update or inherit
+data from the original release. No new signing key was generated.
+
+The single-worker, low-priority standalone build and selected tests/lint completed
+with `BUILD SUCCESSFUL in 51s`. Tesla tests passed **12/12**; browser **82/82**
+results for unchanged source were reused as `UP-TO-DATE`. Tesla/browser lint had
+zero errors/fatal issues and 27 warnings (17/10). The Node suite was freshly run:
+**92 passed, zero failed/skipped**. Package/version, APK signature, existing signer
+fingerprint, three RTC ABIs and the exact two authentication entries were verified.
+Authentication bytes match the original selected 0.1.10 APK; no additional private
+key/certificate or signing-keystore container is bundled.
+
+The APK is **46,361,711 bytes**, SHA-256
+`ff0d1b3f6a15fc72794636cbdc287a097238481c7dd86a10a588fcdbc19ea011`.
+[Machine-readable artifact verification](standalone-debug-0.1.12-20261030.json)
+contains public metadata only. The release tag additionally includes documentation
+updates; product code is unchanged from the recorded build source. The earlier full
+Android gate below remains failed (three host dual-stack cases and one skip); it
+was not rerun or disabled. No physical-device, ADB or GUI validation was performed.
+[Download and limitations](../../RELEASE-NOTES-TESLA-0.1.12.md).
+
 ## Version preparation — 0.1.12 / versionCode 13 — 2026-10-30
 
 The user selected **0.1.12**. Remote release/tag checks still show the published
