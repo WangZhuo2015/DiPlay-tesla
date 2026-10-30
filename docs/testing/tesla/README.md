@@ -13,18 +13,48 @@ an additional assertion that navigation controls do not renew JPEG demand. The b
 encoder/queue implementation remains unchanged from PR #5; no extra frame copy was added.
 
 Lightweight integrated validation: **92/92 Node browser/proxy tests passed**, all browser
-JavaScript syntax checks passed, and public-source/diff checks passed. Android gates for
-this combination are **not yet run**: large compilation and ADB are deferred while real
-audio connection testing on the same Mac takes priority. Earlier results below belong
-to their exact recorded commits and must not be transferred to this integration.
+JavaScript syntax checks passed, and public-source/diff checks passed.
+
+The full Android task list was then run at exactly
+`d5ecfac202b55da13886512e7b65f9008e825bc7`, after other Gradle builds were idle, using
+one worker, `nice=10` and `--continue`. Gradle completed all requested phases in
+**13m 14s** and returned failure for the two unit-test tasks containing the three
+unchanged host-network failures documented below. No tests were disabled.
+
+| Unit-test module | Tests | Passed | Failed | Skipped |
+| --- | ---: | ---: | ---: | ---: |
+| shared | 1,798 | 1,795 | 2 | 1 |
+| common | 1,739 | 1,738 | 1 | 0 |
+| home | 14 | 14 | 0 | 0 |
+| browser | 82 | 82 | 0 | 0 |
+| tesla | 12 | 12 | 0 | 0 |
+| Total | **3,645** | **3,641** | **3** | **1** |
+
+There were zero test errors. All five debug lint targets completed with **zero
+errors/fatal issues and 56 warnings**. All four source-only debug APKs built and
+passed APK signature verification; none contains `offline-mfi` authentication
+assets or signing-keystore containers. The Tesla APK includes the native RTC library
+for **arm64-v8a, armeabi-v7a and x86_64**. Its identity is `com.diplay.tesla.debug`,
+version **0.1.11 / versionCode 12**, SHA-256
+`1f91d077e4f7a044a29b9b7dd73ebb520fe6658aa75155345a030be5b3d4204d`.
+It is a source-validation artifact without provisioned standalone authentication,
+and its debug signature cannot update the original release. The complete Android
+gate remains **not green** on this Mac. No product-code repair was needed.
+
+[Machine-readable integrated Android result](release-integration-20261030.json)
+records module totals, failures, lint and APK hashes. Gradle/test/native processes
+were confirmed exited after verification; approximately **20.97 GiB** remained free.
+No ADB, emulator, GUI capture, cache deletion or additional tool installation was used.
+Earlier validation records below remain scoped to their own exact commits.
 
 The latest checked PR #5 [CI run 41044572300](https://github.com/WangZhuo2015/DiPlay-tesla/actions/runs/41044572300)
 is successful for exactly `b4493e63`; PR #5 is still open. No GitHub approval, merge,
 push or Release was performed by this preparation task.
 
-The existing private debug APK is from `9904b44c` and does not contain PR #5. No final
-integrated APK or upgrade-compatible release has been produced. Release signing still
-requires the original keystore; the provisioned authentication input is separate.
+The existing authenticated private debug APK is from `9904b44c` and does not contain
+PR #5. The new integrated source-only APK is not a final standalone or upgrade-compatible
+release. Release signing still requires the original keystore; the provisioned
+authentication input is separate. No new authenticated integration APK was generated.
 
 The Chinese-first README draft removes the appended older BYD/general-app promotion
 while retaining current identifiers and required license/author notices. Any new brand

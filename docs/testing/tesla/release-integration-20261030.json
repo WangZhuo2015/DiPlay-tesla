@@ -1,0 +1,203 @@
+{
+  "source_commit": "d5ecfac202b55da13886512e7b65f9008e825bc7",
+  "date": "2026-10-30",
+  "overall_gate": "failed",
+  "gradle_result": "BUILD FAILED in 13m 14s",
+  "workers": 1,
+  "nice": 10,
+  "continue_after_failure": true,
+  "tools": {
+    "jdk": "Temurin 25.0.5+8 arm64",
+    "gradle": "9.5.0",
+    "android_platform": "37.0 r2",
+    "build_tools": "36.0.0",
+    "ndk": "28.2.13676358",
+    "cmake": "3.22.1"
+  },
+  "unit_test_totals": {
+    "tests": 3645,
+    "failures": 3,
+    "errors": 0,
+    "skipped": 1,
+    "passed": 3641
+  },
+  "unit_tests": [
+    {
+      "module": "shared",
+      "tests": 1798,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 1,
+      "passed": 1795,
+      "failures_detail": [
+        {
+          "suite": "com.shilapi.xcertplay.network.AirPlayDualListenerTest",
+          "test": "acceptsBothFamiliesOnTheSamePort",
+          "kind": "failure",
+          "message": "java.net.SocketTimeoutException: Accept timed out"
+        },
+        {
+          "suite": "com.shilapi.xcertplay.network.AirPlayTcpAcceptTest",
+          "test": "bothAddressFamiliesReportOwnerAndOldCleanupPreservesNewListener",
+          "kind": "failure",
+          "message": "java.lang.NullPointerException"
+        }
+      ],
+      "skipped_detail": [
+        {
+          "suite": "com.shilapi.xcertplay.network.AirPlayPortSelectorTest",
+          "test": "fallsBackWhenAnotherListenerOwnsTheWildcardPort",
+          "kind": "skipped",
+          "message": "org.junit.AssumptionViolatedException: Host allows wildcard and specific-address listeners to overlap"
+        }
+      ]
+    },
+    {
+      "module": "common",
+      "tests": 1739,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 1738,
+      "failures_detail": [
+        {
+          "suite": "com.shilapi.xcertplay.CarPlayBonjourDualStackTest",
+          "test": "dualLanThenSingleP2pThenDualLanServesAirPlayInfo",
+          "kind": "failure",
+          "message": "java.lang.AssertionError: expected:<HTTP/1.1 200 OK> but was:<null>"
+        }
+      ],
+      "skipped_detail": []
+    },
+    {
+      "module": "samples/home",
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 14,
+      "failures_detail": [],
+      "skipped_detail": []
+    },
+    {
+      "module": "browser",
+      "tests": 82,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 82,
+      "failures_detail": [],
+      "skipped_detail": []
+    },
+    {
+      "module": "tesla",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 12,
+      "failures_detail": [],
+      "skipped_detail": []
+    }
+  ],
+  "lint": [
+    {
+      "module": "mobile",
+      "Fatal": 0,
+      "Error": 0,
+      "Warning": 18,
+      "Information": 0
+    },
+    {
+      "module": "samples/home",
+      "Fatal": 0,
+      "Error": 0,
+      "Warning": 9,
+      "Information": 0
+    },
+    {
+      "module": "samples/maphost",
+      "Fatal": 0,
+      "Error": 0,
+      "Warning": 2,
+      "Information": 0
+    },
+    {
+      "module": "browser",
+      "Fatal": 0,
+      "Error": 0,
+      "Warning": 10,
+      "Information": 0
+    },
+    {
+      "module": "tesla",
+      "Fatal": 0,
+      "Error": 0,
+      "Warning": 17,
+      "Information": 0
+    }
+  ],
+  "artifacts": [
+    {
+      "module": "mobile",
+      "path": "mobile/build/outputs/apk/debug/mobile-debug.apk",
+      "bytes": 24922414,
+      "sha256": "a4a2abb78cb8b9b0d5cbb32d0b0d7ac9cde0e6e0be0299c81ba5e728849d2c8f",
+      "package": "package: name='com.shihab.diplay.hudtest' versionCode='40' versionName='0.2.21-hud-test' platformBuildVersionName='17' platformBuildVersionCode='37' compileSdkVersion='37' compileSdkVersionCodename='17'",
+      "authentication_assets": false,
+      "signature_verified": true,
+      "signing_certificate_sha256": [
+        "5bffae46bb8603ff0b4ef34ca9d963234a61daf24e5548e2c2d83547039278c2"
+      ],
+      "rtc_libraries": []
+    },
+    {
+      "module": "samples/home",
+      "path": "samples/home/build/outputs/apk/debug/home-debug.apk",
+      "bytes": 5481101,
+      "sha256": "e6e313cead719e3c1abe95450cf93714073f972418df7b0fcff543e46e440856",
+      "package": "package: name='com.diplay.home' versionCode='1' versionName='0.1' platformBuildVersionName='17' platformBuildVersionCode='37' compileSdkVersion='37' compileSdkVersionCodename='17'",
+      "authentication_assets": false,
+      "signature_verified": true,
+      "signing_certificate_sha256": [
+        "5bffae46bb8603ff0b4ef34ca9d963234a61daf24e5548e2c2d83547039278c2"
+      ],
+      "rtc_libraries": []
+    },
+    {
+      "module": "samples/maphost",
+      "path": "samples/maphost/build/outputs/apk/debug/maphost-debug.apk",
+      "bytes": 2540090,
+      "sha256": "d5580aed463c2932e785a9ee16dbe5b1b0b312a0535941ab98f1fcdb90c3c0af",
+      "package": "package: name='com.diplay.maphost' versionCode='1' versionName='1.0' platformBuildVersionName='17' platformBuildVersionCode='37' compileSdkVersion='37' compileSdkVersionCodename='17'",
+      "authentication_assets": false,
+      "signature_verified": true,
+      "signing_certificate_sha256": [
+        "5bffae46bb8603ff0b4ef34ca9d963234a61daf24e5548e2c2d83547039278c2"
+      ],
+      "rtc_libraries": []
+    },
+    {
+      "module": "tesla",
+      "path": "tesla/build/outputs/apk/debug/tesla-debug.apk",
+      "bytes": 46360906,
+      "sha256": "1f91d077e4f7a044a29b9b7dd73ebb520fe6658aa75155345a030be5b3d4204d",
+      "package": "package: name='com.diplay.tesla.debug' versionCode='12' versionName='0.1.11' platformBuildVersionName='17' platformBuildVersionCode='37' compileSdkVersion='37' compileSdkVersionCodename='17'",
+      "authentication_assets": false,
+      "signature_verified": true,
+      "signing_certificate_sha256": [
+        "5bffae46bb8603ff0b4ef34ca9d963234a61daf24e5548e2c2d83547039278c2"
+      ],
+      "rtc_libraries": [
+        "lib/arm64-v8a/libdiplay-rtc.so",
+        "lib/armeabi-v7a/libdiplay-rtc.so",
+        "lib/x86_64/libdiplay-rtc.so"
+      ]
+    }
+  ],
+  "authentication_assets": false,
+  "original_release_signing_key_available": false,
+  "device_validation": false,
+  "active_build_processes_after_verification": false,
+  "disk_free_gib_after_verification": 20.97
+}
