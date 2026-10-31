@@ -9,9 +9,10 @@ function deferred() {
   const promise = new Promise((yes,no) => { resolve=yes; reject=no; });
   return {promise,resolve,reject};
 }
-function fixture({grace=4000,storedGrace=String(grace),storageBlocked=false,onTransport=()=>{}}={}) {
+function fixture({grace=4000,storedGrace=String(grace),storageBlocked=false,savedVolumes={},onTransport=()=>{}}={}) {
   const original = new Map(), timers = new Map(), sockets = [], peers = [], behaviors = [], snapshots = [], transports = [];
   const storage = new Map([['diplay-browser-audio','false'],['diplay-rtc-recovery-ms',storedGrace]]);
+  for(const [role,value] of Object.entries(savedVolumes))storage.set('diplay-'+role+'-volume',value);
   let clock=0, timerId=0;
   function install(name,value) {
     original.set(name,Object.getOwnPropertyDescriptor(globalThis,name));
@@ -57,6 +58,7 @@ function fixture({grace=4000,storedGrace=String(grace),storageBlocked=false,onTr
   };
   class AudioContext {
     constructor() { this.state='running';this.currentTime=0; }
+    createGain() { return {gain:{value:1,cancelAndHoldAtTime(){},linearRampToValueAtTime(value){this.value=value;}},connect(){},disconnect(){}}; }
     resume() { return Promise.resolve(); }
     close() { this.state='closed';return Promise.resolve(); }
   }
@@ -406,5 +408,28 @@ test('closing or hiding the page while JPEG is waiting cannot create browser-own
     assert.equal(f.sockets.length,1);assert.equal(f.peers.length,1);assert.equal(f.media.displayed,false);
     document.hidden=false;f.media.open();f.sockets.at(-1).open();
     await f.ready(3);assert.equal(f.media.displayed,true);
+  } finally { await f.dispose(); }
+});
+
+test('browser volumes load independently, persist normalized values and never restart media',async()=>{
+  const f=fixture({savedVolumes:{music:'35',navigation:'invalid'}});
+  try {
+    assert.deepEqual(f.media.audio.volumes,{music:35,navigation:100});
+    assert.equal(f.media.setAudioVolume('music',0),0);assert.equal(f.storage.get('diplay-music-volume'),'0');
+    assert.equal(f.media.setAudioVolume('navigation',75),75);assert.equal(f.storage.get('diplay-navigation-volume'),'75');
+    assert.equal(f.media.setAudioVolume('other',50),null);
+    assert.equal(f.sockets.length,1);assert.equal(f.sockets[0].closeCalls,0);assert.equal(f.messages('hello').length,1);
+    f.media.close();f.media.open();f.sockets.at(-1).open();
+    assert.deepEqual(f.media.audio.volumes,{music:0,navigation:75});
+  } finally { await f.dispose(); }
+});
+
+test('blocked storage keeps default volumes and live adjustments for the page lifetime',async()=>{
+  const f=fixture({storageBlocked:true,savedVolumes:{music:'15'}});
+  try {
+    assert.deepEqual(f.media.audio.volumes,{music:100,navigation:100});
+    assert.equal(f.media.setAudioVolume('music',45),45);
+    assert.deepEqual(f.media.audio.volumes,{music:45,navigation:100});
+    assert.equal(f.sockets.length,1);
   } finally { await f.dispose(); }
 });

@@ -64,6 +64,7 @@ function installFixture({cjk}) {
   localStorage.setItem('diplay-video','auto');
   localStorage.setItem('diplay-rtc-renderer','native');
   localStorage.setItem('diplay-rtc-recovery-ms','10000');
+  // Do not seed/reset the volume keys: fresh contexts test defaults, reloads test persistence.
   addEventListener('DOMContentLoaded',()=>{
     document.body.style.fontSize='20.8px';
     if(cjk) {
@@ -162,14 +163,116 @@ async function assertLayout(page) {
 async function capture(page,name) {
   await page.screenshot({path:resolve(output,name),type:'jpeg',quality:85});report.screenshots.push(name);
 }
+async function openVolumeMenu(page) {
+  await page.locator('#menuButton').focus();await page.keyboard.press('Enter');
+  await page.locator('#menuPanel').waitFor({state:'visible'});
+  assert.equal(await page.locator('#menuButton').getAttribute('aria-expanded'),'true');
+  assert.equal(await page.evaluate(()=>document.activeElement.id),'closeMenu');
+}
+async function assertVolumeLayout(page,lang) {
+  const layout=await page.evaluate(()=>{
+    const panel=document.querySelector('#menuPanel .panel'),box=panel.getBoundingClientRect();
+    const controls=[...panel.querySelectorAll('.audioVolume label,.audioVolume output,.audioVolume input')].map(node=>{
+      const rect=node.getBoundingClientRect();
+      return {id:node.id || node.htmlFor,left:rect.left,right:rect.right,width:rect.width};
+    });
+    return {viewport:innerWidth,document:document.documentElement.scrollWidth,panel:panel.clientWidth,
+      scroll:panel.scrollWidth,left:box.left,right:box.right,font:parseFloat(getComputedStyle(document.body).fontSize),
+      direction:document.documentElement.dir,deviceScaleFactor:devicePixelRatio,controls};
+  });
+  assert.ok(layout.document<=layout.viewport,JSON.stringify(layout));
+  assert.ok(layout.scroll<=layout.panel+1,JSON.stringify(layout));
+  assert.ok(layout.left>=0 && layout.right<=layout.viewport,JSON.stringify(layout));
+  assert.ok(layout.controls.every(control=>control.width>0 && control.left>=layout.left && control.right<=layout.right),JSON.stringify(layout));
+  assert.equal(layout.font,20.8);assert.equal(layout.direction,lang==='ar'?'rtl':'ltr');
+  return layout;
+}
+async function verifyVolumes(page,scenario) {
+  const baseline={hellos:await page.evaluate(()=>window.__uiFixture.hellos.length),actions:actions.length};
+  const expected={music:100,navigation:100},stored={music:null,navigation:null},steps=[];
+  async function checkState(stage) {
+    const state=await page.evaluate(()=>Object.fromEntries(['music','navigation'].map(role=>{
+      const slider=document.getElementById(role+'Volume'),output=document.getElementById(role+'VolumeValue');
+      return [role,{value:slider.value,output:output.value,text:output.textContent,
+        aria:slider.getAttribute('aria-valuetext'),stored:localStorage.getItem('diplay-'+role+'-volume')}];
+    })));
+    for(const role of ['music','navigation'])assert.deepEqual(state[role],{
+      value:String(expected[role]),output:expected[role]+'%',text:expected[role]+'%',
+      aria:expected[role]+'%',stored:stored[role]
+    },stage+': '+role);
+    assert.equal(await page.evaluate(()=>window.__uiFixture.hellos.length),baseline.hellos,stage+': volume must not restart media');
+    assert.equal(actions.length,baseline.actions,stage+': volume must not send a CarPlay action');
+    steps.push({stage,...state});
+  }
+  await openVolumeMenu(page);
+  await checkState('fresh defaults');
+  const layout=await assertVolumeLayout(page,scenario.lang);
+  assert.equal(layout.deviceScaleFactor,scenario.deviceScaleFactor || 1);
+  // Reach both sliders through the real menu tab order, not just programmatic focus.
+  for(let index=0;index<20 && await page.evaluate(()=>document.activeElement.id)!=='musicVolume';index++)await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(()=>document.activeElement.id),'musicVolume');
+  await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(()=>document.activeElement.id),'navigationVolume');
+  await page.keyboard.press('Shift+Tab');
+  assert.equal(await page.evaluate(()=>document.activeElement.id),'musicVolume');
+  for(const role of ['music','navigation']) {
+    const slider=page.locator('#'+role+'Volume');
+    const attributes=await slider.evaluate(node=>({type:node.type,min:node.min,max:node.max,step:node.step,
+      disabled:node.disabled,tabIndex:node.tabIndex,label:node.labels?.[0]?.textContent.trim(),
+      output:document.getElementById(node.id+'Value').getAttribute('for')}));
+    assert.deepEqual({type:attributes.type,min:attributes.min,max:attributes.max,step:attributes.step},
+      {type:'range',min:'0',max:'100',step:'1'});
+    assert.ok(!attributes.disabled && attributes.tabIndex>=0 && attributes.label,role+': accessible slider');
+    assert.equal(attributes.output,role+'Volume');
+    await slider.scrollIntoViewIfNeeded();
+    assert.equal(await slider.evaluate(node=>{
+      const box=node.getBoundingClientRect(),panel=node.closest('.panel').getBoundingClientRect();
+      return box.top>=panel.top && box.bottom<=panel.bottom &&
+        document.elementFromPoint(box.left+box.width/2,box.top+box.height/2)===node;
+    }),true,role+': visible and unobstructed inside menu panel');
+    await slider.click();
+    assert.equal(await page.evaluate(()=>document.activeElement.id),role+'Volume');
+    // Keep focus on the slider: each assertion observes live input, before change/blur.
+    const keys=[['Home',0],['ArrowRight',1],['End',100],['ArrowRight',100],
+      ['Home',0],['ArrowLeft',0],['End',100],...(role==='music'?[['ArrowLeft',99]]:[['Home',0],['ArrowRight',1]])];
+    for(const [key,value] of keys) {
+      await page.keyboard.press(key);expected[role]=value;stored[role]=String(value);
+      assert.equal(await page.evaluate(()=>document.activeElement.id),role+'Volume');
+      await checkState(role+' '+key+' → '+value);
+    }
+  }
+  await page.locator('.audioVolumes').scrollIntoViewIfNeeded();
+  await capture(page,`browser-volume-menu-${scenario.name}-font130.jpg`);
+  await page.keyboard.press('Escape');
+  await page.locator('#menuPanel').waitFor({state:'hidden'});
+  assert.equal(await page.evaluate(()=>document.activeElement.id),'menuButton');
+  await checkState('menu closed');
+  await page.reload();
+  await page.evaluate(()=>document.fonts.ready);
+  await page.waitForFunction(()=>{const video=document.getElementById('video');return !video.hidden && video.videoWidth===960 && window.__uiFixture.codec;});
+  // A reload starts one new connection; slider changes must not add another hello.
+  assert.equal(await page.evaluate(()=>window.__uiFixture.hellos.length),1);
+  assert.equal(actions.length,baseline.actions,'Reload must not send a CarPlay action');
+  baseline.hellos=1;
+  await openVolumeMenu(page);
+  await checkState('persisted after reload');
+  const reloadedLayout=await assertVolumeLayout(page,scenario.lang);
+  await page.locator('.audioVolumes').scrollIntoViewIfNeeded();
+  await capture(page,`browser-volume-menu-${scenario.name}-reloaded-font130.jpg`);
+  await page.keyboard.press('Escape');
+  await page.locator('#menuPanel').waitFor({state:'hidden'});
+  return {layout,reloadedLayout,steps,defaults:true,independentControls:true,liveKeyboardInput:true,
+    pointerAccessible:true,tabAccessible:true,persistedAfterReload:true,volumeKeepsMedia:true,noCarPlayActions:true};
+}
 try {
   const cases=[{name:'full-en',width:1920,height:1080,lang:'en'},
-    {name:'compact-zh',width:1024,height:768,lang:'zh-CN'},
+    {name:'compact-zh',width:1024,height:768,lang:'zh-CN',deviceScaleFactor:2},
     {name:'narrow-ar',width:360,height:740,lang:'ar'}];
   for(const scenario of cases) {
     console.log('Checking',scenario.name);
     display=initialDisplay();activeDisplay=initialDisplay();touches=[];saves=[];actions=[];lateFrames=0;
-    const context=await browser.newContext({viewport:{width:scenario.width,height:scenario.height},locale:scenario.lang});
+    const context=await browser.newContext({viewport:{width:scenario.width,height:scenario.height},locale:scenario.lang,
+      deviceScaleFactor:scenario.deviceScaleFactor || 1});
     await context.addInitScript(installFixture,{cjk:Boolean(cjkFont)});
     const page=await context.newPage();page.setDefaultTimeout(15000);
     const errors=[];page.on('pageerror',error=>{errors.push(String(error));console.error('Browser error:',String(error));});
@@ -184,6 +287,8 @@ try {
     }
     assert.equal(await page.locator('#picture').isVisible(),false);
     console.log('Native video received');
+    const volumes=await verifyVolumes(page,scenario);
+    console.log('Volume controls, menu layout and reload persistence checked');
     await openSettings(page);
     await page.locator('#renderer').selectOption('canvas');
     await page.locator('#recovery').selectOption('4000');
@@ -223,13 +328,13 @@ try {
     assert.equal(await page.locator('#picture').isVisible(),false);
     assert.equal(await page.evaluate(()=>window.__uiFixture.hellos.length),2,'Renderer-only save must not restart media');
     assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>window.__uiFixture.errors),[]);
-    report.checks.push({scenario:scenario.name,layout,codec:await page.evaluate(()=>window.__uiFixture.codec),
+    report.checks.push({scenario:scenario.name,layout,volumes,codec:await page.evaluate(()=>window.__uiFixture.codec),
       nativeToCanvasToNative:true,canvasTouch:true,lateJpegIgnored:true,frameRateSavedForNextConnection:true,recoveryHello:true,
       rendererOnlyKeepsMedia:true,focusTrap:true});
     await context.close();
   }
   report.result='passed';
-  await writeFile(resolve(output,'wheelplay-browser-verification.json'),JSON.stringify(report,null,2)+'\n');
+  await writeFile(resolve(output,'browser-volume-verification.json'),JSON.stringify(report,null,2)+'\n');
   console.log(JSON.stringify(report,null,2));
 } finally {
   await browser.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));

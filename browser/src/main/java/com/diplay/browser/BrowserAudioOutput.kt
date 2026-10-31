@@ -32,8 +32,13 @@ class BrowserAudioOutput(private val clock: () -> Long = System::nanoTime) : Rem
         if (offset < 0 || length <= 0 || length > 65516 || offset > pcm.size - length || length % (format.channels * 2) != 0) return false
         val stream = streams.getOrPut(id) { nextStream++ }
         val number = sequence++ and 0xffff_ffffL
-        val packet = ByteBuffer.allocate(20 + length).order(ByteOrder.LITTLE_ENDIAN)
-            .putInt(0x31415057).putInt(stream).putInt(format.sampleRate).putShort(format.channels.toShort()).putShort(0)
+        val role = when (format.audioType) {
+            "media" -> ROLE_MUSIC
+            "default", "alert", "compatibility" -> ROLE_GUIDANCE
+            else -> ROLE_LEGACY_UNKNOWN
+        }
+        val packet = ByteBuffer.allocate(HEADER_BYTES + length).order(ByteOrder.LITTLE_ENDIAN)
+            .putInt(0x31415057).putInt(stream).putInt(format.sampleRate).putShort(format.channels.toShort()).putShort(role.toShort())
             .putInt(number.toInt()).put(pcm, offset, length).array()
         // send is a bounded, nonblocking queue operation, never a socket write.
         if (send?.invoke(packet, number) == true) true else { readyAt = 0; false }
@@ -43,6 +48,15 @@ class BrowserAudioOutput(private val clock: () -> Long = System::nanoTime) : Rem
         Unit
     }
     companion object {
+        // WPA1 keeps its 20-byte LE header: magic u32, stream u32, rate u32,
+        // channels u16, role u16 (offset 14), sequence u32; unchanged PCM follows.
+        // The formerly reserved role is 0 for legacy/unknown, 1 for music, 2 for guidance.
+        // Legacy readers may ignore it; new readers must accept 0 from older senders.
+        // Stream IDs identify lifetimes only, never roles. Calls/Siri stay outside the allowlist.
+        private const val HEADER_BYTES = 20
+        private const val ROLE_LEGACY_UNKNOWN = 0
+        private const val ROLE_MUSIC = 1
+        private const val ROLE_GUIDANCE = 2
         private const val LEASE_NS = 2_500_000_000L
         private val PLAYBACK_TYPES = setOf("media", "default", "alert", "compatibility")
     }

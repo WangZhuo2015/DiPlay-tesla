@@ -32,7 +32,7 @@
       <p data-i18n="audio">网页音频用于音乐与导航；通话、Siri 语音和麦克风目前由 Android 主机处理。</p>
     </div>
     <section class="navigationVolume" aria-labelledby="navigationTitle">
-      <div class="navigationHeading"><label id="navigationTitle" for="navigationLevel" data-i18n="navigationVolume">导航音量</label><output id="navigationValue" for="navigationLevel" dir="ltr">—</output></div>
+      <div class="navigationHeading"><label id="navigationTitle" for="navigationLevel" data-i18n="hostNavigationVolume">主机导航音量</label><output id="navigationValue" for="navigationLevel" dir="ltr">—</output></div>
       <div class="navigationControls">
         <button id="navigationDown" type="button" disabled aria-label="降低导航音量">−</button>
         <input id="navigationLevel" type="range" min="-20" max="0" step="1" value="0" disabled aria-describedby="navigationHint navigationState">
@@ -41,6 +41,17 @@
       <p id="navigationHint" data-i18n="navigationHint">只降低导航提示音，音乐音量不变。0 dB 为原始音量。立即生效，并与 Android 设置同步。</p>
       <p id="navigationState" role="status" aria-live="polite"></p>
     </section>
+    <div class="audioVolumes" role="group" aria-describedby="volumeHint">
+      <div class="audioVolume">
+        <label for="musicVolume" data-i18n="musicVolume">浏览器音乐音量</label><output id="musicVolumeValue" for="musicVolume" dir="ltr">100%</output>
+        <input id="musicVolume" type="range" min="0" max="100" step="1" value="100" aria-describedby="volumeHint">
+      </div>
+      <div class="audioVolume">
+        <label for="navigationVolume" data-i18n="navigationVolume">浏览器导航音量</label><output id="navigationVolumeValue" for="navigationVolume" dir="ltr">100%</output>
+        <input id="navigationVolume" type="range" min="0" max="100" step="1" value="100" aria-describedby="volumeHint">
+      </div>
+    </div>
+    <p id="volumeHint" data-i18n="volumeHint">仅调低此浏览器内对应声音，立即生效并记住，无需重连。100% 不额外衰减，0% 静音；导航音量在主机导航音量的基础上进一步降低，不会自动压低音乐。旧版主机未标记的音频不受影响。</p>
     <details id="diagnostics"><summary data-i18n="diagnostics">实时诊断</summary><dl id="diagnosticValues"></dl></details>
     <p><a href="/rtc-licenses.txt">Licenses</a></p>
   </div>

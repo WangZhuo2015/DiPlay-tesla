@@ -11,7 +11,7 @@ import {createRtcRenderer} from './rtc-renderer.js';
   const language=(new URLSearchParams(location.search).get('lang')||navigator.language).toLowerCase();
   const zh=language.startsWith('zh'), ar=language.startsWith('ar');
   const copy = {
-    navigationVolume:['导航音量','Navigation volume'], navigationDown:['降低导航音量','Lower navigation volume'],navigationUp:['提高导航音量','Raise navigation volume'],
+    hostNavigationVolume:['主机导航音量','Host navigation volume'], navigationDown:['降低导航音量','Lower navigation volume'],navigationUp:['提高导航音量','Raise navigation volume'],
     navigationHint:['只降低导航提示音，音乐音量不变。0 dB 为原始音量。立即生效，并与 Android 设置同步。','Lowers guidance only; music stays unchanged. 0 dB is the original level. Applies immediately and shares the Android setting.'],
     navigationLoading:['连接后读取已保存音量','Read saved level when connected'],navigationSaving:['正在保存…','Saving…'],navigationSaved:['已保存 · 立即生效','Saved · Applies immediately'],
     navigationConflict:['音量已在另一处更改，已读取最新值。请重新调整。','Changed elsewhere. The latest level is shown; adjust again.'],navigationFailed:['保存未确认，正在重新读取音量。','Save unconfirmed; reading the level again.'],navigationRecovered:['已重新读取当前音量，可继续调整。','Current level refreshed. You can adjust again.'],
@@ -32,6 +32,8 @@ import {createRtcRenderer} from './rtc-renderer.js';
     audio:['网页音频用于音乐与导航；通话、Siri 语音和麦克风目前由 Android 主机处理。','Browser audio plays music and navigation; calls, Siri voice and the microphone currently use the Android host.'],
     browserAudio:['浏览器音频（实验性）','Browser audio (experimental)'], audioOn:['浏览器音频已开启（实验性）','Browser audio enabled (experimental)'],audioPending:['浏览器音频 · 点按启动（实验性）','Browser audio · Tap to start (experimental)'],
     buffer:['音频缓冲','Audio buffer'], transport:['视频传输','Video transport'], auto:['自动 WebRTC / JPEG','Automatic WebRTC / JPEG'],
+    musicVolume:['浏览器音乐音量','Browser music volume'],navigationVolume:['浏览器导航音量','Browser navigation volume'],
+    volumeHint:['仅调低此浏览器内对应声音，立即生效并记住，无需重连。100% 不额外衰减，0% 静音；导航音量在主机导航音量的基础上进一步降低，不会自动压低音乐。旧版主机未标记的音频不受影响。','Lowers each audio channel in this browser immediately and remembers it; no reconnect needed. 100% adds no attenuation; 0% mutes. Browser navigation volume further lowers the host navigation level. No automatic music ducking. Untagged audio from older hosts is unchanged.'],
     audioBlocked:['请再次点按允许声音；已恢复 Android 音频。','Tap again to allow sound; Android playback restored.'],
     displayHint:['右侧与全屏尺寸独立保存，下次连接生效。','Right and full sizes are saved independently for the next connection.'],
     transportHint:['视频传输在保存后立即切换。','Video transport switches immediately after saving.'],
@@ -51,10 +53,11 @@ import {createRtcRenderer} from './rtc-renderer.js';
     unavailable:['此浏览器不支持全屏，请使用 Tesla 的窗口控制。','Fullscreen is unavailable; use Tesla window controls.']
   };
   const arabic={
-    navigationVolume:'مستوى صوت الملاحة',navigationDown:'خفض صوت الملاحة',navigationUp:'رفع صوت الملاحة',navigationHint:'يخفض إرشادات الملاحة فقط دون تغيير الموسيقى. \u20660 dB\u2069 هو المستوى الأصلي. يُطبّق فورًا ويستخدم إعداد Android نفسه.',
+    hostNavigationVolume:'مستوى صوت الملاحة على المضيف',navigationDown:'خفض صوت الملاحة',navigationUp:'رفع صوت الملاحة',navigationHint:'يخفض إرشادات الملاحة فقط دون تغيير الموسيقى. \u20660 dB\u2069 هو المستوى الأصلي. يُطبّق فورًا ويستخدم إعداد Android نفسه.',
     navigationLoading:'ستُقرأ القيمة المحفوظة بعد الاتصال',navigationSaving:'جارٍ الحفظ…',navigationSaved:'تم الحفظ · يُطبّق فورًا',navigationConflict:'تغيّر المستوى في مكان آخر. تظهر أحدث قيمة؛ اضبطه مجددًا.',navigationFailed:'لم يُؤكّد الحفظ؛ تجري قراءة المستوى مجددًا.',navigationRecovered:'قُرئ المستوى الحالي؛ يمكنك ضبطه مجددًا.',
     actualTransport:'الفيديو الفعلي',waitingVideo:'بانتظار الفيديو',measured:'معدل عرض الفيديو المقاس',jpegSelected:'اختير JPEG يدويًا. اختر الوضع التلقائي في إعدادات العرض لتجربة WebRTC.',rtcUnavailable:'WebRTC غير متاح في هذا المتصفح؛ يُستخدم JPEG.',rtcWaiting:'بانتظار فيديو WebRTC. يظهر المسار عند وصول الإطارات.',rtcFallback:'WebRTC غير متاح حاليًا؛ يُستخدم JPEG.',rtcRetry:'ستُعاد محاولة WebRTC تلقائيًا.',rtcBlocked:'أبلغ المتصفح عن اتصال فيديو غير مدعوم. تحقّق من البرنامج الثابت وإعدادات العرض.',
     reasonFirst:'انتهت مهلة أول إطار',reasonConnection:'فشل اتصال الوسائط',reasonDecoder:'توقف فك ترميز الفيديو',reasonStats:'إحصاءات المتصفح غير متاحة',reasonUnsupported:'رفض المتصفح تنسيق الفيديو',reasonPlayback:'تعذّر تشغيل الفيديو',reasonNegotiation:'فشل تفاوض الفيديو',
+    musicVolume:'مستوى صوت الموسيقى في المتصفح',navigationVolume:'مستوى صوت الملاحة في المتصفح',volumeHint:'يخفض كل قناة صوت في هذا المتصفح فورًا ويتذكرها دون إعادة اتصال. 100% دون خفض إضافي و0% كتم. يخفض صوت الملاحة في المتصفح مستوى الملاحة الوارد من المضيف أكثر. لا تُخفض الموسيقى تلقائيًا. لا يتغير الصوت غير المصنّف من الأجهزة المضيفة القديمة.',
     renderer:'طريقة عرض WebRTC',nativeRenderer:'الفيديو الأصلي (افتراضي)',canvasRenderer:'Canvas (تجريبي)',rendererHint:'قد يساعد Canvas في مشاكل عرض الفيديو في المتصفح ويزيد عمل الرسم. يُطبّق عند الحفظ دون إعادة اتصال CarPlay.',rendererFailed:'تعذّر الرسم على Canvas؛ استُعيد الفيديو الأصلي.',
     recovery:'مهلة استعادة WebRTC',quickRecovery:'4 ثوانٍ · انتقال سريع',balancedRecovery:'10 ثوانٍ · متوازن (افتراضي)',patientRecovery:'30 ثانية · انتظار الاستعادة',recoveryHint:'تُحفظ الصورة الأخيرة أثناء الانقطاع القصير، ثم ينتقل العرض إلى JPEG بعد المهلة. يعيد الحفظ اتصال وسائط المتصفح فقط؛ ولا يزيد تخزين الفيديو أو يعيد اتصال iPhone.',jpegLimit:'يتوفر 60 إطارًا في الثانية لـ WebRTC؛ تحويل JPEG محدود بـ 30 إطارًا. يسري معدل الإطارات المحفوظ عند اتصال CarPlay التالي.',
     recovering:'تجري استعادة الفيديو',videoQueue:'قائمة انتظار الفيديو المضغوط',queueBudget:'مهلة انتظار الفيديو',expiredFrames:'الإطارات المنتهية',overflowFrames:'الإطارات المتجاوزة للسعة',keyframeSkips:'الإطارات المتخطاة حتى الإطار الرئيسي',sendFailures:'إخفاقات الإرسال المحلي',fallbackReason:'سبب الانتقال إلى JPEG',
@@ -119,6 +122,12 @@ import {createRtcRenderer} from './rtc-renderer.js';
   });
   $('audioBuffer').value=localStorage.getItem('diplay-audio-buffer')||'200';
   media.audio.setBuffer(Number($('audioBuffer').value));
+  for (const role of ['music','navigation']) {
+    const slider = $(role+'Volume'), output = $(role+'VolumeValue');
+    const show = percent => { slider.value=String(percent); output.value=percent+'%'; slider.setAttribute('aria-valuetext',percent+'%'); };
+    show(media.audio.volumes[role]);
+    slider.addEventListener('input',()=>show(media.setAudioVolume(role,slider.value)));
+  }
   $('audioButton').addEventListener('click',async()=>{
     const enabled=await media.audioPreference.toggle();
     if(!enabled && media.audioPreference.wanted)$('status').textContent=t('audioBlocked');
