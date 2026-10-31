@@ -82,6 +82,14 @@ try {
     await page.goto(`${base}/?lang=${scenario.lang}`);
     await page.locator('#menuButton').focus();await page.keyboard.press('Enter');
     await page.waitForFunction(()=>!document.getElementById('navigationLevel').disabled);
+    // Local browser gains must coexist with the shared Android guidance setting.
+    for(const [role,value] of [['music',37],['navigation',62]]) {
+      assert.equal(await page.locator('#'+role+'Volume').inputValue(),'100');
+      await page.locator('#'+role+'Volume').evaluate((node,value)=>{
+        node.value=String(value);node.dispatchEvent(new Event('input',{bubbles:true}));
+      },value);
+    }
+    assert.equal(level,-10);assert.deepEqual(writes,[],'Browser gains must not change the host setting');
     assert.match(await page.locator('#transportStatus').textContent(),/fps: (Unknown|未知|غير معروف)/);
     assert.doesNotMatch(await page.locator('#transportStatus').textContent(),/1920|1080|60\.0 fps/);
     frameHold=false;
@@ -111,6 +119,8 @@ try {
     await capture(`feedback-menu-${scenario.name}-font130.jpg`);
     await page.reload();
     await page.waitForFunction(()=>document.getElementById('navigationValue').textContent==='-14 dB');
+    assert.equal(await page.locator('#musicVolume').inputValue(),'37');
+    assert.equal(await page.locator('#navigationVolume').inputValue(),'62');
     await page.locator('#menuButton').focus();await page.keyboard.press('Enter');await page.locator('#settingsButton').click();
     await page.locator('#manualDisplay > summary').click();await page.locator('#transport').selectOption('auto');
     // This fixture exposes only the navigation endpoint. Intercept display persistence for this UI-only change.
@@ -132,7 +142,8 @@ try {
     }
     assert.deepEqual(errors,[]);
     report.checks.push({scenario:scenario.name,layout,rapidGestures:true,slider:true,externalChangeSync:true,conflictReadback:true,failedSaveRecovery:true,reloadPersistence:true,
-      volumePreservesMedia:true,unavailableDistinctFromZero:true,actualDimensions:true,fallbackReasonVisible:true});
+      volumePreservesMedia:true,browserAndHostVolumesIndependent:true,browserVolumesPersistAfterHostChanges:true,
+      unavailableDistinctFromZero:true,actualDimensions:true,fallbackReasonVisible:true});
     await context.close();
   }
   report.result='passed';await writeFile(resolve(output,'feedback-browser-verification.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));

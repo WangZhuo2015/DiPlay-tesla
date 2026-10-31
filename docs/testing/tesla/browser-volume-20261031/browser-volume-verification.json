@@ -1,0 +1,1463 @@
+{
+  "scope": "Production browser assets, synthetic local WebRTC peer and REST responses; no vehicle or Android device",
+  "browser": "155.0.8059.85",
+  "fontScale": 1.3,
+  "cjkFallback": "System fonts",
+  "checks": [
+    {
+      "scenario": "full-en",
+      "layout": {
+        "viewport": 1920,
+        "document": 1920,
+        "panel": 678,
+        "scroll": 678,
+        "font": 20.8,
+        "direction": "ltr",
+        "controls": [
+          {
+            "id": "renderer",
+            "width": 630
+          },
+          {
+            "id": "recovery",
+            "width": 630
+          },
+          {
+            "id": "fps",
+            "width": 309
+          }
+        ]
+      },
+      "volumes": {
+        "layout": {
+          "viewport": 1920,
+          "document": 1920,
+          "panel": 1886,
+          "scroll": 1886,
+          "left": 16,
+          "right": 1904,
+          "font": 20.8,
+          "direction": "ltr",
+          "deviceScaleFactor": 1,
+          "controls": [
+            {
+              "id": "musicVolume",
+              "left": 41,
+              "right": 891.328125,
+              "width": 850.328125
+            },
+            {
+              "id": "musicVolumeValue",
+              "left": 903.328125,
+              "right": 954,
+              "width": 50.671875
+            },
+            {
+              "id": "musicVolume",
+              "left": 41,
+              "right": 954,
+              "width": 913
+            },
+            {
+              "id": "navigationVolume",
+              "left": 966,
+              "right": 1816.328125,
+              "width": 850.328125
+            },
+            {
+              "id": "navigationVolumeValue",
+              "left": 1828.328125,
+              "right": 1879,
+              "width": 50.671875
+            },
+            {
+              "id": "navigationVolume",
+              "left": 966,
+              "right": 1879,
+              "width": 913
+            }
+          ]
+        },
+        "reloadedLayout": {
+          "viewport": 1920,
+          "document": 1920,
+          "panel": 1886,
+          "scroll": 1886,
+          "left": 16,
+          "right": 1904,
+          "font": 20.8,
+          "direction": "ltr",
+          "deviceScaleFactor": 1,
+          "controls": [
+            {
+              "id": "musicVolume",
+              "left": 41,
+              "right": 902.546875,
+              "width": 861.546875
+            },
+            {
+              "id": "musicVolumeValue",
+              "left": 914.546875,
+              "right": 954,
+              "width": 39.453125
+            },
+            {
+              "id": "musicVolume",
+              "left": 41,
+              "right": 954,
+              "width": 913
+            },
+            {
+              "id": "navigationVolume",
+              "left": 966,
+              "right": 1838.765625,
+              "width": 872.765625
+            },
+            {
+              "id": "navigationVolumeValue",
+              "left": 1850.765625,
+              "right": 1879,
+              "width": 28.234375
+            },
+            {
+              "id": "navigationVolume",
+              "left": 966,
+              "right": 1879,
+              "width": 913
+            }
+          ]
+        },
+        "steps": [
+          {
+            "stage": "fresh defaults",
+            "music": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music Home → 0",
+            "music": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music ArrowRight → 1",
+            "music": {
+              "value": "1",
+              "output": "1%",
+              "text": "1%",
+              "aria": "1%",
+              "stored": "1"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music End → 100",
+            "music": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music ArrowRight → 100",
+            "music": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music Home → 0",
+            "music": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music ArrowLeft → 0",
+            "music": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music End → 100",
+            "music": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music ArrowLeft → 99",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "navigation Home → 0",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            }
+          },
+          {
+            "stage": "navigation ArrowRight → 1",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "1",
+              "output": "1%",
+              "text": "1%",
+              "aria": "1%",
+              "stored": "1"
+            }
+          },
+          {
+            "stage": "navigation End → 100",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            }
+          },
+          {
+            "stage": "navigation ArrowRight → 100",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            }
+          },
+          {
+            "stage": "navigation Home → 0",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            }
+          },
+          {
+            "stage": "navigation ArrowLeft → 0",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            }
+          },
+          {
+            "stage": "navigation End → 100",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            }
+          },
+          {
+            "stage": "navigation Home → 0",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            }
+          },
+          {
+            "stage": "navigation ArrowRight → 1",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "1",
+              "output": "1%",
+              "text": "1%",
+              "aria": "1%",
+              "stored": "1"
+            }
+          },
+          {
+            "stage": "menu closed",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "1",
+              "output": "1%",
+              "text": "1%",
+              "aria": "1%",
+              "stored": "1"
+            }
+          },
+          {
+            "stage": "persisted after reload",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "1",
+              "output": "1%",
+              "text": "1%",
+              "aria": "1%",
+              "stored": "1"
+            }
+          }
+        ],
+        "defaults": true,
+        "independentControls": true,
+        "liveKeyboardInput": true,
+        "pointerAccessible": true,
+        "tabAccessible": true,
+        "persistedAfterReload": true,
+        "volumeKeepsMedia": true,
+        "noCarPlayActions": true
+      },
+      "codec": "video/H264",
+      "nativeToCanvasToNative": true,
+      "canvasTouch": true,
+      "lateJpegIgnored": true,
+      "frameRateSavedForNextConnection": true,
+      "recoveryHello": true,
+      "rendererOnlyKeepsMedia": true,
+      "focusTrap": true
+    },
+    {
+      "scenario": "compact-zh",
+      "layout": {
+        "viewport": 1024,
+        "document": 1024,
+        "panel": 678,
+        "scroll": 678,
+        "font": 20.8,
+        "direction": "ltr",
+        "controls": [
+          {
+            "id": "renderer",
+            "width": 630
+          },
+          {
+            "id": "recovery",
+            "width": 630
+          },
+          {
+            "id": "fps",
+            "width": 309
+          }
+        ]
+      },
+      "volumes": {
+        "layout": {
+          "viewport": 1024,
+          "document": 1024,
+          "panel": 990,
+          "scroll": 990,
+          "left": 16,
+          "right": 1008,
+          "font": 20.8,
+          "direction": "ltr",
+          "deviceScaleFactor": 2,
+          "controls": [
+            {
+              "id": "musicVolume",
+              "left": 41,
+              "right": 443.328125,
+              "width": 402.328125
+            },
+            {
+              "id": "musicVolumeValue",
+              "left": 455.328125,
+              "right": 506,
+              "width": 50.671875
+            },
+            {
+              "id": "musicVolume",
+              "left": 41,
+              "right": 506,
+              "width": 465
+            },
+            {
+              "id": "navigationVolume",
+              "left": 518,
+              "right": 920.328125,
+              "width": 402.328125
+            },
+            {
+              "id": "navigationVolumeValue",
+              "left": 932.328125,
+              "right": 983,
+              "width": 50.671875
+            },
+            {
+              "id": "navigationVolume",
+              "left": 518,
+              "right": 983,
+              "width": 465
+            }
+          ]
+        },
+        "reloadedLayout": {
+          "viewport": 1024,
+          "document": 1024,
+          "panel": 990,
+          "scroll": 990,
+          "left": 16,
+          "right": 1008,
+          "font": 20.8,
+          "direction": "ltr",
+          "deviceScaleFactor": 2,
+          "controls": [
+            {
+              "id": "musicVolume",
+              "left": 41,
+              "right": 454.546875,
+              "width": 413.546875
+            },
+            {
+              "id": "musicVolumeValue",
+              "left": 466.546875,
+              "right": 506,
+              "width": 39.453125
+            },
+            {
+              "id": "musicVolume",
+              "left": 41,
+              "right": 506,
+              "width": 465
+            },
+            {
+              "id": "navigationVolume",
+              "left": 518,
+              "right": 942.765625,
+              "width": 424.765625
+            },
+            {
+              "id": "navigationVolumeValue",
+              "left": 954.765625,
+              "right": 983,
+              "width": 28.234375
+            },
+            {
+              "id": "navigationVolume",
+              "left": 518,
+              "right": 983,
+              "width": 465
+            }
+          ]
+        },
+        "steps": [
+          {
+            "stage": "fresh defaults",
+            "music": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music Home → 0",
+            "music": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music ArrowRight → 1",
+            "music": {
+              "value": "1",
+              "output": "1%",
+              "text": "1%",
+              "aria": "1%",
+              "stored": "1"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music End → 100",
+            "music": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music ArrowRight → 100",
+            "music": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music Home → 0",
+            "music": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music ArrowLeft → 0",
+            "music": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music End → 100",
+            "music": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music ArrowLeft → 99",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "navigation Home → 0",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            }
+          },
+          {
+            "stage": "navigation ArrowRight → 1",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "1",
+              "output": "1%",
+              "text": "1%",
+              "aria": "1%",
+              "stored": "1"
+            }
+          },
+          {
+            "stage": "navigation End → 100",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            }
+          },
+          {
+            "stage": "navigation ArrowRight → 100",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            }
+          },
+          {
+            "stage": "navigation Home → 0",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            }
+          },
+          {
+            "stage": "navigation ArrowLeft → 0",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            }
+          },
+          {
+            "stage": "navigation End → 100",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            }
+          },
+          {
+            "stage": "navigation Home → 0",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            }
+          },
+          {
+            "stage": "navigation ArrowRight → 1",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "1",
+              "output": "1%",
+              "text": "1%",
+              "aria": "1%",
+              "stored": "1"
+            }
+          },
+          {
+            "stage": "menu closed",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "1",
+              "output": "1%",
+              "text": "1%",
+              "aria": "1%",
+              "stored": "1"
+            }
+          },
+          {
+            "stage": "persisted after reload",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "1",
+              "output": "1%",
+              "text": "1%",
+              "aria": "1%",
+              "stored": "1"
+            }
+          }
+        ],
+        "defaults": true,
+        "independentControls": true,
+        "liveKeyboardInput": true,
+        "pointerAccessible": true,
+        "tabAccessible": true,
+        "persistedAfterReload": true,
+        "volumeKeepsMedia": true,
+        "noCarPlayActions": true
+      },
+      "codec": "video/H264",
+      "nativeToCanvasToNative": true,
+      "canvasTouch": true,
+      "lateJpegIgnored": true,
+      "frameRateSavedForNextConnection": true,
+      "recoveryHello": true,
+      "rendererOnlyKeepsMedia": true,
+      "focusTrap": true
+    },
+    {
+      "scenario": "narrow-ar",
+      "layout": {
+        "viewport": 360,
+        "document": 360,
+        "panel": 342,
+        "scroll": 342,
+        "font": 20.8,
+        "direction": "rtl",
+        "controls": [
+          {
+            "id": "renderer",
+            "width": 310
+          },
+          {
+            "id": "recovery",
+            "width": 310
+          },
+          {
+            "id": "fps",
+            "width": 310
+          }
+        ]
+      },
+      "volumes": {
+        "layout": {
+          "viewport": 360,
+          "document": 360,
+          "panel": 342,
+          "scroll": 342,
+          "left": 8,
+          "right": 352,
+          "font": 20.8,
+          "direction": "rtl",
+          "deviceScaleFactor": 1,
+          "controls": [
+            {
+              "id": "musicVolume",
+              "left": 87.671875,
+              "right": 335,
+              "width": 247.328125
+            },
+            {
+              "id": "musicVolumeValue",
+              "left": 25,
+              "right": 75.671875,
+              "width": 50.671875
+            },
+            {
+              "id": "musicVolume",
+              "left": 25,
+              "right": 335,
+              "width": 310
+            },
+            {
+              "id": "navigationVolume",
+              "left": 87.671875,
+              "right": 335,
+              "width": 247.328125
+            },
+            {
+              "id": "navigationVolumeValue",
+              "left": 25,
+              "right": 75.671875,
+              "width": 50.671875
+            },
+            {
+              "id": "navigationVolume",
+              "left": 25,
+              "right": 335,
+              "width": 310
+            }
+          ]
+        },
+        "reloadedLayout": {
+          "viewport": 360,
+          "document": 360,
+          "panel": 342,
+          "scroll": 342,
+          "left": 8,
+          "right": 352,
+          "font": 20.8,
+          "direction": "rtl",
+          "deviceScaleFactor": 1,
+          "controls": [
+            {
+              "id": "musicVolume",
+              "left": 76.453125,
+              "right": 335,
+              "width": 258.546875
+            },
+            {
+              "id": "musicVolumeValue",
+              "left": 25,
+              "right": 64.453125,
+              "width": 39.453125
+            },
+            {
+              "id": "musicVolume",
+              "left": 25,
+              "right": 335,
+              "width": 310
+            },
+            {
+              "id": "navigationVolume",
+              "left": 65.234375,
+              "right": 335,
+              "width": 269.765625
+            },
+            {
+              "id": "navigationVolumeValue",
+              "left": 25,
+              "right": 53.234375,
+              "width": 28.234375
+            },
+            {
+              "id": "navigationVolume",
+              "left": 25,
+              "right": 335,
+              "width": 310
+            }
+          ]
+        },
+        "steps": [
+          {
+            "stage": "fresh defaults",
+            "music": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music Home → 0",
+            "music": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music ArrowRight → 1",
+            "music": {
+              "value": "1",
+              "output": "1%",
+              "text": "1%",
+              "aria": "1%",
+              "stored": "1"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music End → 100",
+            "music": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music ArrowRight → 100",
+            "music": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music Home → 0",
+            "music": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music ArrowLeft → 0",
+            "music": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music End → 100",
+            "music": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "music ArrowLeft → 99",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": null
+            }
+          },
+          {
+            "stage": "navigation Home → 0",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            }
+          },
+          {
+            "stage": "navigation ArrowRight → 1",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "1",
+              "output": "1%",
+              "text": "1%",
+              "aria": "1%",
+              "stored": "1"
+            }
+          },
+          {
+            "stage": "navigation End → 100",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            }
+          },
+          {
+            "stage": "navigation ArrowRight → 100",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            }
+          },
+          {
+            "stage": "navigation Home → 0",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            }
+          },
+          {
+            "stage": "navigation ArrowLeft → 0",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            }
+          },
+          {
+            "stage": "navigation End → 100",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "100",
+              "output": "100%",
+              "text": "100%",
+              "aria": "100%",
+              "stored": "100"
+            }
+          },
+          {
+            "stage": "navigation Home → 0",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "0",
+              "output": "0%",
+              "text": "0%",
+              "aria": "0%",
+              "stored": "0"
+            }
+          },
+          {
+            "stage": "navigation ArrowRight → 1",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "1",
+              "output": "1%",
+              "text": "1%",
+              "aria": "1%",
+              "stored": "1"
+            }
+          },
+          {
+            "stage": "menu closed",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "1",
+              "output": "1%",
+              "text": "1%",
+              "aria": "1%",
+              "stored": "1"
+            }
+          },
+          {
+            "stage": "persisted after reload",
+            "music": {
+              "value": "99",
+              "output": "99%",
+              "text": "99%",
+              "aria": "99%",
+              "stored": "99"
+            },
+            "navigation": {
+              "value": "1",
+              "output": "1%",
+              "text": "1%",
+              "aria": "1%",
+              "stored": "1"
+            }
+          }
+        ],
+        "defaults": true,
+        "independentControls": true,
+        "liveKeyboardInput": true,
+        "pointerAccessible": true,
+        "tabAccessible": true,
+        "persistedAfterReload": true,
+        "volumeKeepsMedia": true,
+        "noCarPlayActions": true
+      },
+      "codec": "video/H264",
+      "nativeToCanvasToNative": true,
+      "canvasTouch": true,
+      "lateJpegIgnored": true,
+      "frameRateSavedForNextConnection": true,
+      "recoveryHello": true,
+      "rendererOnlyKeepsMedia": true,
+      "focusTrap": true
+    }
+  ],
+  "screenshots": [
+    "browser-volume-menu-full-en-font130.jpg",
+    "browser-volume-menu-compact-zh-font130.jpg",
+    "browser-volume-menu-narrow-ar-font130.jpg"
+  ],
+  "result": "passed"
+}

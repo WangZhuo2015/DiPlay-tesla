@@ -1,0 +1,205 @@
+{
+  "releaseTag": "tesla-v0.1.13",
+  "date": "2026-10-31",
+  "scope": "Windows host checks and synthetic browser fixtures; no vehicle, iPhone or Android device validation.",
+  "mergedPr": 6,
+  "prHead": "454e168fd111d3efc5f854599db210fba6daf1a2",
+  "apk": {
+    "name": "DiPlay-Tesla-0.1.13.apk",
+    "bytes": 29909146,
+    "sha256": "c1adcac861c6fb5980ea7a3e6b7b68e37c7ab61b289f0d37289747111c8b4752",
+    "applicationId": "com.diplay.tesla",
+    "versionName": "0.1.13",
+    "versionCode": 14,
+    "minSdk": 25,
+    "signingCertificateSha256": "ea2fcd23e0571640b90098e970116427ae13b71a4744941a0fe4b3042f4ba117",
+    "signatureVerified": true,
+    "sameSignerAsPublished_0_1_10": true,
+    "runtimeResourcesMatchPublished_0_1_10": true,
+    "unexpectedCredentialContainers": [],
+    "browserAssetsMatchBuildInputs": true,
+    "rtcAbis": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86_64"
+    ]
+  },
+  "androidCi": {
+    "result": "failed",
+    "sameSevenFailuresAsPreMergeWindowsBaseline": true,
+    "tasks": {
+      ":shared:testDebugUnitTest": "FAILED",
+      ":common:testDebugUnitTest": "FAILED",
+      ":home:testDebugUnitTest": "UP-TO-DATE",
+      ":mobile:lintDebug": "executed",
+      ":home:lintDebug": "executed",
+      ":maphost:lintDebug": "executed",
+      ":mobile:assembleDebug": "UP-TO-DATE",
+      ":home:assembleDebug": "UP-TO-DATE",
+      ":maphost:assembleDebug": "UP-TO-DATE",
+      ":browser:testDebugUnitTest": "executed",
+      ":browser:lintDebug": "executed",
+      ":tesla:testDebugUnitTest": "executed",
+      ":tesla:lintDebug": "executed",
+      ":tesla:assembleDebug": "executed"
+    },
+    "unitTests": {
+      "shared": {
+        "tests": 1798,
+        "failures": 3,
+        "errors": 0,
+        "skipped": 2,
+        "passed": 1793
+      },
+      "common": {
+        "tests": 1739,
+        "failures": 4,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 1735
+      },
+      "home": {
+        "tests": 14,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 14
+      },
+      "browser": {
+        "tests": 86,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 86
+      },
+      "tesla": {
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 12
+      }
+    },
+    "failures": [
+      {
+        "module": "shared",
+        "class": "com.shilapi.xcertplay.hud.AmbientWorkerOwnerLockSymlinkTest",
+        "test": "aPlantedSymlinkIsRefusedAndItsTargetIsNotCreated",
+        "type": "java.nio.file.FileSystemException",
+        "reason": "Missing Windows privilege to create symbolic links."
+      },
+      {
+        "module": "shared",
+        "class": "com.shilapi.xcertplay.hud.AmbientWorkerOwnerLockSymlinkTest",
+        "test": "aSymlinkToAnExistingFileIsRefused",
+        "type": "java.nio.file.FileSystemException",
+        "reason": "Missing Windows privilege to create symbolic links."
+      },
+      {
+        "module": "shared",
+        "class": "com.shilapi.xcertplay.hud.AmbientWorkerOwnerLockSymlinkTest",
+        "test": "aRegularFileInsideASymlinkedDirectoryStillLocks",
+        "type": "java.nio.file.FileSystemException",
+        "reason": "Missing Windows privilege to create symbolic links."
+      },
+      {
+        "module": "common",
+        "class": "com.shilapi.xcertplay.update.UpdateInstallCompatibilityTest",
+        "test": "swappedPublicCopyFallsBackToTheProviderUri[25]",
+        "type": "java.lang.reflect.InvocationTargetException",
+        "reason": "FileProvider root lookup failed for the test APK cache path."
+      },
+      {
+        "module": "common",
+        "class": "com.shilapi.xcertplay.update.UpdateInstallCompatibilityTest",
+        "test": "swappedPublicCopyFallsBackToTheProviderUri[28]",
+        "type": "java.lang.reflect.InvocationTargetException",
+        "reason": "FileProvider root lookup failed for the test APK cache path."
+      },
+      {
+        "module": "common",
+        "class": "com.shilapi.xcertplay.update.UpdateInstallCompatibilityTest",
+        "test": "swappedPublicCopyFallsBackToTheProviderUri",
+        "type": "java.lang.reflect.InvocationTargetException",
+        "reason": "FileProvider root lookup failed for the test APK cache path."
+      },
+      {
+        "module": "common",
+        "class": "com.shilapi.xcertplay.update.UpdateInstallCompatibilityTest",
+        "test": "deletedPublicCopyFallsBackToTheProviderUri",
+        "type": "java.lang.reflect.InvocationTargetException",
+        "reason": "FileProvider root lookup failed for the test APK cache path."
+      }
+    ],
+    "debugLint": {
+      "mobile": {
+        "Fatal": 0,
+        "Error": 0,
+        "Warning": 18,
+        "Information": 0
+      },
+      "home": {
+        "Fatal": 0,
+        "Error": 0,
+        "Warning": 9,
+        "Information": 0
+      },
+      "maphost": {
+        "Fatal": 0,
+        "Error": 0,
+        "Warning": 2,
+        "Information": 0
+      },
+      "browser": {
+        "Fatal": 0,
+        "Error": 0,
+        "Warning": 10,
+        "Information": 0
+      },
+      "tesla": {
+        "Fatal": 0,
+        "Error": 0,
+        "Warning": 17,
+        "Information": 0
+      }
+    }
+  },
+  "standaloneReleaseBuild": {
+    "result": "passed",
+    "releaseLint": {
+      "browser": {
+        "Fatal": 0,
+        "Error": 0,
+        "Warning": 10,
+        "Information": 0
+      },
+      "tesla": {
+        "Fatal": 0,
+        "Error": 0,
+        "Warning": 17,
+        "Information": 0
+      }
+    }
+  },
+  "nodeTests": {
+    "tests": 99,
+    "passed": 99,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browserUi": {
+    "result": "passed",
+    "browser": "155.0.8059.85",
+    "fontScale": 1.3,
+    "scenarios": [
+      "full-en",
+      "compact-zh",
+      "narrow-ar"
+    ],
+    "compactDeviceScaleFactor": 2,
+    "browserAndHostVolumeCoexistence": "passed",
+    "reauthenticationRecovery": true
+  },
+  "rawChecksPreservedLocally": true,
+  "realVehicleTested": false
+}

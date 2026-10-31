@@ -1,5 +1,34 @@
 # Tesla port verification
 
+## 0.1.13 signed release verification — 2026-10-31
+
+PR #6 was merged with the current host navigation setting and audio state deduplication retained.
+The new browser music/navigation sliders have separate labels and storage; the shared host
+guidance setting still synchronizes with Android. All 99 Node tests passed. Real desktop-browser
+fixtures passed full English, compact Chinese at device scale factor 2, and narrow Arabic,
+with font size 130%; the existing host-setting conflict/recovery fixture also passed.
+
+The complete Android command ran with `--continue`: 3,649 unit tests, 3,640 passed,
+7 failed and 2 skipped. The failures exactly match the pre-merge Windows baseline:
+three symbolic-link privilege failures and four FileProvider test-cache path failures.
+No failing test was disabled or rewritten. Some unchanged tasks reused Gradle `UP-TO-DATE`
+results; the per-task status is recorded. All requested debug lint/build tasks completed.
+The provisioned Tesla Release build and Tesla/browser release lint passed, with 17/10 warnings.
+
+The APK is `com.diplay.tesla`, version 0.1.13 / code 14. Its certificate matches the published
+0.1.10 APK, permitting an update of that package; the separate 0.1.12 debug app is unchanged.
+The two runtime authentication resources match 0.1.10 byte for byte, and no extra credential
+container is present. RTC libraries cover arm64-v8a, armeabi-v7a and x86_64.
+
+[Machine-readable checks and APK digest](release-0.1.13-20261031.json) ·
+[browser UI report](browser-volume-20261031/browser-volume-verification.json) ·
+[host/browser coexistence report](browser-volume-20261031/feedback-browser-verification.json) ·
+[release notes](../../RELEASE-NOTES-TESLA-0.1.13.md).
+
+This was host-side validation with synthetic media and HTTP/RTC fixtures. No V50, iPhone or
+Tesla was connected, and no new vehicle audio, latency, temperature or sustained-performance
+acceptance is claimed. Earlier reports below are retained as historical evidence.
+
 ## 0.1.12 standalone debug verification — 2026-10-30
 
 A provisioned **0.1.12 / versionCode 13** APK was built from exactly
