@@ -79,7 +79,11 @@ function installFixture({cjk}) {
   class LocalMediaSocket {
     static OPEN=1;
     static CLOSED=3;
-    constructor() {this.readyState=0;this.closed=false;queueMicrotask(()=>{this.readyState=1;this.onopen?.({});});}
+    constructor() {
+      this.readyState=0;this.closed=false;
+      fixture.stopVideo=()=>this.deliver({type:'rtc-stop',id:this.id,reason:'verification-fallback'});
+      queueMicrotask(()=>{this.readyState=1;this.onopen?.({});});
+    }
     deliver(data) {if(!this.closed)this.onmessage?.({data:JSON.stringify(data)});}
     send(raw) {
       const data=JSON.parse(raw);
@@ -327,10 +331,31 @@ try {
     await page.waitForFunction(()=>!document.getElementById('video').hidden && !document.getElementById('video').classList.contains('rtcOffscreen'));
     assert.equal(await page.locator('#picture').isVisible(),false);
     assert.equal(await page.evaluate(()=>window.__uiFixture.hellos.length),2,'Renderer-only save must not restart media');
+    const held=await page.evaluate(()=>{
+      const canvas=document.getElementById('picture'),video=document.getElementById('video');
+      const context=canvas.getContext('2d'),draw=context.drawImage;
+      window.__uiFixture.holdCopies=0;
+      context.drawImage=function(source,...args) {
+        if(source===video)window.__uiFixture.holdCopies++;
+        return draw.call(this,source,...args);
+      };
+      context.fillStyle='#ff00ff';context.fillRect(0,0,canvas.width,canvas.height);
+      window.__uiFixture.stopVideo();
+      return {visible:!canvas.hidden,width:canvas.width,height:canvas.height,
+        pixel:Array.from(context.getImageData(0,0,1,1).data),copies:window.__uiFixture.holdCopies};
+    });
+    assert.equal(held.visible,true);assert.equal(held.width,960);assert.equal(held.height,540);
+    assert.equal(held.copies,1);
+    assert.ok(held.pixel[0]<100 && held.pixel[2]>held.pixel[0],JSON.stringify(held));
+    await capture(page,`native-fallback-held-${scenario.name}-font130.jpg`);
+    await page.waitForFunction(()=>document.getElementById('picture').width===1);
+    assert.equal(await page.locator('#picture').isVisible(),true);
+    assert.equal(await page.evaluate(()=>window.__uiFixture.holdCopies),1);
+    console.log('Native fallback retained the current frame until fresh JPEG');
     assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>window.__uiFixture.errors),[]);
     report.checks.push({scenario:scenario.name,layout,volumes,codec:await page.evaluate(()=>window.__uiFixture.codec),
       nativeToCanvasToNative:true,canvasTouch:true,lateJpegIgnored:true,frameRateSavedForNextConnection:true,recoveryHello:true,
-      rendererOnlyKeepsMedia:true,focusTrap:true});
+      rendererOnlyKeepsMedia:true,nativeFallbackHandoff:held,freshJpegReplacesHeldFrame:true,focusTrap:true});
     await context.close();
   }
   report.result='passed';

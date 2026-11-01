@@ -40,6 +40,7 @@ import {createRtcRenderer} from './rtc-renderer.js';
     renderer:['WebRTC 显示方式','WebRTC presentation'],nativeRenderer:['原生视频（默认）','Native video (default)'],canvasRenderer:['Canvas（实验性）','Canvas (experimental)'],
     rendererHint:['Canvas 可用于排查浏览器视频显示异常，会增加绘制开销。保存后立即应用，不重连 CarPlay。','Canvas can help with browser video presentation problems and adds drawing work. Applies on save without reconnecting CarPlay.'],
     rendererFailed:['Canvas 绘制失败，已恢复原生视频。','Canvas rendering failed; native video restored.'],
+    frameHoldFailed:['无法保留当前画面，正在等待新视频。','Could not retain the current picture; waiting for new video.'],
     recovery:['WebRTC 恢复等待','WebRTC recovery wait'],quickRecovery:['4 秒 · 快速回退','4 seconds · Quick fallback'],balancedRecovery:['10 秒 · 均衡（默认）','10 seconds · Balanced (default)'],patientRecovery:['30 秒 · 等待恢复','30 seconds · Patient'],
     recoveryHint:['短暂中断时保留最后画面，超过所选时间再回退 JPEG。保存后重建浏览器媒体连接；不会增加视频缓冲或重连 iPhone。','Keep the last picture during a short interruption, then fall back to JPEG after this wait. Saving restarts browser media only; it does not add video buffering or reconnect the iPhone.'],
     jpegLimit:['60 fps 用于 WebRTC；JPEG 转换最高 30 fps。保存帧率后，下次 CarPlay 连接生效。','60 fps is available for WebRTC; JPEG conversion is capped at 30 fps. A saved frame rate applies at the next CarPlay connection.'],
@@ -58,7 +59,7 @@ import {createRtcRenderer} from './rtc-renderer.js';
     actualTransport:'الفيديو الفعلي',waitingVideo:'بانتظار الفيديو',measured:'معدل عرض الفيديو المقاس',jpegSelected:'اختير JPEG يدويًا. اختر الوضع التلقائي في إعدادات العرض لتجربة WebRTC.',rtcUnavailable:'WebRTC غير متاح في هذا المتصفح؛ يُستخدم JPEG.',rtcWaiting:'بانتظار فيديو WebRTC. يظهر المسار عند وصول الإطارات.',rtcFallback:'WebRTC غير متاح حاليًا؛ يُستخدم JPEG.',rtcRetry:'ستُعاد محاولة WebRTC تلقائيًا.',rtcBlocked:'أبلغ المتصفح عن اتصال فيديو غير مدعوم. تحقّق من البرنامج الثابت وإعدادات العرض.',
     reasonFirst:'انتهت مهلة أول إطار',reasonConnection:'فشل اتصال الوسائط',reasonDecoder:'توقف فك ترميز الفيديو',reasonStats:'إحصاءات المتصفح غير متاحة',reasonUnsupported:'رفض المتصفح تنسيق الفيديو',reasonPlayback:'تعذّر تشغيل الفيديو',reasonNegotiation:'فشل تفاوض الفيديو',
     musicVolume:'مستوى صوت الموسيقى في المتصفح',navigationVolume:'مستوى صوت الملاحة في المتصفح',volumeHint:'يخفض كل قناة صوت في هذا المتصفح فورًا ويتذكرها دون إعادة اتصال. 100% دون خفض إضافي و0% كتم. يخفض صوت الملاحة في المتصفح مستوى الملاحة الوارد من المضيف أكثر. لا تُخفض الموسيقى تلقائيًا. لا يتغير الصوت غير المصنّف من الأجهزة المضيفة القديمة.',
-    renderer:'طريقة عرض WebRTC',nativeRenderer:'الفيديو الأصلي (افتراضي)',canvasRenderer:'Canvas (تجريبي)',rendererHint:'قد يساعد Canvas في مشاكل عرض الفيديو في المتصفح ويزيد عمل الرسم. يُطبّق عند الحفظ دون إعادة اتصال CarPlay.',rendererFailed:'تعذّر الرسم على Canvas؛ استُعيد الفيديو الأصلي.',
+    renderer:'طريقة عرض WebRTC',nativeRenderer:'الفيديو الأصلي (افتراضي)',canvasRenderer:'Canvas (تجريبي)',rendererHint:'قد يساعد Canvas في مشاكل عرض الفيديو في المتصفح ويزيد عمل الرسم. يُطبّق عند الحفظ دون إعادة اتصال CarPlay.',rendererFailed:'تعذّر الرسم على Canvas؛ استُعيد الفيديو الأصلي.',frameHoldFailed:'تعذّر الاحتفاظ بالصورة الحالية؛ بانتظار فيديو جديد.',
     recovery:'مهلة استعادة WebRTC',quickRecovery:'4 ثوانٍ · انتقال سريع',balancedRecovery:'10 ثوانٍ · متوازن (افتراضي)',patientRecovery:'30 ثانية · انتظار الاستعادة',recoveryHint:'تُحفظ الصورة الأخيرة أثناء الانقطاع القصير، ثم ينتقل العرض إلى JPEG بعد المهلة. يعيد الحفظ اتصال وسائط المتصفح فقط؛ ولا يزيد تخزين الفيديو أو يعيد اتصال iPhone.',jpegLimit:'يتوفر 60 إطارًا في الثانية لـ WebRTC؛ تحويل JPEG محدود بـ 30 إطارًا. يسري معدل الإطارات المحفوظ عند اتصال CarPlay التالي.',
     recovering:'تجري استعادة الفيديو',videoQueue:'قائمة انتظار الفيديو المضغوط',queueBudget:'مهلة انتظار الفيديو',expiredFrames:'الإطارات المنتهية',overflowFrames:'الإطارات المتجاوزة للسعة',keyframeSkips:'الإطارات المتخطاة حتى الإطار الرئيسي',sendFailures:'إخفاقات الإرسال المحلي',fallbackReason:'سبب الانتقال إلى JPEG',
     menu:'القائمة',close:'إغلاق',showKeys:'إظهار الأزرار الافتراضية',hideKeys:'إخفاء الأزرار',diagnostics:'التشخيص المباشر',
@@ -86,11 +87,11 @@ import {createRtcRenderer} from './rtc-renderer.js';
   const client = 'client-' + Array.from(crypto.getRandomValues(new Uint8Array(12)), x => x.toString(16).padStart(2,'0')).join('');
   const canvas = $('picture'), drawing = canvas.getContext('2d');
   const screen = $('screen'), video = $('video');
-  let videoMetrics = {}, rendererNotice = null, videoTransport='jpeg';
+  let videoMetrics = {}, rendererNotice = null, videoTransport='jpeg', presentationEpoch=0;
   const jpegMetrics=createJpegMetrics();
-  const renderer = createRtcRenderer({video,canvas,onError:()=>{
-    rendererNotice=t('rendererFailed');
-    localStorage.setItem('diplay-rtc-renderer','native');$('renderer').value='native';
+  const renderer = createRtcRenderer({video,canvas,onError:(_error,phase)=>{
+    rendererNotice=t(phase==='hold'?'frameHoldFailed':'rendererFailed');
+    if(phase!=='hold'){localStorage.setItem('diplay-rtc-renderer','native');$('renderer').value='native';}
     $('status').textContent=rendererNotice;
   }});
   renderer.setMode(localStorage.getItem('diplay-rtc-renderer'));
@@ -114,6 +115,8 @@ import {createRtcRenderer} from './rtc-renderer.js';
   $('hideKeys').addEventListener('click',()=>{ showKeys(false); $('menuButton').focus(); });
   const media = createMedia({video,getToken:()=>token,
     onTransport:mode=>{
+      presentationEpoch++;
+      if(mode==='webrtc' && rendererNotice===t('frameHoldFailed'))rendererNotice=null;
       if(mode!==videoTransport){jpegMetrics.reset();sequence=-1;}
       videoTransport=mode;renderer.setActive(mode==='webrtc');releaseTouches();
     },
@@ -191,7 +194,7 @@ import {createRtcRenderer} from './rtc-renderer.js';
       return response;
     } finally { clearTimeout(timer); }
   }
-  function resetPicture() { drawing.clearRect(0,0,canvas.width,canvas.height); sequence = -1; jpegMetrics.reset(); }
+  function resetPicture() { presentationEpoch++; drawing.clearRect(0,0,canvas.width,canvas.height); sequence = -1; jpegMetrics.reset(); }
   async function status() {
     const request=++requestedStatus, readEpoch=navigationVolume.epoch;
     const state = await (await api('/api/status')).json();
@@ -261,18 +264,23 @@ import {createRtcRenderer} from './rtc-renderer.js';
     const epoch = ++streamEpoch;
     let statusAt = 0;
     while (live && epoch === streamEpoch) {
+      let ticket = presentationEpoch;
       try {
         if (document.hidden) { await delay(300); continue; }
         if (Date.now() - statusAt > 1500) { await status(); statusAt = Date.now(); }
         if (!current || !current.connected) { await delay(500); continue; }
         if (media.displayed) { sequence=-1; await delay(100); continue; }
+        ticket = presentationEpoch;
+        const isCurrent=()=>ticket===presentationEpoch && !media.displayed && live && epoch===streamEpoch && !document.hidden;
         const start = Date.now();
         const response = await api('/api/frame?after=' + sequence);
+        if (!isCurrent()) { try { await response.body?.cancel(); } catch (_) { /* Retired response. */ } continue; }
         jpegMetrics.activity();
         if (response.status === 200) {
-          const shown = await presentJpegFrame({response,canvas,drawing,
-            isCurrent:()=>!media.displayed && live && epoch===streamEpoch && !document.hidden});
-          if (!shown) continue;
+          const shown = await presentJpegFrame({response,canvas,drawing,isCurrent});
+          if (!shown || !isCurrent()) continue;
+          renderer.jpegPresented();
+          if(rendererNotice===t('frameHoldFailed'))rendererNotice=null;
           jpegMetrics.frame(canvas.width,canvas.height);
           sequence = Number(response.headers.get('X-Frame-Sequence'));
         }
@@ -281,6 +289,8 @@ import {createRtcRenderer} from './rtc-renderer.js';
         const fps = profile.jpegFps || Math.min(profile.fps,30);
         await delay(Math.max(15,1000/fps - (Date.now()-start)));
       } catch (error) {
+        // A retired request cannot clear the replacement picture or report its failure.
+        if (ticket!==presentationEpoch || !live || epoch!==streamEpoch || document.hidden) continue;
         statusAvailable=false; resetPicture(); releaseTouches(); navigationVolume.unavailable();
         if(current)updateDiagnostics({...current,connected:false});
         $('status').textContent = error.message || t('disconnected');

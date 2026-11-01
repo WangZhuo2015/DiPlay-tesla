@@ -143,6 +143,23 @@ test('short WebRTC disconnects retain the last frame and resume without touching
   } finally { await f.dispose(); }
 });
 
+test('fallback hands off the current video before closing its peer or clearing its stream',async()=>{
+  let f, source, peer, handoffs=0;
+  f=fixture({onTransport:mode=>{
+    if(mode!=='jpeg' || !source)return;
+    assert.equal(f.video.srcObject,source);assert.equal(f.video.paused,false);
+    assert.equal(peer.closeCalls,0);assert.equal(f.media.displayed,false);
+    handoffs++;
+  }});
+  try {
+    peer=await f.ready();source=f.video.srcObject;
+    peer.state('failed');
+    assert.equal(handoffs,1);assert.equal(peer.closeCalls,1);
+    assert.equal(f.video.srcObject,null);assert.equal(f.video.paused,true);
+    source=null;
+  } finally { await f.dispose(); }
+});
+
 test('the server-selected grace controls fallback and persistent disconnect preserves the audio socket',async()=>{
   const f=fixture({grace:4000,storedGrace:'30000'});
   try {

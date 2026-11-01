@@ -11,7 +11,7 @@ export function createRtcRenderer({
 }) {
   let mode = 'native', active = false, disposed = false, generation = 0;
   let source = null, context = null, presented = false, videoCallback = null, animationCallback = null, watchdog = null;
-  let lastFrameKey = null, lastVideoCallbackAt = 0, usesVideoCallbacks = false;
+  let lastFrameKey = null, lastVideoCallbackAt = 0, usesVideoCallbacks = false, fallbackVisible = true;
 
   function cancel() {
     generation++;
@@ -34,7 +34,7 @@ export function createRtcRenderer({
     video.classList.toggle('rtcOffscreen', false);
     video.hidden = !active;
     // The same canvas belongs to the JPEG path when WebRTC is inactive.
-    canvas.hidden = active;
+    canvas.hidden = active || !fallbackVisible;
   }
 
   function fail(error) {
@@ -158,8 +158,27 @@ export function createRtcRenderer({
     if (disposed) return;
     value = Boolean(value);
     if (active === value && source === video.srcObject) return;
+    let holdError = null;
+    if (active && !value) {
+      fallbackVisible = false;
+      if (source === video.srcObject) {
+        if (presented) fallbackVisible = true;
+        else if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
+          try {
+            // Native playback is copied only at handoff, before its stream is detached.
+            const drawing = canvas.getContext('2d', { alpha: false });
+            if (!drawing) throw new Error('Canvas 2D is unavailable');
+            if (canvas.width !== video.videoWidth) canvas.width = video.videoWidth;
+            if (canvas.height !== video.videoHeight) canvas.height = video.videoHeight;
+            drawing.drawImage(video, 0, 0, canvas.width, canvas.height);
+            fallbackVisible = true;
+          } catch (error) { holdError = error; }
+        }
+      }
+    }
     active = value;
     restart();
+    if (holdError) onError(holdError, 'hold');
   }
 
   return {
@@ -170,6 +189,11 @@ export function createRtcRenderer({
       return mode;
     },
     setActive,
+    jpegPresented() {
+      if (disposed || active) return;
+      fallbackVisible = true;
+      canvas.hidden = false;
+    },
     stop() { setActive(false); },
     dispose() {
       if (disposed) return;

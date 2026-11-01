@@ -58,7 +58,49 @@ test('native is the default and schedules no copying or negotiation', () => {
   assert.equal(f.video.srcObject, source);
   f.renderer.stop();
   assert.equal(f.video.hidden, true); assert.equal(f.canvas.hidden, false); assert.equal(f.renderer.surface, f.canvas);
-  assert.deepEqual(f.dimensions, []); // JPEG retains its own canvas allocation.
+  assert.deepEqual(f.dimensions, [['width', 1280], ['height', 720]]);
+  assert.deepEqual(f.draws, [[f.video, 0, 0, 1280, 720]]);
+  f.renderer.stop();
+  assert.equal(f.draws.length, 1);
+});
+
+test('native playback has no steady-state copying and snapshots only once at fallback', () => {
+  const f = fixture(); f.renderer.setActive(true);
+  f.advance(10000);
+  assert.equal(f.draws.length, 0); assert.equal(f.dimensions.length, 0);
+  assert.equal(f.callbacks.size, 0); assert.equal(f.animationRequests, 0); assert.equal(f.timerCalls, 0);
+  f.renderer.stop(); f.video.srcObject = null; f.renderer.stop();
+  assert.equal(f.draws.length, 1); assert.equal(f.canvas.hidden, false);
+});
+
+test('Canvas fallback preserves its last picture without another copy', () => {
+  const f = fixture(); f.start(); f.frame(33);
+  const count = f.draws.length;
+  f.renderer.stop();
+  assert.equal(f.draws.length, count); assert.equal(f.canvas.hidden, false);
+  assert.equal(f.callbacks.size, 0); assert.equal(f.animation.size, 0); assert.equal(f.timers.size, 0);
+});
+
+test('failed native snapshots hide old JPEG pixels until a fresh JPEG is presented', () => {
+  const f = fixture(); f.renderer.setActive(true);
+  f.context.drawImage = () => { throw new Error('snapshot unavailable'); };
+  f.renderer.stop();
+  assert.equal(f.errors.length, 1); assert.equal(f.canvas.hidden, true); assert.equal(f.video.hidden, true);
+  f.video.srcObject = null; f.renderer.stop();
+  assert.equal(f.canvas.hidden, true); assert.equal(f.errors.length, 1);
+  f.renderer.jpegPresented();
+  assert.equal(f.canvas.hidden, false); assert.equal(f.renderer.mode, 'native');
+});
+
+test('unavailable or replaced native sources never expose the old JPEG canvas', () => {
+  for (const replaced of [false, true]) {
+    const f = fixture(); f.renderer.setActive(true);
+    if (replaced) f.video.srcObject = {};
+    else f.video.readyState = 1;
+    f.renderer.stop();
+    assert.equal(f.draws.length, 0); assert.equal(f.canvas.hidden, true);
+    f.renderer.jpegPresented(); assert.equal(f.canvas.hidden, false);
+  }
 });
 
 test('Canvas keeps native playback visible until its first decoded frame', () => {

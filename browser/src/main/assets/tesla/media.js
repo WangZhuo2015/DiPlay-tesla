@@ -72,12 +72,16 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     if (old) {
       old.cancelGathering?.(); old.cancelGathering = null;
       old.rtc.ontrack = null; old.rtc.onconnectionstatechange = null;
-      try { old.rtc.close(); } catch (_) {}
     }
-    video.pause(); video.srcObject = null; video.hidden = true;
     // A JPEG-to-JPEG automatic retry must not cancel a drag/long press in app.js.
     // Closing the owning control connection still releases input even if it was JPEG.
-    if (wasDisplayed || connectionEnded) onTransport('jpeg');
+    try {
+      // Give presentation one chance to retain the current native frame before teardown.
+      if (wasDisplayed || connectionEnded) onTransport('jpeg');
+    } finally {
+      if (old) { try { old.rtc.close(); } catch (_) {} }
+      video.pause(); video.srcObject = null; video.hidden = true;
+    }
     if (!reason) stats = {};
     publishStats({decodedFps:null,dropped:null,recoveryGraceMs:old?.health.graceMs ?? selectedGrace,
       recovering:false,fallbackReason:reason});
