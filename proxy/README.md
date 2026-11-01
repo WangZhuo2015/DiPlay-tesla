@@ -29,7 +29,10 @@ The gateway forwards `/api/media` WebSocket signaling and optional PCM audio, pr
 the first-message pairing check. HTTPS uses WSS on that same origin. WebRTC video travels
 directly between the browser and Android over UDP/DTLS-SRTP; both need direct network
 reachability. This process is not a TURN server or UDP relay. If video cannot establish
-that direct path, the browser automatically falls back to gateway-forwarded JPEG.
+that direct path, clients before 0.1.14 may fall back to gateway-forwarded JPEG. From
+0.1.14, JPEG is an explicit manual H.264 diagnostic mode;
+WebRTC negotiation/recovery never starts JPEG conversion automatically. The gateway
+does not transcode HEVC, and enabling HEVC does not add a UDP relay.
 
 ## HTTPS browser gateway (0.1.1+)
 

@@ -9,7 +9,7 @@ function deferred() {
   const promise = new Promise((yes,no) => { resolve=yes; reject=no; });
   return {promise,resolve,reject};
 }
-function fixture({grace=4000,storedGrace=String(grace),storageBlocked=false,savedVolumes={},onTransport=()=>{}}={}) {
+function fixture({grace=4000,storedGrace=String(grace),storageBlocked=false,savedVolumes={},onTransport=()=>{},capabilities}={}) {
   const original = new Map(), timers = new Map(), sockets = [], peers = [], behaviors = [], snapshots = [], transports = [];
   const storage = new Map([['diplay-browser-audio','false'],['diplay-rtc-recovery-ms',storedGrace]]);
   for(const [role,value] of Object.entries(savedVolumes))storage.set('diplay-'+role+'-volume',value);
@@ -18,6 +18,7 @@ function fixture({grace=4000,storedGrace=String(grace),storageBlocked=false,save
     original.set(name,Object.getOwnPropertyDescriptor(globalThis,name));
     Object.defineProperty(globalThis,name,{configurable:true,writable:true,value});
   }
+  if(capabilities!==undefined)install('RTCRtpReceiver',{getCapabilities:()=>({codecs:capabilities})});
   function schedule(fn,delay,interval=false) {
     const id=++timerId; timers.set(id,{fn,at:clock+delay,interval:interval?delay:0}); return id;
   }
@@ -86,7 +87,7 @@ function fixture({grace=4000,storedGrace=String(grace),storageBlocked=false,save
   }
   async function offer(id=1,options={}) {
     behaviors.push(options);
-    sockets.at(-1).message({type:'rtc-offer',id,sdp:'a=setup:actpass',recoveryGraceMs:grace});
+    sockets.at(-1).message({type:'rtc-offer',id,sdp:'a=setup:actpass',recoveryGraceMs:grace,...(options.codec?{codec:options.codec}:{})});
     await flush();return peers.at(-1);
   }
   async function ready(id=1,options={}) {
@@ -117,6 +118,25 @@ test('hello validates saved recovery settings and one configuration change reope
     f.media.configureVideo('jpeg',4000);assert.equal(f.sockets.length,2);
     f.media.useVideo('auto');assert.equal(f.sockets.length,3);
     f.sockets[2].open();assert.equal(f.messages('hello').at(-1).recoveryGraceMs,4000);
+  } finally { await f.dispose(); }
+});
+
+test('a busy media lease stays connected and clears when the owner leaves',async()=>{
+  const f=fixture();
+  try {
+    await f.media.audio.enable();
+    f.sockets[0].message({type:'media-busy'});
+    assert.equal(f.media.busy,true);
+    assert.equal(f.media.audio.enabled,false);
+    assert.equal(f.stats().fallbackReason,'media-busy');
+    assert.equal(f.sockets[0].closeCalls,0);
+    await f.advance(1000);
+    assert.ok(f.messages('ping').length>0);
+    f.sockets[0].message({type:'welcome'});
+    assert.equal(f.media.busy,false);
+    assert.equal(f.stats().fallbackReason,null);
+    await f.ready();
+    assert.equal(f.media.displayed,true);
   } finally { await f.dispose(); }
 });
 
@@ -315,7 +335,7 @@ test('NotSupportedError playback rejection permanently stops this server attempt
     const peer=await f.offer(1);
     f.video.playPromise=Promise.reject(Object.assign(new Error('unsupported playback'),{name:'NotSupportedError'}));
     peer.track();await flush();
-    assert.deepEqual(f.fallback(),[{type:'rtc-fallback',id:1,retryable:false}]);
+    assert.deepEqual(f.fallback(),[{type:'rtc-fallback',id:1,reason:'playback-failed',retryable:false}]);
     assert.equal(f.stats().fallbackReason,'playback-failed');assert.equal(f.media.displayed,false);
     assert.equal(f.sockets[0].closeCalls,0);assert.equal(f.media.audio.enabled,true);
     f.sockets[0].message({type:'rtc-stop',id:1,reason:'browser-fallback',retryAfterMs:0,retryBlocked:true});
@@ -332,7 +352,7 @@ test('a current NotAllowedError remains retryable and playback can recover on th
     const old=await f.offer(1);
     f.video.playPromise=Promise.reject(Object.assign(new Error('activation needed'),{name:'NotAllowedError'}));
     old.track();await flush();
-    assert.deepEqual(f.fallback(),[{type:'rtc-fallback',id:1}]);
+    assert.deepEqual(f.fallback(),[{type:'rtc-fallback',id:1,reason:'playback-failed'}]);
     f.sockets[0].message({type:'rtc-stop',id:1,reason:'browser-fallback',retryAfterMs:5000,retryBlocked:false});
     await f.advance(5000);
     f.video.playPromise=null;
@@ -374,7 +394,7 @@ test('an answer that disables video is a permanent rejection before local SDP or
     const peer=await f.offer(1,{answerSdp:'v=0\r\nm=video 0 UDP/TLS/RTP/SAVPF 96\r\n'});
     assert.equal(peer.localDescription,undefined);assert.equal(peer.closeCalls,1);
     assert.equal(f.messages('rtc-answer').length,0);
-    assert.deepEqual(f.fallback(),[{type:'rtc-fallback',id:1,retryable:false}]);
+    assert.deepEqual(f.fallback(),[{type:'rtc-fallback',id:1,reason:'video-unsupported',retryable:false}]);
     assert.equal(f.stats().fallbackReason,'video-unsupported');
   } finally { await f.dispose(); }
 });
@@ -432,4 +452,49 @@ test('blocked storage keeps default volumes and live adjustments for the page li
     assert.deepEqual(f.media.audio.volumes,{music:45,navigation:100});
     assert.equal(f.sockets.length,1);
   } finally { await f.dispose(); }
+});
+
+test('a rejected HEVC offer reports codec incompatibility and leaves JPEG disabled',async()=>{
+  const f=fixture();
+  try {
+    await f.offer(1,{codec:'H265',answerSdp:'v=0\r\nm=video 0 UDP/TLS/RTP/SAVPF 96\r\n'});
+    assert.equal(f.stats().fallbackReason,'hevc-unsupported');
+    assert.equal(f.media.mode,'auto');
+    assert.equal(f.media.displayed,false);
+    assert.equal(f.storage.get('diplay-video'),undefined);
+    assert.equal(f.fallback()[0].retryable,false);
+  } finally {await f.dispose();}
+});
+
+test('a receiver without HEVC is rejected before creating a peer and never enables JPEG',async()=>{
+  const f=fixture({capabilities:[{mimeType:'video/H264'}]});
+  try {
+    await f.offer(1,{codec:'H265'});
+    assert.equal(f.peers.length,0);
+    assert.equal(f.stats().fallbackReason,'hevc-unsupported');
+    assert.equal(f.fallback()[0].retryable,false);
+    assert.equal(f.fallback()[0].reason,'hevc-unsupported');
+    assert.equal(f.media.mode,'auto');
+    assert.equal(f.storage.get('diplay-video'),undefined);
+  }finally{await f.dispose();}
+});
+
+test('browser feedback sends counters and candidate kinds without network addresses or SDP',async()=>{
+  const f=fixture();
+  try {
+    const peer=await f.ready();peer.iceConnectionState='connected';
+    peer.report=()=>new Map([
+      ['video',{type:'inbound-rtp',kind:'video',framesDecoded:12,framesDropped:2,bytesReceived:9000,packetsReceived:30}],
+      ['pair',{type:'candidate-pair',state:'succeeded',nominated:true,remoteCandidateId:'remote'}],
+      ['remote',{type:'remote-candidate',address:'7.7.7.1',port:40001,candidateType:'host'}]
+    ]);
+    await f.advance(1000);
+    const feedback=f.messages('rtc-feedback').at(-1);
+    assert.equal(feedback.decoded,12);assert.equal(feedback.bytesReceived,9000);
+    assert.equal(feedback.remoteKind,'host');assert.equal(feedback.remoteFamily,'ipv4');
+    assert.equal(feedback.connection,'connected');assert.equal(feedback.ice,'connected');
+    assert.equal(feedback.width,1280);
+    assert.ok(!JSON.stringify(feedback).includes('7.7.7.1'));
+    assert.ok(!JSON.stringify(feedback).includes('sdp'));
+  }finally{await f.dispose();}
 });

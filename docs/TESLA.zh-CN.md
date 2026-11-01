@@ -1,5 +1,7 @@
 # DiPlay Tesla 接入说明
 
+**0.1.14 更新：**[当前版本说明](RELEASE-NOTES-TESLA-0.1.14.md)优先于早期实现描述：媒体绑定已有本机 HTTPS 别名；JPEG 仅用于手动排障；默认使用 H.264，HEVC 保留实验开关；浏览器/WebRTC 记录自动保留并纳入诊断报告。
+
 DiPlay Tesla 安装在 Android 7.1 以上的主机上。iPhone 通过 USB 或无线 CarPlay 连接这台主机，Tesla 在同一局域网用浏览器显示画面并发送触控。
 
 直接使用发布 APK 请先看[使用指南](TESLA-QUICKSTART.zh-CN.md)，包含安装、无线连接、HTTPS 自行配置、配对码、预设与音频步骤。本文侧重模块、构建和技术边界。

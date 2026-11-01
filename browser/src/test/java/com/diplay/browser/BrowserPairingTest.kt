@@ -4,6 +4,24 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class BrowserPairingTest {
+    @Test fun dashboardReadsNeverRenewAnExpiredOrLockedPairingWindow() {
+        var now = 0L
+        var next = 482916
+        val pairing = BrowserPairing({ now }, { next })
+        assertNull(pairing.currentCode())
+        assertEquals("482916", pairing.beginIfAbsent())
+        now = 299_999
+        assertEquals("482916", pairing.beginIfAbsent())
+        now = 300_000
+        assertNull(pairing.currentCode())
+        assertNull(pairing.beginIfAbsent())
+        assertFalse(pairing.accept("482916"))
+        next = 145269
+        assertEquals("145269", pairing.begin())
+        repeat(5) { assertFalse(pairing.accept("000000")) }
+        assertNull(pairing.currentCode())
+        assertNull(pairing.beginIfAbsent())
+    }
     @Test fun codesRequireOwnerOpenedWindowAndExpireWithoutRevokingExistingTokens() {
         var now = 0L
         val pairing = BrowserPairing({ now }, { 123 })

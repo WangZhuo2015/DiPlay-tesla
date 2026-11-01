@@ -189,6 +189,8 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
     private var settingsCategory = SettingsCategory.OVERVIEW
     private var connectionSettingsReturnCategory: SettingsCategory? = null
     private var setupStep = SetupGuide.STEP_CAR
+    private var remoteHostPanel: RemoteHostUi? = null
+    private var hostConnectionReturnToSetup = false
     private var setupFromSettings = false
     private var settingsSectionFilter: Set<SettingsSection>? = null
     private var clusterSafeAreaDialog: Dialog? = null
@@ -379,7 +381,8 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Back on the home page finishes this activity while the session runs on, so the icon lands here.
-        if (savedInstanceState == null && isLauncherIntent(intent) && CarPlayBackgroundSession.hasSession()) {
+        if (savedInstanceState == null && isLauncherIntent(intent) && CarPlayBackgroundSession.hasSession() &&
+            CarPlayOutput.extension?.remoteHostUi != true) {
             openProjection(); finish(); return
         }
         scheduleBackgroundUpdateChecks()
@@ -412,6 +415,7 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
         connectionSettingsReturnCategory = savedInstanceState?.getString("connection_settings_return_category")
             ?.let { runCatching { SettingsCategory.valueOf(it) }.getOrNull() }
         setupStep = savedInstanceState?.getInt("setup_step") ?: SetupGuide.STEP_CAR
+        hostConnectionReturnToSetup = savedInstanceState?.getBoolean("host_connection_return_setup") ?: false
         setupFromSettings = savedInstanceState?.getBoolean("setup_from_settings") ?: false
         page = savedInstanceState?.getString("page") ?: requestedPage(intent)
             ?: if (setupError == null && SetupGuide.shouldOpenOnLaunch(SetupGuide.seen(this),
@@ -439,7 +443,8 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
         connectionSettingsReturnCategory = null
         // CarPlay runs in its own task, so the launcher icon resumes this one. Settings opened from
         // CarPlay carry a "page" extra, which isLauncherIntent rejects.
-        if (isLauncherIntent(intent) && CarPlayBackgroundSession.hasSession()) {
+        if (isLauncherIntent(intent) && CarPlayBackgroundSession.hasSession() &&
+            CarPlayOutput.extension?.remoteHostUi != true) {
             page = "home"; render(); openProjection(); return
         }
         page = requestedPage(intent) ?: "home"; render()
@@ -468,6 +473,7 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
         outState.putBoolean("pending_car_hotspot", pendingCarHotspotSetup)
         outState.putBoolean("byd_vehicle_advanced", bydVehicleAdvancedExpanded)
         outState.putInt("setup_step", setupStep)
+        outState.putBoolean("host_connection_return_setup", hostConnectionReturnToSetup)
         outState.putBoolean("setup_from_settings", setupFromSettings)
         super.onSaveInstanceState(outState)
     }
@@ -695,11 +701,16 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
         bydAdbControls = null
         adbSwitches.clear()
         adbStatus = null
+        remoteHostPanel = null
+        val remotePanel = CarPlayOutput.extension?.remoteHostUi == true && page in setOf("home", "setup")
         val compact = isCompactLayout && when (page) {
             "settings" -> !SettingsLayoutPreferences.isActive(this)
             else -> true
         }
-        val scroll = ScrollView(this).apply { setBackgroundColor(BG); isFillViewport = true; clipToPadding = false }
+        val scroll = ScrollView(this).apply {
+            setBackgroundColor(BG); isFillViewport = true; clipToPadding = false
+            if (remotePanel) isVerticalScrollBarEnabled = false
+        }
         rootScroll = scroll
         val content = column()
         scroll.addView(content)
@@ -709,10 +720,15 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
             settingsCategoryContent(content)
             expandedSettingsShell(header, scroll)
         } else {
-            if (compact) content.setPadding(dp(12), dp(10), dp(12), dp(12))
+            if (remotePanel) {
+                val width = (resources.configuration.screenWidthDp - 2 * RemoteHostUi.PAGE_EDGE_DP)
+                    .coerceIn(RemoteHostUi.PAGE_EDGE_DP, RemoteHostUi.MAX_WIDTH_DP)
+                content.layoutParams = android.widget.FrameLayout.LayoutParams(dp(width), -2, Gravity.CENTER_HORIZONTAL)
+                content.setPadding(0, dp(RemoteHostUi.PAGE_EDGE_DP), 0, dp(RemoteHostUi.PAGE_EDGE_DP))
+            } else if (compact) content.setPadding(dp(12), dp(10), dp(12), dp(12))
             else content.setPadding(dp(32), dp(24), dp(32), dp(32))
-            content.addView(header)
-            content.addView(space(when {
+            if (!remotePanel) content.addView(header)
+            if (!remotePanel) content.addView(space(when {
                 compact && (page == "settings" || page == "home") -> SETTINGS_BLOCK_GAP_DP
                 compact -> 8
                 else -> 24
@@ -813,6 +829,13 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
     }
 
     private fun navigateBack() {
+        if (page == "setup" && CarPlayOutput.extension?.remoteHostUi == true) pendingScrollY = 0
+        if (page == "connection" && hostConnectionReturnToSetup) {
+            hostConnectionReturnToSetup = false
+            page = "setup"
+            render()
+            return
+        }
         // Back closes an open search first, like a system search bar.
         if (page == "settings" && settingsSearchExpanded) {
             closeSettingsSearch()
@@ -927,7 +950,57 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
         tag = APPEARANCE_BUTTON_TAG
     }
 
+    private fun remoteHost(content: LinearLayout, setup: Boolean): Boolean {
+        val output = CarPlayOutput.extension?.takeIf { it.remoteHostUi } ?: return false
+        val ui = RemoteHostUi(this, output, appNight,
+            phoneName = { DiPlayPreferences.phoneAddress(this)?.let { DiPlayPreferences.phoneName(this) } },
+            running = { CarPlayBackgroundSession.hasSession() },
+            connectionError = { setupError },
+            actions = RemoteHostUi.Actions(
+                settings = { page = "settings"; settingsCategory = SettingsCategory.OVERVIEW; render() },
+                connection = {
+                    hostConnectionReturnToSetup = page == "setup"
+                    connectionSettingsReturnCategory = null
+                    page = "connection"; render()
+                },
+                displayAudio = {
+                    appDialogBuilder().setTitle(R.string.settings_host_display_audio)
+                        .setItems(arrayOf(settingsCategoryTitle(SettingsCategory.DISPLAY), settingsCategoryTitle(SettingsCategory.AUDIO))) { _, index ->
+                            openSettingsCategory(if (index == 0) SettingsCategory.DISPLAY else SettingsCategory.AUDIO)
+                        }.show()
+                },
+                permissions = { openSystem(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))) },
+                choosePhone = ::choosePhone,
+                phoneMenu = {
+                    val options = mutableListOf(
+                        getString(R.string.choose_iphone) to { choosePhone() },
+                        getString(R.string.connect_phone) to { connect(true) },
+                        getString(R.string.connect_with_usb) to { connect(false) },
+                    )
+                    if (CarPlayBackgroundSession.hasSession()) options.add(getString(R.string.disconnect) to {
+                        CarPlayBackgroundSession.stop { runOnUiThread { render() } }
+                    })
+                    appDialogBuilder().setTitle(R.string.choose_iphone)
+                        .setItems(options.map { it.first }.toTypedArray()) { _, index -> options[index].second() }.show()
+                },
+                wireless = { connect(true) }, usb = { connect(false) },
+                next = {
+                    setupStep = (setupStep + 1).coerceAtMost(RemoteHostUi.SETUP_STEPS - 1)
+                    pendingScrollY = 0
+                    render()
+                },
+                back = ::navigateBack,
+                finish = { closeSetupGuide() }, skip = { closeSetupGuide() }, refresh = { render() },
+                autoConnect = { DiPlayPreferences.autoConnect(this) },
+                saveAutoConnect = { DiPlayPreferences.saveAutoConnect(this, it) },
+            ))
+        remoteHostPanel = ui
+        content.addView(if (setup) ui.setup(setupStep.coerceIn(0, RemoteHostUi.SETUP_STEPS - 1)) else ui.home())
+        return true
+    }
+
     private fun home(content: LinearLayout) {
+        if (remoteHost(content, setup = false)) return
         val compact = isCompactLayout
         fun homeButton(title: String, primary: Boolean, click: () -> Unit) = button(title, primary, click)
         val wide = resources.configuration.screenWidthDp >= 850
@@ -1732,6 +1805,12 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
                 card.addView(button("${getString(R.string.settings_browser_connection)} · ${output.connectionSummary()}", false) {
                     output.showConnectionSettings(this) { render() }
                 }, matchButton(SETTINGS_BLOCK_GAP_DP, 60))
+                if (output.remoteHostUi) {
+                    card.addView(button("${getString(R.string.settings_host_entry)} · ${output.connectionSummary()}", false) {
+                        output.showEntrySettings(this) { render() }
+                    }, matchButton(SETTINGS_BLOCK_GAP_DP, 60))
+                    card.addView(label(getString(R.string.settings_host_gateway_hint), 14, MUTED))
+                }
             }
             filteredSection(content, SettingsSection.BROWSER_DISPLAY,
                 getString(R.string.settings_browser_display), R.drawable.ic_dp_controls) { card ->
@@ -2010,7 +2089,9 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
                     AirPlayPersistence.saveHideBydCallPopup(this, it)
                 }
             }
-            toggle(card, getString(R.string.efficient_video), getString(R.string.use_hevc_leave_off_for_the_widest_head_unit_compatibility), AirPlayPersistence.loadHevcEnabled(this)) {
+            val browserVideo = CarPlayOutput.extension?.remoteHostUi == true
+            toggle(card, getString(if (browserVideo) R.string.settings_browser_hevc else R.string.efficient_video),
+                getString(if (browserVideo) R.string.settings_browser_hevc_description else R.string.use_hevc_leave_off_for_the_widest_head_unit_compatibility), AirPlayPersistence.loadHevcEnabled(this)) {
                 AirPlayPersistence.saveHevcEnabled(this, it)
                 markReconnectNeeded()
                 render()
@@ -3339,6 +3420,7 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
     })
 
     private fun setupGuide(content: LinearLayout) {
+        if (remoteHost(content, setup = true)) return
         val step = setupStep.coerceIn(SetupGuide.STEP_CAR, SetupGuide.STEP_DONE)
         content.addView(label(getString(R.string.setup_step_of, step + 1, SetupGuide.STEP_COUNT), 13, ACCENT, true)
             .apply { letterSpacing = .12f })
@@ -5895,6 +5977,7 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
     }
 
     private fun refreshStatus() {
+        remoteHostPanel?.refresh()
         val running = CarPlayBackgroundSession.hasSession()
         // A USB session shares this card's status and Disconnect, but not its wireless title or Wi-Fi hint (#742).
         val wired = HomeCardTransport.wired(running, AirPlayPersistence.loadWirelessEnabled(this))
@@ -6090,6 +6173,7 @@ class DiPlayActivity : ComponentActivity(), AppAppearanceOwner {
         appendLine("--- Last crash recorded by DiPlay ---")
         appendLine(CrashRecord.report(appContext))
         appendLine()
+        CarPlayOutput.extension?.diagnosticReport()?.let { appendLine(it) }
         for (name in SessionLogFile.REPORT_NAMES) {
             val file = File(appContext.filesDir, "logs/$name")
             if (file.isFile) {

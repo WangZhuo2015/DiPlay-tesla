@@ -1,0 +1,29 @@
+<resources>
+    <string name="settings_host_connect_browser">차량 브라우저 연결</string>
+    <string name="settings_host_open_browser">Tesla 브라우저에서 다음 주소를 열고 코드를 입력하세요</string>
+    <string name="settings_host_settings">호스트 설정</string>
+    <string name="settings_host_connected">연결됨</string>
+    <string name="settings_host_phone_waiting">iPhone 연결 대기 중</string>
+    <string name="settings_host_browser_connected">브라우저 연결됨</string>
+    <string name="settings_host_browser_waiting">브라우저 연결 대기 중</string>
+    <string name="settings_host_entry_pending">호스트 네트워크 대기 중</string>
+    <string name="settings_host_https_configured">HTTPS 접속 주소 설정됨</string>
+    <string name="settings_host_direct">HTTP 직접 접속</string>
+    <string name="settings_host_code_expired">코드가 만료되었습니다. 새 페어링 코드를 생성하세요.</string>
+    <string name="settings_host_code_expiry">5분 동안 유효</string>
+    <string name="settings_host_code_renew">새 페어링 코드</string>
+    <string name="settings_host_copy_address">연결 주소 복사</string>
+    <string name="settings_host_copied">주소를 복사했습니다</string>
+    <string name="settings_host_browser_name">Tesla 브라우저</string>
+    <string name="settings_host_prepare">Android 호스트 준비</string>
+    <string name="settings_host_setup_iphone">iPhone 연결</string>
+    <string name="settings_host_setup_entry">브라우저 접속 주소 선택</string>
+    <string name="settings_host_prepare_hint">이 Android 호스트의 권한과 네트워크를 설정하세요.</string>
+    <string name="settings_host_iphone_hint">iPhone을 이 Android 호스트와 Bluetooth로 페어링한 후 연결하세요. USB 케이블도 이 호스트에 연결합니다.</string>
+    <string name="settings_host_gateway_hint">HTTPS 주소만 저장합니다. 게이트웨이, DNS 및 인증서는 별도로 설정해야 합니다. 도메인이 제한된 사설 주소를 가리키면 Tesla에서 계속 차단될 수 있습니다.</string>
+    <string name="settings_host_entry">브라우저 접속 주소</string>
+    <string name="settings_host_entry_invalid">경로, 로그인 정보 또는 페어링 코드가 없는 HTTPS 호스트 이름을 입력하세요.</string>
+    <string name="settings_host_display_audio">화면 및 소리</string>
+    <string name="settings_browser_hevc">HEVC 영상 (실험 기능)</string>
+    <string name="settings_browser_hevc_description">iPhone의 HEVC 영상을 Android에서 변환하지 않고 전달합니다. 차량 브라우저가 HEVC WebRTC를 지원해야 합니다. 다음 CarPlay 연결부터 적용됩니다.</string>
+</resources>

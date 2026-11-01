@@ -1,0 +1,29 @@
+<resources>
+    <string name="settings_host_connect_browser">車載ブラウザを接続</string>
+    <string name="settings_host_open_browser">Tesla ブラウザで次のアドレスを開き、コードを入力してください</string>
+    <string name="settings_host_settings">ホスト設定</string>
+    <string name="settings_host_connected">接続済み</string>
+    <string name="settings_host_phone_waiting">iPhone の接続待ち</string>
+    <string name="settings_host_browser_connected">ブラウザ接続済み</string>
+    <string name="settings_host_browser_waiting">ブラウザの接続待ち</string>
+    <string name="settings_host_entry_pending">ホストのネットワーク待ち</string>
+    <string name="settings_host_https_configured">HTTPS 接続先を設定済み</string>
+    <string name="settings_host_direct">HTTP 直接接続</string>
+    <string name="settings_host_code_expired">コードの有効期限が切れました。新しいコードを生成してください。</string>
+    <string name="settings_host_code_expiry">有効期限は5分間</string>
+    <string name="settings_host_code_renew">新しいペアリングコード</string>
+    <string name="settings_host_copy_address">接続アドレスをコピー</string>
+    <string name="settings_host_copied">アドレスをコピーしました</string>
+    <string name="settings_host_browser_name">Tesla ブラウザ</string>
+    <string name="settings_host_prepare">Android ホストを準備</string>
+    <string name="settings_host_setup_iphone">iPhone を接続</string>
+    <string name="settings_host_setup_entry">ブラウザの接続先を選択</string>
+    <string name="settings_host_prepare_hint">この Android ホストの権限とネットワークを設定してください。</string>
+    <string name="settings_host_iphone_hint">iPhone をこの Android ホストと Bluetooth でペアリングして接続します。USB ケーブルもこのホストに接続します。</string>
+    <string name="settings_host_gateway_hint">HTTPS アドレスのみを保存します。ゲートウェイ、DNS、証明書は別途設定してください。ドメインが制限対象のプライベートアドレスを指す場合、Tesla からアクセスできないことがあります。</string>
+    <string name="settings_host_entry">ブラウザ接続先</string>
+    <string name="settings_host_entry_invalid">パス、認証情報、ペアリングコードを含まない HTTPS ホスト名を入力してください。</string>
+    <string name="settings_host_display_audio">表示とサウンド</string>
+    <string name="settings_browser_hevc">HEVC 映像（実験的機能）</string>
+    <string name="settings_browser_hevc_description">iPhone の HEVC 映像を Android で変換せず転送します。車載ブラウザが HEVC WebRTC に対応している必要があります。次回の CarPlay 接続から適用されます。</string>
+</resources>

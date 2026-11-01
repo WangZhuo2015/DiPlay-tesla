@@ -1,8 +1,8 @@
-:root { color-scheme:dark; --bg:#080d16; --panel:#141e2d; --text:#eef4fc; --muted:#a4b6cb; --line:#34445b; --accent:#94c4ff; --warning:#ffafaf; --gap:12px; --edge:16px; --control:48px; --panel-padding:24px; }
+:root { color-scheme:dark; --bg:#0c111b; --panel:#151e2c; --text:#f1f5fc; --muted:#a8b6ca; --line:#2a384b; --accent:#a6c8ff; --on-accent:#0c111b; --warning:#ffc480; --gap:12px; --edge:16px; --control:56px; --panel-padding:24px; --block-gap:24px; --inline-gap:8px; --surface-inset:16px; --radius:calc(var(--control) * .22); --menu-max:960px; }
 * { box-sizing:border-box; }
 [hidden] { display:none !important; }
 body { margin:0; height:100vh; height:100dvh; overflow:hidden; background:var(--bg); color:var(--text); font:16px/1.45 system-ui,sans-serif; }
-body.light { color-scheme:light; --bg:#f1f5fa; --panel:#fff; --text:#15253b; --muted:#405773; --line:#94a9c2; --accent:#174f96; --warning:#962b2b; }
+body.light { color-scheme:light; --bg:#f1f5fa; --panel:#fff; --text:#15253b; --muted:#405773; --line:#94a9c2; --accent:#174f96; --on-accent:#fff; --warning:#962b2b; }
 button,input,select { font:inherit; color:inherit; min-height:var(--control); border:1px solid var(--line); border-radius:calc(var(--control) * .22); padding:8px 14px; background:var(--panel); }
 button { cursor:pointer; }
 button:hover { border-color:var(--accent); }
@@ -73,3 +73,36 @@ dd { margin:0; text-align:end; overflow-wrap:anywhere; font-variant-numeric:tabu
 dd { unicode-bidi:plaintext; }
 @media(max-width:760px) { :root { --edge:8px; } button { padding-inline:10px; } }
 @media(max-width:420px) { :root { --panel-padding:16px; } .sizes,.menuActions,.presetActions { grid-template-columns:1fr; } }
+
+/* Remote-host visual system: the everyday controls come first; host tuning stays in details. */
+.menuOverlay .hostMenu { width:min(var(--menu-max),calc(100% - 2 * var(--edge))); }
+.hostMenu header { align-items:flex-start; margin-block-end:var(--block-gap); }
+.hostMenu header > div { min-width:0; }
+.hostMenu h1 { font-size:1.65em; letter-spacing:-.025em; overflow-wrap:anywhere; }
+.eyebrow { margin:0 0 var(--inline-gap); font-size:.85em; color:var(--muted); }
+.hostMenu .menuConnection { display:block; padding:var(--surface-inset); background:var(--bg); border-radius:var(--radius); }
+.menuConnection #status { font-weight:600; }
+.menuConnection #transportStatus { margin-block-start:var(--inline-gap); color:var(--muted); font-size:.85em; overflow-wrap:anywhere; }
+.videoExplanation { color:var(--muted); font-size:.85em; }
+.soundSection { padding-block:var(--block-gap); border-block:1px solid var(--line); margin-block:var(--block-gap); }
+.soundHeading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--gap); margin-block-end:var(--block-gap); }
+.soundHeading h2 { font-size:1.15em; margin:0; }
+.soundHeading button { max-width:100%; }
+.audioVolumes { grid-template-columns:repeat(auto-fit,minmax(min(100%,17rem),1fr)); gap:var(--surface-inset); }
+.audioVolume { gap:var(--inline-gap); padding:var(--surface-inset); background:var(--bg); border:1px solid var(--line); border-radius:var(--radius); }
+.audioVolume label { color:var(--muted); }
+.audioVolume output { font-size:1.5em; font-weight:600; color:var(--accent); }
+#volumeHint { font-size:.85em; margin-block:var(--surface-inset) 0; }
+#audioAdvanced { margin-block-start:var(--gap); }
+#audioAdvanced > summary { color:var(--muted); }
+#audioAdvanced .navigationVolume { border:0; padding:0; margin-block:var(--surface-inset); }
+#audioAdvanced .audioBuffer { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--gap); }
+#audioAdvanced p { font-size:.85em; }
+.menuActions { grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--gap); margin-block-end:var(--block-gap); }
+.primaryAction { background:var(--accent); color:var(--on-accent); border-color:var(--accent); font-weight:600; }
+.hostMenu > details { border-block-start:1px solid var(--line); }
+#pairing { width:min(440px,calc(100% - 2 * var(--edge))); }
+#pairing h1 { font-size:1.8em; letter-spacing:-.025em; }
+#pairing #token { direction:ltr; text-align:center; font-size:2em; letter-spacing:.12em; min-height:calc(var(--control) * 1.5); background:var(--bg); border-radius:var(--radius); }
+#pairing button { width:100%; }
+@media(max-width:420px) { .hostMenu h1 { font-size:1.4em; } .menuActions { grid-template-columns:1fr; } }

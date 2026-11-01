@@ -20,6 +20,14 @@ class BrowserPairing(
         }
     }
 
+    /** Reading the host dashboard must not extend the five-minute window or reset wrong attempts. */
+    @Synchronized fun currentCode(): String? = code?.takeIf {
+        nowMillis() - openedAt in 0 until WINDOW_MILLIS && failedAttempts < MAX_ATTEMPTS
+    }
+
+    /** Only the first owner-opened dashboard starts a window; expiry requires an explicit renewal. */
+    @Synchronized fun beginIfAbsent(): String? = if (code == null) begin() else currentCode()
+
     @Synchronized fun accept(candidate: String): Boolean {
         val expected = code ?: return false
         if (nowMillis() - openedAt !in 0 until WINDOW_MILLIS || failedAttempts >= MAX_ATTEMPTS) return false

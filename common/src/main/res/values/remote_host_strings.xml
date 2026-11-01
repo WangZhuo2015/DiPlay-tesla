@@ -1,0 +1,29 @@
+<resources>
+    <string name="settings_host_connect_browser">Connect the car browser</string>
+    <string name="settings_host_open_browser">Open this address in the Tesla browser and enter the code</string>
+    <string name="settings_host_settings">Host settings</string>
+    <string name="settings_host_connected">Connected</string>
+    <string name="settings_host_phone_waiting">Waiting for iPhone</string>
+    <string name="settings_host_browser_connected">Browser connected</string>
+    <string name="settings_host_browser_waiting">Waiting for browser</string>
+    <string name="settings_host_entry_pending">Waiting for host network</string>
+    <string name="settings_host_https_configured">HTTPS entry configured</string>
+    <string name="settings_host_direct">HTTP direct access</string>
+    <string name="settings_host_code_expired">Code expired. Generate a new code to pair.</string>
+    <string name="settings_host_code_expiry">Valid for five minutes</string>
+    <string name="settings_host_code_renew">New pairing code</string>
+    <string name="settings_host_copy_address">Copy connection address</string>
+    <string name="settings_host_copied">Address copied</string>
+    <string name="settings_host_browser_name">Tesla browser</string>
+    <string name="settings_host_prepare">Prepare the Android host</string>
+    <string name="settings_host_setup_iphone">Connect your iPhone</string>
+    <string name="settings_host_setup_entry">Choose the browser entry</string>
+    <string name="settings_host_prepare_hint">Review permissions and configure the network on this Android host.</string>
+    <string name="settings_host_iphone_hint">Pair the iPhone with this Android host over Bluetooth, then connect. A USB cable also connects to this host.</string>
+    <string name="settings_host_gateway_hint">This saves an HTTPS address only. Deploy the gateway, DNS and certificate separately. A domain pointing to a restricted private address may still be blocked by Tesla.</string>
+    <string name="settings_host_entry">Browser entry</string>
+    <string name="settings_host_entry_invalid">Enter an HTTPS hostname without a path, login or pairing code.</string>
+    <string name="settings_host_display_audio">Display and sound</string>
+    <string name="settings_browser_hevc">HEVC video (experimental)</string>
+    <string name="settings_browser_hevc_description">Allow iPhone HEVC video passthrough. The car browser must support HEVC over WebRTC. Applies at the next CarPlay connection; Android does not transcode the video.</string>
+</resources>

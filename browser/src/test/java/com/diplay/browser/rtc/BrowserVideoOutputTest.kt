@@ -17,6 +17,45 @@ import java.util.concurrent.atomic.AtomicLong
 
 @RunWith(RobolectricTestRunner::class) @Config(sdk=[29])
 class BrowserVideoOutputTest {
+    @Test fun hevcIsRelayedWithoutTouchingTheAndroidJpegDecoderAndDropsRaslAfterCra() {
+        val jpegCalls = AtomicInteger()
+        val offers = LinkedBlockingQueue<JSONObject>()
+        val frames = LinkedBlockingQueue<ByteArray>()
+        var selected: com.shilapi.xcertplay.airplay.VideoCodec? = null
+        val output = BrowserVideoOutput(object : MediaSink {
+            override fun onVideoCodec(type: Int, codec: com.shilapi.xcertplay.airplay.VideoCodec) { jpegCalls.incrementAndGet() }
+            override fun onVideoConfig(type: Int, codecData: ByteArray) { jpegCalls.incrementAndGet() }
+            override fun onVideoFrame(type: Int, naluBytes: ByteArray) { jpegCalls.incrementAndGet() }
+        }, {}) { event -> object : RtcPeer {
+            override fun start(profile: String) { error("HEVC codec was lost") }
+            override fun start(codec: com.shilapi.xcertplay.airplay.VideoCodec, profile: String) {
+                selected = codec; assertTrue(profile.contains("level-id=120"))
+                event("offer", "HEVC SDP"); event("connected", "")
+            }
+            override fun answer(sdp: String) {}
+            override fun send(frame: ByteArray, timestamp: Long): Boolean { frames.offer(frame); return true }
+            override fun close() {}
+        } }
+        try {
+            output.onVideoCodec(110, com.shilapi.xcertplay.airplay.VideoCodec.H265)
+            output.onVideoConfig(110, HevcTestData.config())
+            output.attach(true) { if (it.getString("type") == "rtc-offer") offers.offer(it); true }
+            val offer = offers.poll(2, TimeUnit.SECONDS)!!
+            assertEquals("H265", offer.getString("codec"))
+            assertEquals(com.shilapi.xcertplay.airplay.VideoCodec.H265, selected)
+            output.command(JSONObject().put("type", "rtc-ready").put("id", offer.getLong("id")))
+            val worker = ReflectionHelpers.getField<ScheduledExecutorService>(output, "worker")
+            worker.submit {}.get(2, TimeUnit.SECONDS)
+            output.onVideoFrame(110, HevcTestData.frame(21))
+            output.onVideoFrame(110, HevcTestData.frame(8))
+            output.onVideoFrame(110, HevcTestData.frame(1))
+            val key = frames.poll(2, TimeUnit.SECONDS)!!
+            assertArrayEquals(RtcVideoConfig.parse(com.shilapi.xcertplay.airplay.VideoCodec.H265, HevcTestData.config()).parameters + HevcTestData.frame(21), key)
+            assertArrayEquals(HevcTestData.frame(1), frames.poll(2, TimeUnit.SECONDS))
+            assertNull(frames.poll(100, TimeUnit.MILLISECONDS))
+            assertEquals(0, jpegCalls.get())
+        } finally { output.close() }
+    }
     @Test fun avccFramesKeepOneOwnedAnnexBPayloadAndOnlyIdrCarriesParameters() {
         Fixture(4_000).use { fixture ->
             val idr = byteArrayOf(0, 0, 0, 2, 0x09, 0x10, 0, 0, 0, 3, 0x65, 0x20, 0x30)
@@ -89,7 +128,7 @@ class BrowserVideoOutputTest {
             ReflectionHelpers.getField<ScheduledExecutorService>(output, "worker").submit {
                 ReflectionHelpers.callInstanceMethod<Unit>(output, "checkHealth")
             }.get(2, TimeUnit.SECONDS)
-            assertEquals(1, attempts.get()); assertEquals("jpeg", output.transport)
+            assertEquals(1, attempts.get()); assertEquals("waiting", output.transport)
         } finally { output.close() }
     }
 
@@ -105,7 +144,7 @@ class BrowserVideoOutputTest {
             fixture.clock.set(5_000_000_000); fixture.tick()
             val offer = fixture.nextOffer()
             assertNotEquals(oldId, offer.getLong("id"))
-            assertEquals("Negotiation must not hide JPEG", "jpeg", fixture.output.transport)
+            assertEquals("Negotiation must not claim JPEG playback", "waiting", fixture.output.transport)
             fixture.output.onVideoFrame(110, byteArrayOf(0, 0, 0, 1, 0x65, 1))
             assertEquals(2, fixture.jpegFrames.get())
             fixture.ready()
@@ -130,6 +169,15 @@ class BrowserVideoOutputTest {
             fixture.output.onVideoConfig(110, byteArrayOf(1,0x42,0,0x20,-1,-31,0,4,0x67,0x42,0,0x20,1,0,2,0x68,0))
             fixture.nextOffer(); fixture.ready()
             assertEquals("webrtc", fixture.output.transport)
+        }
+    }
+
+    @Test fun browserFailureKeepsASafeConcreteCauseForDeviceDiagnostics() {
+        Fixture(4_000).use { fixture ->
+            fixture.output.command(JSONObject().put("type", "rtc-fallback").put("id", fixture.offer.getLong("id"))
+                .put("reason", "connection-timeout").put("retryable", false))
+            assertEquals("connection-timeout", fixture.message("rtc-stop").getString("reason"))
+            assertEquals("connection-timeout", fixture.output.fallbackReason)
         }
     }
 
@@ -181,7 +229,7 @@ class BrowserVideoOutputTest {
             fixture.barrier()
             fixture.clock.set(5_000_000_000)
             assertEquals("disconnected-timeout", fixture.message("rtc-stop").getString("reason"))
-            assertEquals("jpeg", fixture.output.transport)
+            assertEquals("waiting", fixture.output.transport)
             assertEquals(1, fixture.peer.closed.get())
             fixture.output.onVideoFrame(110, byteArrayOf(0, 0, 0, 1, 0x65, 1))
             assertEquals(1, fixture.jpegFrames.get())
@@ -189,7 +237,7 @@ class BrowserVideoOutputTest {
         Fixture(30_000).use { fixture ->
             fixture.peer.event("failed", "")
             assertEquals("connection-failed", fixture.message("rtc-stop").getString("reason"))
-            assertEquals("jpeg", fixture.output.transport)
+            assertEquals("waiting", fixture.output.transport)
             assertEquals(1, fixture.peer.closed.get())
         }
     }
@@ -228,7 +276,7 @@ class BrowserVideoOutputTest {
                 assertNull("Every replacement keyframe expired before native send", fixture.peer.frames.poll())
             }
             assertEquals("send-timeout", fixture.message("rtc-stop").getString("reason"))
-            assertEquals("jpeg", fixture.output.transport)
+            assertEquals("waiting", fixture.output.transport)
             assertEquals(1L, fixture.output.sentFrames)
             assertEquals("Queue expiry is not a failed native send call", 0L, fixture.output.sendFailures)
             fixture.output.onVideoFrame(110, byteArrayOf(0, 0, 0, 1, 0x65, 1))
@@ -435,8 +483,8 @@ class BrowserVideoOutputTest {
             assertTrue("Encoded frame was stranded in the queue",sent.await(2,TimeUnit.SECONDS));assertEquals(0,jpegFrames)
             output.command(JSONObject().put("type","rtc-fallback").put("id",id))
             val fallback=System.nanoTime()+2_000_000_000
-            while(output.transport!="jpeg" && System.nanoTime()<fallback)Thread.sleep(5)
-            assertEquals("jpeg",output.transport)
+            while(output.transport!="waiting" && System.nanoTime()<fallback)Thread.sleep(5)
+            assertEquals("waiting",output.transport)
             output.onVideoFrame(110,byteArrayOf(0,0,0,1,0x65,1));assertEquals(1,jpegFrames)
             jpegDiagnostic?.invoke("first frame rendered")
             assertEquals("JPEG fallback must not duplicate the session playback proof",1,rendered.get())

@@ -40,7 +40,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
   const read = key => { try { return localStorage.getItem(key); } catch (_) { return null; } };
   const save = (key,value) => { try { localStorage.setItem(key,String(value)); } catch (_) {} };
   const recoveryValue = value => [4000,10000,30000].includes(Number(value)) ? Number(value) : 10000;
-  let selectedGrace = recoveryValue(read(recoveryKey));
+  let selectedGrace = recoveryValue(read(recoveryKey)), busy = false;
   let selectedMode = read('diplay-video') === 'jpeg' ? 'jpeg' : 'auto';
   let socket = null, session = null, generation = 0, lastOfferId = -1, displayed = false;
   let connecting = false, disposed = false, retry = null, stats = {};
@@ -77,14 +77,14 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     video.pause(); video.srcObject = null; video.hidden = true;
     // A JPEG-to-JPEG automatic retry must not cancel a drag/long press in app.js.
     // Closing the owning control connection still releases input even if it was JPEG.
-    if (wasDisplayed || connectionEnded) onTransport('jpeg');
+    if (wasDisplayed || connectionEnded) onTransport(selectedMode === 'jpeg' ? 'jpeg' : 'waiting');
     if (!reason) stats = {};
     publishStats({decodedFps:null,dropped:null,recoveryGraceMs:old?.health.graceMs ?? selectedGrace,
       recovering:false,fallbackReason:reason});
   }
   function fallback(state,reason,retryable = true) {
     if (!current(state)) return;
-    send({type:'rtc-fallback',id:state.id,...(retryable ? {} : {retryable:false})});
+    send({type:'rtc-fallback',id:state.id,reason,...(retryable ? {} : {retryable:false})});
     stopRtc(reason);
   }
   function checkHealth(state,at) {
@@ -122,6 +122,14 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     stopRtc(); lastOfferId = message.id;
     let state = null;
     try {
+      if (message.codec === 'H265' && typeof RTCRtpReceiver !== 'undefined' && typeof RTCRtpReceiver.getCapabilities === 'function') {
+        let codecs;
+        try { codecs = RTCRtpReceiver.getCapabilities('video')?.codecs; } catch (_) { /* SDP remains authoritative. */ }
+        if (Array.isArray(codecs) && !codecs.some(codec => codec.mimeType?.toLowerCase() === 'video/h265')) {
+          send({type:'rtc-fallback',id:message.id,reason:'hevc-unsupported',retryable:false});
+          stopRtc('hevc-unsupported'); return;
+        }
+      }
       const rtc = new RTCPeerConnection({iceServers:[]});
       state = {rtc,socket:ws,generation:ticket,id:message.id,
         health:createRtcHealth(now(),message.recoveryGraceMs),displayed:false,stream:null,
@@ -167,13 +175,16 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
       if (!current(state)) return;
       const answer = await rtc.createAnswer();
       if (!current(state)) return;
-      if (/^m=video 0(?: |\r?$)/m.test(answer.sdp)) { fallback(state,'video-unsupported',false); return; }
+      if (/^m=video 0(?: |\r?$)/m.test(answer.sdp)) {
+        fallback(state,message.codec === 'H265' ? 'hevc-unsupported' : 'video-unsupported',false); return;
+      }
       await rtc.setLocalDescription(answer);
       if (!current(state) || !await waitForGathering(state) || !current(state)) return;
       send({type:'rtc-answer',id:state.id,sdp:rtc.localDescription.sdp});
     } catch (error) {
       // An old same-id offer may reject after a replacement has already started.
-      if (state) { if (current(state)) fallback(state,'negotiation-failed',retryableRtcError(error)); }
+      if (state) { if (current(state)) fallback(state,
+        message.codec === 'H265' && error?.name === 'NotSupportedError' ? 'hevc-unsupported' : 'negotiation-failed',retryableRtcError(error)); }
       else if (socketCurrent(ws,ticket) && lastOfferId === message.id && session === null) {
         send({type:'rtc-fallback',id:message.id,...(retryableRtcError(error) ? {} : {retryable:false})});
         stopRtc('transport-unavailable');
@@ -204,12 +215,22 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     try { pending = state.rtc.getStats(); } catch (_) { failed(); return; }
     Promise.resolve(pending).then(reports => {
       if (!valid()) return;
-      let decoded = null, dropped = null;
+      let decoded = null, dropped = null, counters = {};
       try {
         reports.forEach(report => {
           if (report.type !== 'inbound-rtp' || (report.kind !== 'video' && report.mediaType !== 'video')) return;
           if (Number.isSafeInteger(report.framesDecoded) && report.framesDecoded >= 0) decoded = report.framesDecoded;
           if (Number.isSafeInteger(report.framesDropped) && report.framesDropped >= 0) dropped = report.framesDropped;
+          for (const key of ['bytesReceived','packetsReceived']) {
+            if (Number.isSafeInteger(report[key]) && report[key] >= 0) counters[key] = report[key];
+          }
+        });
+        reports.forEach(report => {
+          if (report.type !== 'candidate-pair' || report.state !== 'succeeded' || !report.nominated) return;
+          const remote = reports.get?.(report.remoteCandidateId);
+          if (['host','srflx','prflx','relay'].includes(remote?.candidateType)) counters.remoteKind=remote.candidateType;
+          const address=remote?.address;
+          if (typeof address === 'string') counters.remoteFamily=address.endsWith('.local')?'mdns':address.includes(':')?'ipv6':/^\d+\.\d+\.\d+\.\d+$/.test(address)?'ipv4':undefined;
         });
       } catch (_) { failed(); return; }
       // Unsupported receiver counters remain unknown; do not invent decoded or delivered frames.
@@ -219,7 +240,8 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
       const decodedFps = state.sampledAt !== null && elapsed > 0 && decoded >= state.sampledFrames ?
         (decoded - state.sampledFrames) * 1000 / elapsed : null;
       state.sampledAt = sampled; state.sampledFrames = decoded;
-      send({type:'rtc-feedback',id:state.id,decoded});
+      send({type:'rtc-feedback',id:state.id,decoded,...(dropped===null?{}:{dropped}),...counters,
+        width:video.videoWidth,height:video.videoHeight,connection:state.rtc.connectionState,ice:state.rtc.iceConnectionState});
       const expired = state.health.sample(decoded,sampled,state.displayed);
       publishRecovery(state,sampled,{decodedFps,dropped});
       if (expired) checkHealth(state,sampled);
@@ -255,9 +277,8 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
       connecting = false;
       const token = getToken();
       if (!token) { close(); return; }
-      send({type:'hello',token,rtc:selectedMode !== 'jpeg' && typeof RTCPeerConnection === 'function',
+      send({type:'hello',token,videoMode:selectedMode,rtc:selectedMode !== 'jpeg' && typeof RTCPeerConnection === 'function',
         recoveryGraceMs:selectedGrace});
-      audioPreference.start();
     };
     ws.onmessage = event => {
       if (!socketCurrent(ws,ticket)) return;
@@ -265,7 +286,11 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
       let data;
       try { data = JSON.parse(event.data); } catch (_) { return; }
       if (!data || typeof data !== 'object') return;
-      if (data.type === 'rtc-offer' && Number.isSafeInteger(data.id) && typeof data.sdp === 'string') offer(data,ws,ticket);
+      if (data.type === 'media-busy') {
+        if (!busy) { busy = true; audio.disable(); stopRtc('media-busy'); onTransport('waiting'); }
+      } else if (data.type === 'welcome') {
+        busy = false; publishStats({fallbackReason:null}); audioPreference.start();
+      } else if (data.type === 'rtc-offer' && Number.isSafeInteger(data.id) && typeof data.sdp === 'string') offer(data,ws,ticket);
       else if (data.type === 'rtc-progress' && current(session) && data.id === session.id) {
         const state = session, at = now(), received = {};
         if (Number.isSafeInteger(data.sent) && data.sent >= 0) state.health.source(data.sent,at);
@@ -291,6 +316,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     ws.onerror = () => { if (socketCurrent(ws,ticket)) ws.close(); };
   }
   function close() {
+    busy = false;
     generation++; clearTimeout(retry); retry = null; connecting = false;
     const old = socket; socket = null;
     if (old) { clearSocketHandlers(old); old.close(); }
@@ -306,6 +332,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
   }
   return {open,close,audio,audioPreference,configureVideo,
     get mode() { return selectedMode; },
+    get busy() { return busy; },
     setAudioVolume(role,value) {
       const percent = audio.setVolume(role,value);
       if (percent !== null) save(volumeKeys[role],percent);
