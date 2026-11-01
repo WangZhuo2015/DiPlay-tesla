@@ -103,6 +103,7 @@ export async function verifyVideoPresentation(page,scenario,capture) {
       callbackWorkMs:p.callbackWorkMs,hiddenRowAdditions:p.hiddenRowAdditions};});
   assert.equal(probe.maxOutstanding,1);assert.ok(probe.minimumGapMs>=990,JSON.stringify(probe));
   assert.equal(probe.hiddenRowAdditions,0);
+  await page.locator('#diagnostics > summary').click();
   await page.keyboard.press('Escape');await page.locator('#menuPanel').waitFor({state:'hidden'});
   return {healthy,paused,injectedCallbackStall:stalled,probe,layout,
     hiddenSampling:true,newRowsOnlyWhenVisible:true,noAutomaticRecovery:true,
