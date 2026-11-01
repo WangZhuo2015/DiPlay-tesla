@@ -287,8 +287,8 @@ try {
         video:{width:document.getElementById('video').videoWidth,hidden:document.getElementById('video').hidden}})));
       throw error;
     }
-    assert.equal(await page.locator('#picture').isVisible(),false);
     const presentationChecks=await verifyVideoPresentation(page,scenario,capture);
+    assert.equal(await page.locator('#picture').isVisible(),false);
     console.log('Native video received');
     const volumes=await verifyVolumes(page,scenario);
     console.log('Volume controls, menu layout and reload persistence checked');

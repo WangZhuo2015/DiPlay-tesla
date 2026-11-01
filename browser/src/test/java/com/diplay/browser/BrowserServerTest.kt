@@ -68,9 +68,6 @@ class BrowserServerTest {
             val presets = request("/display-presets.js", auth = false)
             assertEquals(200, presets.first)
             assertTrue(String(presets.second).contains("export function displayPreset"))
-            val presentation = request("/video-presentation.js", auth = false)
-            assertEquals(200, presentation.first)
-            assertTrue(String(presentation.second).contains("export function createVideoPresentation"))
             for (asset in listOf("browser-touch.js", "stream-summary.js", "rtc-renderer.js", "rtc-health.js", "media.js", "navigation-volume.js")) {
                 assertEquals(200, request("/$asset", auth = false).first)
             }
@@ -117,6 +114,9 @@ class BrowserServerTest {
             assertEquals(BrowserDisplay(), selected)
             assertEquals(0, touches)
             assertFalse("Navigation volume must not renew JPEG demand", frames.hasDemand())
+            val presentation = request("/video-presentation.js", auth = false)
+            assertEquals(200, presentation.first)
+            assertTrue(String(presentation.second).contains("export function createVideoPresentation"))
             assertEquals(204, request("/api/frame").first)
             assertTrue("An authenticated viewer should wake the decoder", frames.hasDemand())
             frames.publish(byteArrayOf(1,2,3))
