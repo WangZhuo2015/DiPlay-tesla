@@ -154,3 +154,68 @@ test('browsers without cancelAndHoldAtTime use the bounded ramp fallback',async(
   audio.setVolume('music',50);
   assert.deepEqual(parameter.events,[['cancel',0],['set',1,0],['ramp',.5,.03]]);audio.close();
 });
+
+async function workletFixture(run,load=Promise.resolve()) {
+  const f=fixture(),nodes=[],calls=[];
+  const previous=Object.getOwnPropertyDescriptor(globalThis,'AudioWorkletNode');
+  f.context.sampleRate=48000;f.context.audioWorklet={addModule:()=>load};
+  Object.defineProperty(globalThis,'AudioWorkletNode',{configurable:true,value:class {
+    constructor(){this.port={close(){}};nodes.push(this);}
+    connect(target,output){calls.push(['connect',output,target]);}
+    disconnect(){this.disconnected=true;}
+  }});
+  const transport={bindAudio:(port,options)=>calls.push(['bind',port,options]),
+    unbindAudio:()=>calls.push(['unbind']),audioBuffer:ms=>calls.push(['buffer',ms]),stopAudio:id=>calls.push(['stop',id])};
+  f.audio.setTransport(transport);
+  try {await run({...f,nodes,calls,transport});}
+  finally {f.audio.close();if(previous)Object.defineProperty(globalThis,'AudioWorkletNode',previous);else delete globalThis.AudioWorkletNode;}
+}
+
+test('worklet owns PCM playback while existing gains and packet-independent controls remain live',async()=>{
+  await workletFixture(async({audio,nodes,calls,transport,gains,started})=>{
+    await audio.enable();
+    assert.equal(audio.stats().engine,'worklet');
+    assert.deepEqual(calls.filter(c=>c[0]==='connect').map(c=>c[1]),[0,1,2]);
+    assert.equal(calls.find(c=>c[0]==='bind')[2].sampleRate,48000);
+    transport.onaudiostats({queuedMs:400,underruns:3,musicUnderruns:3,navigationUnderruns:0});
+    assert.equal(audio.stats().queuedMs,400);assert.equal(audio.stats().musicUnderruns,3);
+    audio.setVolume('music',35);assert.equal(gains[0].gain.value,.35);
+    audio.setBuffer(400);assert.ok(calls.some(c=>c[0]==='buffer'&&c[1]===400));
+    audio.stopped(9);assert.ok(calls.some(c=>c[0]==='stop'&&c[1]===9));
+    assert.equal(started.length,0);
+    audio.disable();assert.equal(nodes[0].disconnected,true);
+    transport.onaudiostats({queuedMs:999,underruns:999});
+    assert.equal(audio.stats().underruns,3);assert.equal(audio.enabled,false);
+  });
+});
+
+test('worklet module failure explicitly falls back to native-rate legacy audio on the same transport',async()=>{
+  await workletFixture(async({audio,started})=>{
+    await audio.enable();
+    assert.equal(audio.enabled,true);assert.equal(audio.stats().engine,'compatibility');
+    assert.equal(audio.stats().playbackError,'worklet-unavailable');
+    audio.receive(packet(1,44100,2,882,1));
+    assert.equal(started[0].buffer.rate,44100);
+  },Promise.reject(new Error('Module unavailable')));
+});
+
+test('disabling audio while its module loads cannot attach a late playback port',async()=>{
+  let ready;
+  await workletFixture(async({audio,nodes,calls})=>{
+    const pending=audio.enable();audio.disable();ready();
+    assert.equal(await pending,false);assert.equal(nodes.length,0);
+    assert.ok(!calls.some(c=>c[0]==='bind'));
+  },new Promise(resolve=>ready=resolve));
+});
+
+test('processor failure keeps saved volumes and restores compatibility without a reconnect or gesture',async()=>{
+  await workletFixture(async({audio,nodes,started,gains})=>{
+    audio.setVolume('music',42);await audio.enable();
+    nodes[0].onprocessorerror();
+    assert.equal(audio.enabled,true);assert.equal(audio.stats().playbackError,'processor-failed');
+    assert.equal(nodes[0].disconnected,true);
+    audio.receive(packet(1));
+    assert.equal(started.length,1);assert.equal(gains[0].gain.value,.42);
+    await audio.enable();assert.equal(nodes.length,1);
+  });
+});

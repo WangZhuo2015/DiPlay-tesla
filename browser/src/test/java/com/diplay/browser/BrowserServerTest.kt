@@ -68,7 +68,8 @@ class BrowserServerTest {
             val presets = request("/display-presets.js", auth = false)
             assertEquals(200, presets.first)
             assertTrue(String(presets.second).contains("export function displayPreset"))
-            for (asset in listOf("browser-touch.js", "stream-summary.js", "rtc-renderer.js", "rtc-health.js", "media.js", "navigation-volume.js")) {
+            for (asset in listOf("browser-touch.js", "stream-summary.js", "rtc-renderer.js", "rtc-health.js", "media.js",
+                "navigation-volume.js", "audio-packet.js", "audio-worklet.js", "media-worker.js", "media-socket.js")) {
                 assertEquals(200, request("/$asset", auth = false).first)
             }
             assertEquals(401, request("/api/status",auth = false).first)

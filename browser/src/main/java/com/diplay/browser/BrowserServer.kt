@@ -87,6 +87,8 @@ class BrowserServer(
                     "/app.js" -> "app.js" to "text/javascript; charset=utf-8"
                     "/media.js", "/browser-audio.js", "/rtc-health.js", "/rtc-renderer.js", "/display-presets.js",
                     "/browser-touch.js", "/stream-summary.js", "/navigation-volume.js" -> session.uri.drop(1) to "text/javascript; charset=utf-8"
+                    "/audio-packet.js", "/audio-worklet.js", "/media-worker.js", "/media-socket.js" ->
+                        session.uri.drop(1) to "text/javascript; charset=utf-8"
                     "/style.css" -> "style.css" to "text/css; charset=utf-8"
                     "/rtc-licenses.txt" -> "rtc-licenses.txt" to "text/plain; charset=utf-8"
                     else -> return reply(Response.Status.NOT_FOUND)
