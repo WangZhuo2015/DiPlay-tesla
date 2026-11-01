@@ -19,6 +19,36 @@ import java.io.File
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [29], application = Application::class)
 class BrowserEntryProfileTest {
+    @Test fun mediaBindsOnlyToAnAddressOwnedByThisHost() {
+        val alias = java.net.InetAddress.getByName("7.7.7.1")
+        val lan = java.net.InetAddress.getByName("192.168.0.1")
+        val remote = java.net.InetAddress.getByName("203.0.113.1")
+        val own = { setOf(alias, lan) }
+        assertEquals("7.7.7.1", BrowserEntryProfile.mediaBindAddress("https://carplay.example.invalid",
+            { listOf(remote, alias) }, own))
+        assertEquals("192.168.0.1", BrowserEntryProfile.mediaBindAddress("https://carplay.example.invalid",
+            { listOf(lan) }, own))
+        assertNull(BrowserEntryProfile.mediaBindAddress("https://remote.example.invalid", { listOf(remote) }, own))
+        assertNull(BrowserEntryProfile.mediaBindAddress("https://missing.example.invalid", { throw java.net.UnknownHostException() }, own))
+        assertNull(BrowserEntryProfile.mediaBindAddress(null, { error("No DNS expected") }, own))
+        val loopback = java.net.InetAddress.getByName("127.0.0.1")
+        assertNull(BrowserEntryProfile.mediaBindAddress("https://carplay.example.invalid", { listOf(loopback) }, { setOf(loopback) }))
+    }
+    @Test fun editingAnEntryOnlyPersistsAValidatedOriginAndInvalidEditsPreserveIt() {
+        val context = RuntimeEnvironment.getApplication()
+        val file = File(context.noBackupFilesDir, BrowserEntryProfile.FILE_NAME)
+        try {
+            BrowserEntryProfile.save(context, "https://carplay.example.invalid:443/")
+            assertEquals("https://carplay.example.invalid", BrowserEntryProfile.load(context))
+            val previous = file.readBytes()
+            for (value in listOf("http://carplay.example.invalid", "https://192.168.0.1", "https://carplay.example.invalid/?code=123456")) {
+                try { BrowserEntryProfile.save(context, value); fail(value) } catch (_: IllegalArgumentException) { }
+                assertArrayEquals(previous, file.readBytes())
+            }
+            BrowserEntryProfile.save(context, null)
+            assertNull(BrowserEntryProfile.load(context))
+        } finally { file.delete() }
+    }
     @Test fun localGatewayOriginSupportsStandardAndCustomTlsPorts() {
         assertEquals("https://carplay.example.invalid", BrowserEntryProfile.parse("""{"version":1,"url":"https://carplay.example.invalid:443/"}"""))
         assertEquals("https://carplay.example.invalid:8443", BrowserEntryProfile.parse("""{"version":1,"url":"https://carplay.example.invalid:8443"}"""))

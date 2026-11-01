@@ -22,6 +22,8 @@ import com.shilapi.xcertplay.AppLocale
 import com.shilapi.xcertplay.CarPlayOutput
 import com.shilapi.xcertplay.CarPlayOutputExtension
 import com.shilapi.xcertplay.NavigationAudioSettings
+import com.shilapi.xcertplay.RemoteHostSnapshot
+import com.shilapi.xcertplay.OutputDiagnosticLog
 import com.shilapi.xcertplay.airplay.AirPlayConfig
 import com.shilapi.xcertplay.airplay.AirPlayContact
 import com.shilapi.xcertplay.airplay.AirPlayDisplayConfig
@@ -39,11 +41,16 @@ import java.util.Collections
 /** Application composition root. Core, browser transport, and the optional proxy have no cycles. */
 class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension, BrowserTarget {
     override val fixedDisplay = true
+    override val remoteHostUi = true
+    override val defaultHevcEnabled = false
+    override val encodedVideoPassthrough = true
+    override val hostProductName = "DiPlay Tesla"
     override val updateReleasesUrl = "https://api.github.com/repos/WangZhuo2015/DiPlay-tesla/releases?per_page=3"
     override val updateApkPrefix = "DiPlay-Tesla-"
     private val prefs = context.getSharedPreferences("tesla-browser", Context.MODE_PRIVATE)
     private val frames = LatestFrame()
-    private val media = BrowserMediaHub()
+    private val history = OutputDiagnosticLog(java.io.File(context.filesDir, "browser-logs"))
+    private val media = BrowserMediaHub(history::append)
     private val pairing = BrowserPairing()
     private val diagnostics = BrowserDiagnostics(context)
     private val handler = Handler(Looper.getMainLooper())
@@ -63,6 +70,8 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
     @Volatile private var serverPort: Int? = null
 
     fun start() {
+        history.append("Browser process started schema=1 pid=${android.os.Process.myPid()} " +
+            "installedAt=${runCatching { context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime }.getOrDefault(0L)}")
         Thread({
             try {
                 val (port, next) = startBrowserServer(
@@ -71,21 +80,28 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
                 )
                 server = next
                 serverPort = port
-            } catch (failure: Exception) { serverError = "${failure.javaClass.simpleName}: ${failure.message}" }
+                history.append("Browser server started port=$port")
+            } catch (failure: Exception) {
+                serverError = "${failure.javaClass.simpleName}: ${failure.message}"
+                history.append("Browser server failed cause=${failure.javaClass.simpleName}")
+            }
         }, "tesla-browser-start").apply { isDaemon = true; start() }
     }
     override fun configure(config: AirPlayConfig): AirPlayConfig {
         val selected = display
         negotiated = selected
         val size = selected.resolution
-        // Advertise the remote canvas, without handset insets, rotating areas, HEVC or BYD cluster.
-        return config.copy(deviceName = "DiPlay Tesla", model = "Tesla Browser", hevc = false, cluster = null,
+        history.append("CarPlay requested video=${if (config.hevc) "HEVC-allowed" else "H264"} " +
+            "canvas=${size.width}x${size.height} fps=${selected.fps}")
+        // Encoded AVC/HEVC is relayed without using an Android video codec. Keep the owner's preference.
+        return config.copy(deviceName = "DiPlay Tesla", model = "Tesla Browser", cluster = null,
             main = AirPlayDisplayConfig(size.width, size.height,
                 widthPhysicalMm = 220, heightPhysicalMm = (220.0 * size.height / size.width).toInt(), fps = selected.fps))
     }
     override fun mediaSink(local: MediaSink): MediaSink {
         decoder?.close()
-        val output = BrowserVideoOutput(negotiated ?: display, frames) { error = it }
+        val output = BrowserVideoOutput(negotiated ?: display, frames, { error = it },
+            mediaBindAddress = { BrowserEntryProfile.mediaBindAddress(BrowserEntryProfile.load(context)) })
         decoder = output
         media.video(output)
         return BrowserMediaSink(local, output, media.audio)
@@ -107,6 +123,18 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
         stage = context.getString(R.string.settings_browser_waiting)
     }
     override fun connectionStage(message: String) { stage = message }
+    override fun diagnosticReport(): String = history.report()
+    override fun openHostPairing(renew: Boolean) {
+        if (renew) pairing.begin() else pairing.beginIfAbsent()
+    }
+    override fun hostSnapshot() = RemoteHostSnapshot(
+        address = links().firstOrNull(),
+        httpsEntryConfigured = BrowserEntryProfile.load(context) != null,
+        pairingCode = pairing.currentCode(),
+        iphoneConnected = controller?.activeAirPlaySessionToken() != null,
+        browserConnected = media.viewerAttached,
+        error = serverError,
+    )
     override fun touch(contacts: List<AirPlayContact>): Boolean = controller?.sendTouch(contacts) == true
     override fun action(name: String): Boolean {
         val current = controller ?: return false
@@ -139,6 +167,7 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
         .put("pendingReconnect", negotiated != null && negotiated != display)
         .put("audio", if (media.audio.active) "browser" else "android")
         .put("transport", media.transport)
+        .put("videoCodec", media.videoCodec ?: JSONObject.NULL)
         .put("device", diagnostics.snapshot() ?: JSONObject.NULL)
 
     override fun connectionSummary(): String = serverError ?: links().firstOrNull()
@@ -166,6 +195,38 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
             .setNeutralButton(R.string.settings_browser_copy_link) { _, _ ->
                 activity.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("DiPlay Tesla", link))
             }.show()
+    }
+    override fun showEntrySettings(activity: Activity, saved: () -> Unit) {
+        val form = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(activity, PANEL_PADDING_DP), dp(activity, PANEL_PADDING_DP), dp(activity, PANEL_PADDING_DP), 0)
+        }
+        form.addView(TextView(activity).apply { text = activity.getString(R.string.settings_host_gateway_hint) })
+        val input = EditText(activity).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            setSingleLine(true)
+            textDirection = android.view.View.TEXT_DIRECTION_LTR
+            hint = "https://carplay.example"
+            setText(BrowserEntryProfile.load(context).orEmpty())
+            minimumHeight = dp(activity, CONTROL_HEIGHT_DP)
+        }
+        form.addView(input)
+        val dialog = AlertDialog.Builder(activity).setTitle(R.string.settings_host_entry)
+            .setView(form).setNegativeButton(android.R.string.cancel, null)
+            .setNeutralButton(R.string.settings_host_direct) { _, _ ->
+                BrowserEntryProfile.save(context, null); saved()
+            }.setPositiveButton(R.string.save, null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val result = runCatching {
+                    require(input.text.isNotBlank())
+                    BrowserEntryProfile.save(context, input.text.toString())
+                }
+                if (result.isFailure) input.error = activity.getString(R.string.settings_host_entry_invalid)
+                else { dialog.dismiss(); saved() }
+            }
+        }
+        dialog.show()
     }
     override fun showDisplaySettings(activity: Activity, saved: () -> Unit) {
         val baseline = display

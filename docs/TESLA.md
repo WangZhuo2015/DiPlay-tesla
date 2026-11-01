@@ -1,5 +1,10 @@
 # DiPlay Tesla port
 
+**0.1.14:** the [current release notes](RELEASE-NOTES-TESLA-0.1.14.md) supersede earlier behavior
+descriptions below: media binds to an existing local HTTPS alias, JPEG is manual diagnostics,
+H.264 is the default, HEVC is an opt-in experiment with reported compatibility problems, and
+browser/WebRTC history is retained in Android and included in diagnostic exports.
+
 **Unreleased source enhancements:** after the upstream sync, the development branch
 adds WheelPlay-inspired 50 ms compressed-frame queueing, 4/10/30-second RTC recovery
 choices, negotiation up to 60 fps with JPEG conversion capped at 30 fps, and opt-in

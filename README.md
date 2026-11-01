@@ -2,9 +2,9 @@
 
 让 Tesla 浏览器使用 CarPlay 的 Android 接收端。Android 主机连接 iPhone，Tesla 在同一网络打开网页，显示 CarPlay 画面并接收触控、音乐和导航提示音。
 
-[0.1.13 发布页](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.13) · [0.1.12 独立测试版](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.12) · **[中文使用指南](docs/TESLA-QUICKSTART.zh-CN.md)** · [English guide](docs/TESLA-QUICKSTART.md) · [问题反馈](https://github.com/WangZhuo2015/DiPlay-tesla/issues)
+[0.1.14 发布页](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.14) · [历史版本](https://github.com/WangZhuo2015/DiPlay-tesla/releases) · **[中文使用指南](docs/TESLA-QUICKSTART.zh-CN.md)** · [English guide](docs/TESLA-QUICKSTART.md) · [问题反馈](https://github.com/WangZhuo2015/DiPlay-tesla/issues)
 
-> 当前预览版为 **0.1.13／code 14**，包名 `com.diplay.tesla`，沿用 0.1.10 的签名，可覆盖升级 0.1.10。0.1.12 的 `com.diplay.tesla.debug` 独立测试包会继续并存，数据不会自动迁移。完整 Android CI 仍有已知失败，且尚未完成新一轮实车验收。[版本说明与已知限制](docs/RELEASE-NOTES-TESLA-0.1.13.md)
+> 当前版本为 **0.1.14／code 15**，包名 `com.diplay.tesla`，沿用原签名，可覆盖升级 0.1.10／0.1.13。此次修复 WebRTC 入口别名的连接问题，统一主机与网页界面，并自动保留诊断日志。默认使用 H.264；HEVC 已有兼容性问题反馈，默认关闭，保留实验开关。[版本说明](docs/RELEASE-NOTES-TESLA-0.1.14.md)
 
 ## 需要什么
 
@@ -19,8 +19,8 @@
 
 1. 将完整连接 APK 安装到 **Android 主机**，打开应用并授予连接所需权限。
 2. 按[中文使用指南](docs/TESLA-QUICKSTART.zh-CN.md)配置 iPhone 与主机的连接。无线连接时保存实际使用的热点信息，保持 iPhone 蓝牙和 Wi-Fi 开启，选择手机并连接。
-3. 让 Tesla 连接同一网络。在 Android 的 **设置 → 连接 → Tesla 浏览器（实验性）**查看入口地址及六位配对码。
-4. 在 Tesla 浏览器打开入口，输入配对码。配对码有效五分钟；过期后重新打开 Android 连接页获取。配对成功后，该浏览器会记住连接。
+3. 让 Tesla 连接同一网络。在 Android 首页查看入口地址与六位配对码，也可以进入首次配置向导逐步完成。
+4. 在 Tesla 浏览器打开入口，输入配对码。配对码有效五分钟；过期后在 Android 首页更新配对码。配对成功后，该浏览器会记住连接。
 5. 播放音乐。若浏览器要求手势，点一下页面启动声音；此前手动关闭过音频时，在菜单中重新开启。
 
 完整连接版包含明确配置的实验性配件身份，用于本地 iPhone 认证；它不是 Apple 为本项目新签发的 MFi 身份。[来源和范围说明](docs/THIRD_PARTY_NOTICES.md#experimental-authentication-data)保留在源码中。
@@ -47,7 +47,9 @@ APK 自身提供 HTTP 服务；HTTPS 需要单独部署。可参考[Android 本�
 | --- | --- |
 | 显示预设 | 适配窗口、720p、1080p、2K，最高 2560×1440；适配缩放支持 1/2、3/4、1×。先选车机当前窗口，再选预设。 |
 | 右侧／全屏 | 两份尺寸独立保存。尺寸和请求帧率在下次 CarPlay 连接生效，需要立即使用时明确选择“应用并重新连接”。 |
-| 视频传输 | 默认优先 H.264 WebRTC；失败时回退 JPEG。JPEG 画质只影响回退画面，调高画质或分辨率会增加负载。 |
+| 视频传输 | 默认使用 H.264 WebRTC，连接失败时显示原因并重试。JPEG 仅用于手动排障，调高 JPEG 画质或分辨率会增加转换负载。 |
+| HEVC 视频（实验性） | 默认关闭。实际使用已反馈兼容问题，建议保持 H.264；此前手动开启过的用户应在 Android 高级设置关闭，再重新连接 CarPlay。 |
+| 自动诊断记录 | 主机自动保存浏览器/WebRTC 状态与计数，重开 App 后保留，约 4 MB 后轮换。回家后在“设置 → 诊断 → 保存诊断报告”导出。 |
 | 浏览器音频 | 用于音乐和导航提示，默认开启并记住手动关闭状态。音频缓冲可选 80／200／400 ms。 |
 | 浏览器音乐／导航音量（0.1.13 预览版） | 两个独立滑块，默认 100%；100% 不额外衰减，0% 静音，只在当前浏览器保存，立即生效且无需重连。导航滑块进一步降低主机输出的导航音量，不自动压低音乐。 |
 | 主机导航音量 | 网页提供滑块和 ± 按钮，范围 −20～0 dB；0 dB 保留原音量，只降低导航提示，音乐音量不变。与 Android 设置共用保存值，立即生效。 |

@@ -10,6 +10,14 @@ Upstream credits [LIVI](https://github.com/f-io/LIVI) and [Showcase](https://git
 
 `common/src/main/java/com/shilapi/xcertplay/DiPlayActivity.kt` adapts the palette, visual arrangement and interface copy of the [DiAuto project](https://github.com/shihabal3amri/DiAuto). DiAuto's source is licensed under AGPL version 3. The UI file is marked AGPL-3.0-only; its license text is included in `docs/licenses/DiAuto-AGPL-3.0.txt`.
 
+## Remote host icons
+
+The `ic_host_*` Android UI icons are Google Material Icons Outlined, imported from
+[`google/material-design-icons`](https://github.com/google/material-design-icons/tree/10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7)
+at commit `10ecc14790612ca8fd164e3f4ffe9c16fc50d5b7`. The original SVG path data is preserved in Android VectorDrawables.
+These icons are licensed under Apache License 2.0; the license is included in
+`common/src/main/res/raw/material_icons_license.txt` and the APK.
+
 ## CarPlay icon
 
 The unmodified icon was obtained from Apple's developer site at:

@@ -4,6 +4,9 @@ import android.content.Context
 import org.json.JSONObject
 import java.io.File
 import java.net.URI
+import java.net.InetAddress
+import java.net.Inet4Address
+import java.net.NetworkInterface
 import java.util.Locale
 
 /** Optional local gateway metadata. Transport, certificates and root stay outside CarPlay. */
@@ -18,6 +21,26 @@ internal object BrowserEntryProfile {
         parse(file.readText(Charsets.UTF_8))
     }.getOrNull()
 
+    /** Stores origin metadata only. It does not deploy TLS, DNS, a proxy, or an address alias. */
+    fun save(context: Context, value: String?) {
+        val file = File(context.noBackupFilesDir, FILE_NAME)
+        if (value.isNullOrBlank()) {
+            check(!file.exists() || file.delete()) { "Could not remove entry metadata" }
+            return
+        }
+        val json = JSONObject().put("version", 1).put("url", value.trim())
+        val origin = requireNotNull(parse(json.toString())) { "Use an HTTPS hostname without a path or credentials" }
+        val atomic = android.util.AtomicFile(file)
+        val stream = atomic.startWrite()
+        try {
+            stream.write(JSONObject().put("version", 1).put("url", origin).toString().toByteArray(Charsets.UTF_8))
+            atomic.finishWrite(stream)
+        } catch (failure: Exception) {
+            atomic.failWrite(stream)
+            throw failure
+        }
+    }
+
     fun parse(text: String): String? = runCatching {
         val json = JSONObject(text)
         if (json.optInt("version") != 1) return null
@@ -31,4 +54,16 @@ internal object BrowserEntryProfile {
 
     fun links(origin: String?, direct: List<String>): List<String> =
         if (origin == null) direct else listOf(origin) + direct
+
+    /** Called on the RTC worker. A remote proxy address must never become a local bind target. */
+    fun mediaBindAddress(origin: String?,
+        resolve: (String) -> List<InetAddress> = { InetAddress.getAllByName(it).toList() },
+        local: () -> Set<InetAddress> = {
+            NetworkInterface.getNetworkInterfaces().toList().flatMap { it.inetAddresses.toList() }.toSet()
+        }): String? = runCatching {
+        val host = origin?.let { URI(it).host } ?: return null
+        val addresses = local()
+        resolve(host).firstOrNull { it is Inet4Address && !it.isAnyLocalAddress && !it.isLoopbackAddress &&
+            !it.isMulticastAddress && it in addresses }?.hostAddress
+    }.getOrNull()
 }

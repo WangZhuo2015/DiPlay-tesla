@@ -7,6 +7,8 @@
 #include <mutex>
 #include <stdexcept>
 #include <vector>
+#include <string>
+#include <arpa/inet.h>
 
 namespace {
 struct Peer {
@@ -38,7 +40,7 @@ void fail(JNIEnv* env, const std::exception& error) {
 Peer* peer(jlong handle) { return reinterpret_cast<Peer*>(handle); }
 }
 extern "C" JNIEXPORT jlong JNICALL
-Java_com_diplay_browser_rtc_RtcNative_create(JNIEnv* env, jobject owner, jstring profile, jint port) {
+Java_com_diplay_browser_rtc_RtcNative_create(JNIEnv* env, jobject owner, jint codec, jstring profile, jint port, jstring bindAddress) {
     auto p = std::make_unique<Peer>();
     try {
         static std::once_flag logging;
@@ -54,6 +56,18 @@ Java_com_diplay_browser_rtc_RtcNative_create(JNIEnv* env, jobject owner, jstring
         config.disableAutoNegotiation = true;
         config.forceMediaTransport = true;
         config.mtu = 1200;
+        std::string bind;
+        if (bindAddress) {
+            const char* address = env->GetStringUTFChars(bindAddress, nullptr);
+            bind = address;
+            env->ReleaseStringUTFChars(bindAddress, address);
+            in_addr parsed{};
+            if (inet_pton(AF_INET, bind.c_str(), &parsed) != 1)
+                throw std::invalid_argument("Media bind address must be numeric IPv4");
+            // An any-address socket replies to an alias request from the primary LAN address.
+            // Bind to the configured local alias so ICE/STUN and SRTP retain that source address.
+            config.bindAddress = bind.c_str();
+        }
         if (port != 0) {
             if (port < 1024 || port > 65535) throw std::invalid_argument("Invalid test port");
             config.portRangeBegin = port; config.portRangeEnd = port;
@@ -75,7 +89,9 @@ Java_com_diplay_browser_rtc_RtcNative_create(JNIEnv* env, jobject owner, jstring
         }));
         const char* format = env->GetStringUTFChars(profile, nullptr);
         rtcTrackInit track{};
-        track.direction = RTC_DIRECTION_SENDONLY; track.codec = RTC_CODEC_H264;
+        if (codec != 264 && codec != 265) throw std::invalid_argument("Unsupported video codec");
+        track.direction = RTC_DIRECTION_SENDONLY;
+        track.codec = codec == 265 ? RTC_CODEC_H265 : RTC_CODEC_H264;
         track.payloadType = 96; track.ssrc = 42;
         track.mid = "video"; track.name = "diplay"; track.msid = "diplay";
         track.trackId = "screen"; track.profile = format;
@@ -86,7 +102,8 @@ Java_com_diplay_browser_rtc_RtcNative_create(JNIEnv* env, jobject owner, jstring
         packetizer.ssrc = 42; packetizer.cname = "diplay"; packetizer.payloadType = 96;
         packetizer.clockRate = 90000; packetizer.nalSeparator = RTC_NAL_SEPARATOR_START_SEQUENCE;
         packetizer.maxFragmentSize = 1100;
-        check(rtcSetH264Packetizer(p->track, &packetizer));
+        check(codec == 265 ? rtcSetH265Packetizer(p->track, &packetizer)
+                           : rtcSetH264Packetizer(p->track, &packetizer));
         check(rtcChainRtcpSrReporter(p->track));
         check(rtcChainRtcpNackResponder(p->track, 512));
         check(rtcChainPliHandler(p->track, [](int, void* ptr) { static_cast<Peer*>(ptr)->emit("keyframe"); }));

@@ -91,6 +91,23 @@ class CarPlayHostDisplaySizeTest {
         assertEquals(2, keepLogs())
     }
 
+    @Test fun encodedPassthroughDoesNotRequireAnAndroidHevcDecoder() {
+        val previous = CarPlayOutput.extension
+        val remote = org.mockito.Mockito.mock(CarPlayOutputExtension::class.java)
+        org.mockito.Mockito.`when`(remote.encodedVideoPassthrough).thenReturn(true)
+        val requested = activity.javaClass.getDeclaredMethod("getSessionHevc").apply { isAccessible = true }
+        try {
+            CarPlayOutput.extension = remote
+            setField("hevcEnabled", true)
+            assertEquals(true, requested.invoke(activity))
+            setField("hevcEnabled", false)
+            assertEquals(false, requested.invoke(activity))
+            CarPlayOutput.extension = null
+            setField("hevcEnabled", true)
+            assertEquals(HevcSupport.usable(true, false, HevcSupport.decoders()), requested.invoke(activity))
+        } finally { CarPlayOutput.extension = previous }
+    }
+
     @Test fun aNarrowWindowIsNotTreatedAsScreenRotation() {
         val display = startSession()
         applySize(700, 990)

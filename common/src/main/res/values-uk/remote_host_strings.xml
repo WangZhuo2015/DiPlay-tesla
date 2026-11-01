@@ -1,0 +1,29 @@
+<resources>
+    <string name="settings_host_connect_browser">Підключити браузер автомобіля</string>
+    <string name="settings_host_open_browser">Відкрийте цю адресу в браузері Tesla та введіть код</string>
+    <string name="settings_host_settings">Налаштування хоста</string>
+    <string name="settings_host_connected">Підключено</string>
+    <string name="settings_host_phone_waiting">Очікування iPhone</string>
+    <string name="settings_host_browser_connected">Браузер підключено</string>
+    <string name="settings_host_browser_waiting">Очікування браузера</string>
+    <string name="settings_host_entry_pending">Очікування мережі хоста</string>
+    <string name="settings_host_https_configured">Адресу HTTPS налаштовано</string>
+    <string name="settings_host_direct">Прямий доступ через HTTP</string>
+    <string name="settings_host_code_expired">Термін дії коду минув. Створіть новий код сполучення.</string>
+    <string name="settings_host_code_expiry">Діє п’ять хвилин</string>
+    <string name="settings_host_code_renew">Новий код сполучення</string>
+    <string name="settings_host_copy_address">Копіювати адресу підключення</string>
+    <string name="settings_host_copied">Адресу скопійовано</string>
+    <string name="settings_host_browser_name">Браузер Tesla</string>
+    <string name="settings_host_prepare">Підготовка Android-хоста</string>
+    <string name="settings_host_setup_iphone">Підключення iPhone</string>
+    <string name="settings_host_setup_entry">Вибір адреси браузера</string>
+    <string name="settings_host_prepare_hint">Перевірте дозволи та налаштуйте мережу цього Android-хоста.</string>
+    <string name="settings_host_iphone_hint">Сполучіть iPhone із цим Android-хостом через Bluetooth і підключіться. USB-кабель також підключається до цього хоста.</string>
+    <string name="settings_host_gateway_hint">Зберігається лише адреса HTTPS. Шлюз, DNS і сертифікат налаштовуються окремо. Tesla може й надалі блокувати домен, що вказує на обмежену приватну адресу.</string>
+    <string name="settings_host_entry">Адреса браузера</string>
+    <string name="settings_host_entry_invalid">Введіть ім’я хоста HTTPS без шляху, даних входу чи коду сполучення.</string>
+    <string name="settings_host_display_audio">Екран і звук</string>
+    <string name="settings_browser_hevc">Відео HEVC (експериментально)</string>
+    <string name="settings_browser_hevc_description">Дозволяє передавати HEVC з iPhone без перекодування на Android. Браузер автомобіля має підтримувати HEVC через WebRTC. Діє з наступного підключення CarPlay.</string>
+</resources>

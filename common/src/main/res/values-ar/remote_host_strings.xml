@@ -1,0 +1,29 @@
+<resources>
+    <string name="settings_host_connect_browser">توصيل متصفح السيارة</string>
+    <string name="settings_host_open_browser">افتح هذا العنوان في متصفح Tesla وأدخل الرمز</string>
+    <string name="settings_host_settings">إعدادات المضيف</string>
+    <string name="settings_host_connected">متصل</string>
+    <string name="settings_host_phone_waiting">بانتظار اتصال iPhone</string>
+    <string name="settings_host_browser_connected">المتصفح متصل</string>
+    <string name="settings_host_browser_waiting">بانتظار اتصال المتصفح</string>
+    <string name="settings_host_entry_pending">بانتظار شبكة المضيف</string>
+    <string name="settings_host_https_configured">تم إعداد عنوان HTTPS</string>
+    <string name="settings_host_direct">اتصال HTTP مباشر</string>
+    <string name="settings_host_code_expired">انتهت صلاحية الرمز. أنشئ رمزًا جديدًا للاقتران.</string>
+    <string name="settings_host_code_expiry">صالح لمدة خمس دقائق</string>
+    <string name="settings_host_code_renew">رمز اقتران جديد</string>
+    <string name="settings_host_copy_address">نسخ عنوان الاتصال</string>
+    <string name="settings_host_copied">تم نسخ العنوان</string>
+    <string name="settings_host_browser_name">متصفح Tesla</string>
+    <string name="settings_host_prepare">تجهيز جهاز Android المضيف</string>
+    <string name="settings_host_setup_iphone">توصيل iPhone</string>
+    <string name="settings_host_setup_entry">اختيار عنوان المتصفح</string>
+    <string name="settings_host_prepare_hint">راجع الأذونات واضبط الشبكة على جهاز Android المضيف هذا.</string>
+    <string name="settings_host_iphone_hint">اقرن iPhone بجهاز Android المضيف هذا عبر Bluetooth ثم اتصل. يتصل كابل USB بهذا المضيف أيضًا.</string>
+    <string name="settings_host_gateway_hint">يُحفظ عنوان HTTPS فقط. يجب إعداد البوابة وDNS والشهادة بشكل منفصل. قد يظل العنوان الخاص المقيّد محظورًا في Tesla حتى عند استخدام اسم نطاق.</string>
+    <string name="settings_host_entry">عنوان المتصفح</string>
+    <string name="settings_host_entry_invalid">أدخل اسم مضيف HTTPS دون مسار أو بيانات دخول أو رمز اقتران.</string>
+    <string name="settings_host_display_audio">العرض والصوت</string>
+    <string name="settings_browser_hevc">فيديو HEVC (تجريبي)</string>
+    <string name="settings_browser_hevc_description">السماح بتمرير فيديو HEVC من iPhone دون تحويله على Android. يجب أن يدعم متصفح السيارة HEVC عبر WebRTC. يسري عند اتصال CarPlay التالي.</string>
+</resources>

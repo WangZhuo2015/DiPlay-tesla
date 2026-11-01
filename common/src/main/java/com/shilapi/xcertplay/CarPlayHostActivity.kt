@@ -525,9 +525,10 @@ open class CarPlayHostActivity : ComponentActivity() {
     private var hevcEnabled = true
     private var hevcSoftwareDecoderEnabled = false
     private val hevcDecoders by lazy { HevcSupport.decoders() }
-    /** The codec a session asks for: the HEVC setting falls back to H.264 without a decoder for it (#727). */
+    /** Local playback needs a decoder (#727); encoded passthrough uses the remote decoder. */
     private val sessionHevc: Boolean
-        get() = HevcSupport.usable(hevcEnabled, hevcSoftwareDecoderEnabled, hevcDecoders)
+        get() = if (CarPlayOutput.extension?.encodedVideoPassthrough == true) hevcEnabled
+            else HevcSupport.usable(hevcEnabled, hevcSoftwareDecoderEnabled, hevcDecoders)
     private var advancedAudioChannelMappingSupported = false
     private var advancedAudioChannelMapping = false
     private var navigationStreamType = 14

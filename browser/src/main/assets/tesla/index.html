@@ -10,9 +10,9 @@
 <body>
   <button id="menuButton" class="menuButton" aria-expanded="false" aria-controls="menuPanel" aria-label="菜单" title="菜单"></button>
   <section id="menuPanel" class="overlay menuOverlay" role="dialog" aria-modal="true" aria-labelledby="menuTitle" hidden>
-  <div class="panel">
+  <div class="panel hostMenu">
   <header>
-    <h1 id="menuTitle">DiPlay Tesla</h1>
+    <div><p class="eyebrow" data-i18n="browserSurface">Tesla 浏览器</p><h1 id="menuTitle">DiPlay Tesla</h1></div>
     <button id="closeMenu" data-i18n="close">关闭</button>
   </header>
     <div class="menuConnection">
@@ -20,17 +20,21 @@
       <p id="transportStatus" data-i18n="waitingVideo">等待视频</p>
     </div>
     <p id="videoExplanation" class="videoExplanation" role="status"></p>
-    <div class="menuActions">
-    <button id="settingsButton" data-i18n="settings">显示设置</button>
-    <button id="keysButton" aria-pressed="false" data-i18n="showKeys">显示虚拟按键</button>
-    <button id="expandButton" data-i18n="expand">全屏</button>
-    <button id="themeButton" data-i18n="theme">日夜</button>
-    <button id="audioButton" aria-pressed="false" data-i18n="browserAudio">浏览器音频（实验性）</button>
+    <section class="soundSection" aria-labelledby="soundTitle">
+    <div class="soundHeading"><h2 id="soundTitle" data-i18n="sound">声音</h2>
+      <button id="audioButton" aria-pressed="false" data-i18n="browserAudio">浏览器音频（实验性）</button></div>
+    <div class="audioVolumes" role="group" aria-describedby="volumeHint">
+      <div class="audioVolume">
+        <label for="musicVolume" data-i18n="musicVolume">音乐音量</label><output id="musicVolumeValue" for="musicVolume" dir="ltr">100%</output>
+        <input id="musicVolume" type="range" min="0" max="100" step="1" value="100" aria-describedby="volumeHint">
+      </div>
+      <div class="audioVolume">
+        <label for="navigationVolume" data-i18n="navigationVolume">导航音量</label><output id="navigationVolumeValue" for="navigationVolume" dir="ltr">100%</output>
+        <input id="navigationVolume" type="range" min="0" max="100" step="1" value="100" aria-describedby="volumeHint">
+      </div>
     </div>
-    <div class="menuOptions">
-      <label class="audioBuffer"><span data-i18n="buffer">音频缓冲</span><select id="audioBuffer"><option value="80">80 ms</option><option value="200" selected>200 ms</option><option value="400">400 ms</option></select></label>
-      <p data-i18n="audio">网页音频用于音乐与导航；通话、Siri 语音和麦克风目前由 Android 主机处理。</p>
-    </div>
+    <p id="volumeHint" data-i18n="volumeHint">立即生效，并在此浏览器保存。100% 保留原音量，0% 静音。</p>
+    <details id="audioAdvanced"><summary data-i18n="advancedAudio">高级音频</summary>
     <section class="navigationVolume" aria-labelledby="navigationTitle">
       <div class="navigationHeading"><label id="navigationTitle" for="navigationLevel" data-i18n="hostNavigationVolume">主机导航音量</label><output id="navigationValue" for="navigationLevel" dir="ltr">—</output></div>
       <div class="navigationControls">
@@ -41,29 +45,30 @@
       <p id="navigationHint" data-i18n="navigationHint">只降低导航提示音，音乐音量不变。0 dB 为原始音量。立即生效，并与 Android 设置同步。</p>
       <p id="navigationState" role="status" aria-live="polite"></p>
     </section>
-    <div class="audioVolumes" role="group" aria-describedby="volumeHint">
-      <div class="audioVolume">
-        <label for="musicVolume" data-i18n="musicVolume">浏览器音乐音量</label><output id="musicVolumeValue" for="musicVolume" dir="ltr">100%</output>
-        <input id="musicVolume" type="range" min="0" max="100" step="1" value="100" aria-describedby="volumeHint">
-      </div>
-      <div class="audioVolume">
-        <label for="navigationVolume" data-i18n="navigationVolume">浏览器导航音量</label><output id="navigationVolumeValue" for="navigationVolume" dir="ltr">100%</output>
-        <input id="navigationVolume" type="range" min="0" max="100" step="1" value="100" aria-describedby="volumeHint">
-      </div>
+    <label class="audioBuffer"><span data-i18n="buffer">音频缓冲</span><select id="audioBuffer"><option value="80">80 ms</option><option value="200" selected>200 ms</option><option value="400">400 ms</option></select></label>
+    <p data-i18n="audioScope">浏览器音量进一步调低主机输出，不会自动压低音乐；旧版主机未标记的声音保持原音量。</p>
+    <p data-i18n="audio">网页音频用于音乐与导航；通话、Siri 语音和麦克风目前由 Android 主机处理。</p>
+    </details>
+    </section>
+    <div class="menuActions">
+      <button id="settingsButton" class="primaryAction" data-i18n="settings">显示设置</button>
+      <button id="keysButton" aria-pressed="false" data-i18n="showKeys">显示虚拟按键</button>
+      <button id="expandButton" data-i18n="expand">全屏</button>
+      <button id="themeButton" data-i18n="theme">日夜</button>
     </div>
-    <p id="volumeHint" data-i18n="volumeHint">仅调低此浏览器内对应声音，立即生效并记住，无需重连。100% 不额外衰减，0% 静音；导航音量在主机导航音量的基础上进一步降低，不会自动压低音乐。旧版主机未标记的音频不受影响。</p>
     <details id="diagnostics"><summary data-i18n="diagnostics">实时诊断</summary><dl id="diagnosticValues"></dl></details>
     <p><a href="/rtc-licenses.txt">Licenses</a></p>
   </div>
   </section>
   <main id="screen"><canvas id="picture" width="1024" height="768" aria-label="CarPlay"></canvas><video id="video" autoplay muted playsinline aria-label="CarPlay" hidden></video>
     <form id="pairing" class="panel" hidden>
+      <p class="eyebrow" data-i18n="browserSurface">Tesla 浏览器</p>
       <h1 data-i18n="pair">连接 DiPlay</h1>
-      <p data-i18n="pairHint">在 Android 设备的“连接 → Tesla 浏览器”查看地址和配对码。</p>
+      <p data-i18n="pairHint">在 Android 主机的 DiPlay 首页查看地址和六位连接码。</p>
       <label for="token" data-i18n="code">配对码</label>
       <input id="token" type="text" inputmode="numeric" autocomplete="one-time-code" required maxlength="6" pattern="[0-9]{6}" dir="ltr">
       <p id="pairError" role="alert"></p>
-      <button type="submit" data-i18n="connect">连接</button>
+      <button type="submit" class="primaryAction" data-i18n="connect">连接</button>
     </form>
   </main>
   <footer id="virtualKeys" aria-label="CarPlay" hidden>
@@ -99,14 +104,14 @@
       <details id="manualDisplay">
       <summary data-i18n="manualDisplay">手动调整</summary>
       <label for="transport" data-i18n="transport">视频传输</label>
-      <select id="transport"><option value="auto" data-i18n="auto">自动 WebRTC / JPEG</option><option value="jpeg">JPEG</option></select>
+      <select id="transport"><option value="auto" data-i18n="auto">WebRTC（不自动回退 JPEG）</option><option value="jpeg" data-i18n="jpegDiagnostics">JPEG（手动排障）</option></select>
       <p data-i18n="transportHint">视频传输在保存后立即切换。</p>
       <label for="renderer" data-i18n="renderer">WebRTC 显示方式</label>
       <select id="renderer" aria-describedby="rendererHint"><option value="native" data-i18n="nativeRenderer">原生视频（默认）</option><option value="canvas" data-i18n="canvasRenderer">Canvas（实验性）</option></select>
       <p id="rendererHint" data-i18n="rendererHint">Canvas 可用于排查浏览器视频显示异常，会增加绘制开销。保存后立即应用，不重连 CarPlay。</p>
       <label for="recovery" data-i18n="recovery">WebRTC 恢复等待</label>
-      <select id="recovery" aria-describedby="recoveryHint"><option value="4000" data-i18n="quickRecovery">4 秒 · 快速回退</option><option value="10000" selected data-i18n="balancedRecovery">10 秒 · 均衡（默认）</option><option value="30000" data-i18n="patientRecovery">30 秒 · 等待恢复</option></select>
-      <p id="recoveryHint" data-i18n="recoveryHint">短暂中断时保留最后画面，超过所选时间再回退 JPEG。保存后重建浏览器媒体连接；不会增加视频缓冲或重连 iPhone。</p>
+      <select id="recovery" aria-describedby="recoveryHint"><option value="4000" data-i18n="quickRecovery">4 秒 · 快速重试</option><option value="10000" selected data-i18n="balancedRecovery">10 秒 · 均衡（默认）</option><option value="30000" data-i18n="patientRecovery">30 秒 · 等待恢复</option></select>
+      <p id="recoveryHint" data-i18n="recoveryHint">短暂中断时保留最后画面，超时后重建 WebRTC，不自动切换 JPEG。保存后重建浏览器媒体连接，不会重连 iPhone。</p>
       <p data-i18n="jpegLimit">60 fps 用于 WebRTC；JPEG 转换最高 30 fps。保存帧率后，下次 CarPlay 连接生效。</p>
       <div class="sizes">
         <label><span data-i18n="rightWidth">右侧宽度</span><input id="rightWidth" type="number" min="320" max="2560" step="2" required></label>

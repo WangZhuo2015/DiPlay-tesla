@@ -313,7 +313,8 @@ try {
     assert.deepEqual(await page.evaluate(()=>window.__uiFixture.hellos.map(hello=>hello.recoveryGraceMs)),[10000,4000]);
     // The delayed one-pixel JPEG must not resize or paint the active RTC canvas.
     await page.waitForTimeout(2700);
-    assert.ok(lateFrames>0);assert.equal(await page.locator('#picture').evaluate(node=>node.width),960);
+    assert.equal(lateFrames,0,'WebRTC mode must not request JPEG frames, including during negotiation');
+    assert.equal(await page.locator('#picture').evaluate(node=>node.width),960);
     await page.mouse.click(scenario.width/2,scenario.height/2);
     await page.waitForTimeout(100);
     const down=touches.flatMap(packet=>packet.contacts).find(contact=>contact.down);
@@ -329,7 +330,7 @@ try {
     assert.equal(await page.evaluate(()=>window.__uiFixture.hellos.length),2,'Renderer-only save must not restart media');
     assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>window.__uiFixture.errors),[]);
     report.checks.push({scenario:scenario.name,layout,volumes,codec:await page.evaluate(()=>window.__uiFixture.codec),
-      nativeToCanvasToNative:true,canvasTouch:true,lateJpegIgnored:true,frameRateSavedForNextConnection:true,recoveryHello:true,
+      nativeToCanvasToNative:true,canvasTouch:true,jpegNotRequestedInRtcMode:true,frameRateSavedForNextConnection:true,recoveryHello:true,
       rendererOnlyKeepsMedia:true,focusTrap:true});
     await context.close();
   }

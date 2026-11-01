@@ -21,10 +21,21 @@ import org.robolectric.annotation.Config
 class TeslaBrowserOutputTest {
     private val context get() = RuntimeEnvironment.getApplication()
     @After fun clean() {
+        com.shilapi.xcertplay.CarPlayOutput.extension = null
+        context.getSharedPreferences("xcertplay_airplay",0).edit().clear().commit()
         context.getSharedPreferences("tesla-browser",0).edit().clear().commit()
         context.getSharedPreferences("diplay",0).edit().clear().commit()
     }
-    @Test fun remoteCanvasOverridesHostSizeAndHevcWithoutChangingAudioOrIdentity() {
+    @Test fun hevcDefaultsOffForTeslaAndRequiresAnExplicitOwnerChoice() {
+        com.shilapi.xcertplay.CarPlayOutput.extension = TeslaBrowserOutput(context)
+        assertTrue(com.shilapi.xcertplay.CarPlayOutput.extension!!.encodedVideoPassthrough)
+        assertFalse(com.shilapi.xcertplay.AirPlayPersistence.loadHevcEnabled(context))
+        com.shilapi.xcertplay.AirPlayPersistence.saveHevcEnabled(context, false)
+        assertFalse(com.shilapi.xcertplay.AirPlayPersistence.loadHevcEnabled(context))
+        com.shilapi.xcertplay.AirPlayPersistence.saveHevcEnabled(context, true)
+        assertTrue(com.shilapi.xcertplay.AirPlayPersistence.loadHevcEnabled(context))
+    }
+    @Test fun remoteCanvasKeepsTheOwnersHevcChoiceWithoutChangingAudioOrIdentity() {
         val output = TeslaBrowserOutput(context)
         val config = AirPlayConfig("DiPlay","device","bt","version", AirPlayDisplayConfig(640,480),
             cluster = AirPlayDisplayConfig(480,320), hevc = true, microphone = true, mainBufferedAudio = true)
@@ -35,7 +46,8 @@ class TeslaBrowserOutputTest {
         assertEquals(900,actual.main.heightPixels)
         assertEquals(60,actual.main.fps)
         assertEquals(30,output.status().getJSONObject("display").getInt("jpegFps"))
-        assertFalse(actual.hevc)
+        assertTrue(actual.hevc)
+        assertFalse(output.configure(config.copy(hevc = false)).hevc)
         assertNull(actual.cluster)
         assertNull(actual.main.viewAreas)
         assertTrue(actual.microphone)

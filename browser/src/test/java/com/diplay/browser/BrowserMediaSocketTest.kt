@@ -21,6 +21,47 @@ import java.nio.ByteOrder
 
 @RunWith(RobolectricTestRunner::class) @Config(sdk = [29])
 class BrowserMediaSocketTest {
+    @Test fun aSecondPageWaitsWithoutStealingMediaAndJoinsWhenTheOwnerLeaves() {
+        val port = ServerSocket(0).use { it.localPort }
+        val token = "1234567890abcdef1234567890abcdef"
+        val media = BrowserMediaHub()
+        val owner = Any()
+        assertTrue(media.attach(owner, false, { true }, { _, _ -> true }))
+        media.audio.ready(owner, true)
+        val target = object : BrowserTarget {
+            override fun status() = JSONObject()
+            override fun touch(contacts: List<AirPlayContact>) = true
+            override fun action(name: String) = true
+            override fun saveDisplay(display: BrowserDisplay) {}
+        }
+        val server = BrowserServer(port, RuntimeEnvironment.getApplication().assets, token, LatestFrame(), target, media)
+        server.start(2000, true)
+        try {
+            Socket("127.0.0.1", port).use { socket ->
+                socket.soTimeout = 2000
+                socket.getOutputStream().write(("GET /api/media HTTP/1.1\r\nHost: 127.0.0.1:$port\r\n" +
+                    "Origin: http://127.0.0.1:$port\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n" +
+                    "Sec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n").toByteArray())
+                val input = socket.getInputStream()
+                val headers = StringBuilder()
+                while (!headers.endsWith("\r\n\r\n")) { val c = input.read(); check(c >= 0); headers.append(c.toChar()) }
+                assertTrue(headers.startsWith("HTTP/1.1 101"))
+                fun receive() = JSONObject(frame(input).second.toString(Charsets.UTF_8)).getString("type")
+                send(socket, """{"type":"hello","token":"$token","rtc":true}""")
+                assertEquals("media-busy", receive())
+                send(socket, """{"type":"audio-ready","playback":false}""")
+                send(socket, """{"type":"ping"}""")
+                assertEquals("media-busy", receive()); assertEquals("pong", receive())
+                assertTrue("Waiting page must not mute the owner", media.audio.active)
+                media.detach(owner)
+                send(socket, """{"type":"ping"}""")
+                assertEquals("welcome", receive()); assertEquals("pong", receive())
+                send(socket, """{"type":"audio-ready","playback":true}""")
+                send(socket, """{"type":"ping"}""")
+                assertEquals("pong", receive()); assertTrue(media.audio.active)
+            }
+        } finally { server.close(); media.detach(owner) }
+    }
     @Test fun anEmptyCloseFrameReleasesTheMediaLeaseWithoutNullParameterFailure() {
         val close = WebSocketFrame.read(ByteArrayInputStream(
             byteArrayOf(0x88.toByte(), 0x80.toByte(), 0, 0, 0, 0))) as WebSocketFrame.CloseFrame

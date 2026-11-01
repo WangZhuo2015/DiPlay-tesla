@@ -1,0 +1,29 @@
+<resources>
+    <string name="settings_host_connect_browser">Conectar el navegador del coche</string>
+    <string name="settings_host_open_browser">Abre esta dirección en el navegador Tesla e introduce el código</string>
+    <string name="settings_host_settings">Ajustes del anfitrión</string>
+    <string name="settings_host_connected">Conectado</string>
+    <string name="settings_host_phone_waiting">Esperando al iPhone</string>
+    <string name="settings_host_browser_connected">Navegador conectado</string>
+    <string name="settings_host_browser_waiting">Esperando al navegador</string>
+    <string name="settings_host_entry_pending">Esperando la red del anfitrión</string>
+    <string name="settings_host_https_configured">Entrada HTTPS configurada</string>
+    <string name="settings_host_direct">Acceso HTTP directo</string>
+    <string name="settings_host_code_expired">El código ha caducado. Genera otro para enlazar.</string>
+    <string name="settings_host_code_expiry">Válido durante cinco minutos</string>
+    <string name="settings_host_code_renew">Nuevo código de enlace</string>
+    <string name="settings_host_copy_address">Copiar dirección de conexión</string>
+    <string name="settings_host_copied">Dirección copiada</string>
+    <string name="settings_host_browser_name">Navegador Tesla</string>
+    <string name="settings_host_prepare">Preparar el anfitrión Android</string>
+    <string name="settings_host_setup_iphone">Conectar el iPhone</string>
+    <string name="settings_host_setup_entry">Elegir la entrada del navegador</string>
+    <string name="settings_host_prepare_hint">Revisa los permisos y configura la red de este anfitrión Android.</string>
+    <string name="settings_host_iphone_hint">Enlaza el iPhone por Bluetooth con este anfitrión Android y conecta. El cable USB también se conecta a este anfitrión.</string>
+    <string name="settings_host_gateway_hint">Solo se guarda la dirección HTTPS. La pasarela, el DNS y el certificado se configuran por separado. Tesla puede seguir bloqueando un dominio que apunte a una dirección privada restringida.</string>
+    <string name="settings_host_entry">Entrada del navegador</string>
+    <string name="settings_host_entry_invalid">Introduce un nombre de servidor HTTPS sin ruta, credenciales ni código de enlace.</string>
+    <string name="settings_host_display_audio">Pantalla y sonido</string>
+    <string name="settings_browser_hevc">Vídeo HEVC (experimental)</string>
+    <string name="settings_browser_hevc_description">Permite reenviar vídeo HEVC del iPhone sin transcodificarlo en Android. El navegador del coche debe admitir HEVC por WebRTC. Se aplica en la próxima conexión CarPlay.</string>
+</resources>

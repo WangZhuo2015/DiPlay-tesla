@@ -5,7 +5,7 @@ import com.diplay.browser.rtc.RtcRecoveryPolicy
 import org.json.JSONObject
 
 /** Composition seam for one authenticated media viewer; the core and proxy do not know it. */
-class BrowserMediaHub {
+class BrowserMediaHub(private val record: (String) -> Unit = {}) {
     val audio = BrowserAudioOutput()
     private val lock = Any()
     private var owner: Any? = null
@@ -13,15 +13,19 @@ class BrowserMediaHub {
     private var rtc = false
     private var recoveryGraceMs = RtcRecoveryPolicy.BALANCED.graceMs
     @Volatile private var video: BrowserVideoOutput? = null
-    val transport get() = video?.transport ?: "jpeg"
+    val transport get() = video?.transport ?: "waiting"
+    val videoCodec get() = video?.codecName
+    val viewerAttached: Boolean get() = synchronized(lock) { owner != null }
     fun video(output: BrowserVideoOutput?) = synchronized(lock) {
         video = output
+        output?.eventLogger = ::note
         send?.let { output?.attach(rtc, recoveryGraceMs, it) }
     }
     fun attach(owner: Any, rtc: Boolean, send: (JSONObject) -> Boolean, audio: (ByteArray, Long) -> Boolean,
         recoveryGraceMs: Long = RtcRecoveryPolicy.BALANCED.graceMs): Boolean = synchronized(lock) {
         if (this.owner != null) return false
         this.owner = owner; this.send = send; this.rtc = rtc
+        note("Browser media attached rtc=$rtc")
         this.recoveryGraceMs = RtcRecoveryPolicy.fromMillis(recoveryGraceMs).graceMs
         this.audio.attach(owner, audio, send)
         video?.attach(rtc, this.recoveryGraceMs, send)
@@ -37,5 +41,7 @@ class BrowserMediaHub {
     fun detach(owner: Any) = synchronized(lock) {
         if (this.owner !== owner) return
         audio.detach(owner); video?.detach(); this.owner = null; send = null
+        note("Browser media detached")
     }
+    internal fun note(message: String) { runCatching { record(message) } }
 }

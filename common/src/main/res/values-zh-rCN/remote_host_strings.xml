@@ -1,0 +1,29 @@
+<resources>
+    <string name="settings_host_connect_browser">连接车机浏览器</string>
+    <string name="settings_host_open_browser">在 Tesla 浏览器打开以下地址，并输入连接码</string>
+    <string name="settings_host_settings">主机设置</string>
+    <string name="settings_host_connected">已连接</string>
+    <string name="settings_host_phone_waiting">等待连接 iPhone</string>
+    <string name="settings_host_browser_connected">浏览器已连接</string>
+    <string name="settings_host_browser_waiting">等待浏览器连接</string>
+    <string name="settings_host_entry_pending">等待主机网络</string>
+    <string name="settings_host_https_configured">HTTPS 入口已配置</string>
+    <string name="settings_host_direct">HTTP 直连</string>
+    <string name="settings_host_code_expired">连接码已过期，请重新生成。</string>
+    <string name="settings_host_code_expiry">5 分钟内有效</string>
+    <string name="settings_host_code_renew">重新生成连接码</string>
+    <string name="settings_host_copy_address">复制连接地址</string>
+    <string name="settings_host_copied">地址已复制</string>
+    <string name="settings_host_browser_name">Tesla 浏览器</string>
+    <string name="settings_host_prepare">准备 Android 主机</string>
+    <string name="settings_host_setup_iphone">连接你的 iPhone</string>
+    <string name="settings_host_setup_entry">选择浏览器入口</string>
+    <string name="settings_host_prepare_hint">检查这台 Android 主机的权限，并配置网络。</string>
+    <string name="settings_host_iphone_hint">将 iPhone 与这台 Android 主机进行蓝牙配对后连接；USB 数据线也应连接到这台主机。</string>
+    <string name="settings_host_gateway_hint">这里只保存 HTTPS 地址，网关、DNS 和证书需独立部署。域名指向受限内网地址时，Tesla 仍可能无法访问。</string>
+    <string name="settings_host_entry">浏览器入口</string>
+    <string name="settings_host_entry_invalid">请输入不含路径、登录信息或配对码的 HTTPS 域名地址。</string>
+    <string name="settings_host_display_audio">显示与声音</string>
+    <string name="settings_browser_hevc">HEVC 视频（实验性）</string>
+    <string name="settings_browser_hevc_description">允许 iPhone 输出 HEVC 并直接转发。车机浏览器需支持 HEVC WebRTC，下次 CarPlay 连接生效；Android 不做视频转码。</string>
+</resources>

@@ -1,8 +1,8 @@
 # DiPlay Tesla quick start
 
-Install DiPlay Tesla on an Android host, connect your iPhone to that host, and open CarPlay in the Tesla browser. This guide covers **0.1.10**.
+Install DiPlay Tesla on an Android host, connect your iPhone to that host, and open CarPlay in the Tesla browser. The current release is **0.1.14**. H.264 is the default; HEVC has reported compatibility problems and remains experimental. If previously enabled, turn it off in Android Advanced settings and reconnect CarPlay.
 
-[Download 0.1.10](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.10) · [中文完整步骤](TESLA-QUICKSTART.zh-CN.md) · [Technical and build guide](TESLA.md)
+[Download 0.1.14](https://github.com/WangZhuo2015/DiPlay-tesla/releases/tag/tesla-v0.1.14) · [中文完整步骤](TESLA-QUICKSTART.zh-CN.md) · [Technical and build guide](TESLA.md)
 
 ## Choose the download
 
@@ -79,7 +79,7 @@ The menu handle retracts after about two seconds; tap its visible top-edge strip
 | Picture works without sound | Play music, tap the page, check the remembered off preference, menu audio state and vehicle volume |
 | Audio breaks up | Keep the page foreground and try 400 ms buffering; change one setting at a time |
 | Picture is blurry or delayed | Check the active profile, start with Fit 1/2 at 20 fps; compare 720p/15 fps on slower hosts |
-| JPEG instead of WebRTC | Automatic fallback can follow unsupported H.264 or failed WebRTC; browser and Android need direct connectivity, since HTTPS proxy does not relay UDP |
+| JPEG instead of WebRTC | From 0.1.14 JPEG is manual diagnostics only; select WebRTC in Display settings and keep only one media page open. HTTPS proxy does not relay UDP; a configured local HTTPS alias also binds the media socket |
 | Dock icons animate without activating | Update to 0.1.10 and reload the page; the gateway must serve the current APK assets |
 
 Use browser live diagnostics and Android **Settings → Diagnostics → Save diagnostic report**. Remove private data, hotspot passwords and pairing information before sharing.

@@ -1,0 +1,29 @@
+<resources>
+    <string name="settings_host_connect_browser">Collega il browser dell’auto</string>
+    <string name="settings_host_open_browser">Apri questo indirizzo nel browser Tesla e inserisci il codice</string>
+    <string name="settings_host_settings">Impostazioni host</string>
+    <string name="settings_host_connected">Connesso</string>
+    <string name="settings_host_phone_waiting">In attesa di iPhone</string>
+    <string name="settings_host_browser_connected">Browser connesso</string>
+    <string name="settings_host_browser_waiting">In attesa del browser</string>
+    <string name="settings_host_entry_pending">In attesa della rete host</string>
+    <string name="settings_host_https_configured">Accesso HTTPS configurato</string>
+    <string name="settings_host_direct">Accesso HTTP diretto</string>
+    <string name="settings_host_code_expired">Codice scaduto. Generane uno nuovo per abbinare.</string>
+    <string name="settings_host_code_expiry">Valido per cinque minuti</string>
+    <string name="settings_host_code_renew">Nuovo codice di abbinamento</string>
+    <string name="settings_host_copy_address">Copia indirizzo di connessione</string>
+    <string name="settings_host_copied">Indirizzo copiato</string>
+    <string name="settings_host_browser_name">Browser Tesla</string>
+    <string name="settings_host_prepare">Prepara l’host Android</string>
+    <string name="settings_host_setup_iphone">Collega il tuo iPhone</string>
+    <string name="settings_host_setup_entry">Scegli l’accesso del browser</string>
+    <string name="settings_host_prepare_hint">Controlla le autorizzazioni e configura la rete di questo host Android.</string>
+    <string name="settings_host_iphone_hint">Abbina iPhone a questo host Android tramite Bluetooth, poi connettilo. Anche il cavo USB va collegato a questo host.</string>
+    <string name="settings_host_gateway_hint">Viene salvato solo l’indirizzo HTTPS. Gateway, DNS e certificato vanno configurati separatamente. Tesla può ancora bloccare un dominio che punta a un indirizzo privato limitato.</string>
+    <string name="settings_host_entry">Accesso del browser</string>
+    <string name="settings_host_entry_invalid">Inserisci un nome host HTTPS senza percorso, credenziali o codice di abbinamento.</string>
+    <string name="settings_host_display_audio">Schermo e audio</string>
+    <string name="settings_browser_hevc">Video HEVC (sperimentale)</string>
+    <string name="settings_browser_hevc_description">Consente di inoltrare il video HEVC di iPhone senza transcodifica su Android. Il browser dell’auto deve supportare HEVC tramite WebRTC. Si applica alla prossima connessione CarPlay.</string>
+</resources>

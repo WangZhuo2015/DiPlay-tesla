@@ -24,13 +24,16 @@ const jpeg=Buffer.from(await source.evaluate(()=>{
   return c.toDataURL('image/jpeg',.8).split(',')[1];
 }),'base64');
 await source.close();
-let level=-10,writes=[],conflictNext=false,failNext=false,moving=true,sequence=0,frameHold=false,denyAuth=false;
+let level=-10,writes=[],conflictNext=false,failNext=false,moving=true,sequence=0,frameHold=false,denyAuth=false,frameCalls=0;
 const display={mode:'FULL',right:{width:1024,height:768},full:{width:1920,height:1080},fps:60,jpegFps:20,jpegQuality:75};
 const server=createServer(async(req,res)=>{
   try {
     const path=new URL(req.url,'http://localhost');
     const json=(value,status=200)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(value));};
-    if(path.pathname==='/api/pair')return json({token:'0'.repeat(32)});
+    if(path.pathname==='/api/pair') {
+      let raw='';for await(const chunk of req)raw+=chunk;
+      return JSON.parse(raw).code==='123456'?json({token:'0'.repeat(32)}):json({error:'invalid'},401);
+    }
     if(path.pathname.startsWith('/api/') && (denyAuth || req.headers.authorization!=='Bearer '+'0'.repeat(32))){res.writeHead(401);res.end();return;}
     if(path.pathname==='/api/status')return json({connected:true,stage:'Synthetic verification · no vehicle',display,activeDisplay:display,navigationAttenuationDb:level});
     if(path.pathname==='/api/navigation-volume') {
@@ -43,6 +46,7 @@ const server=createServer(async(req,res)=>{
       return json({navigationAttenuationDb:level});
     }
     if(path.pathname==='/api/frame') {
+      frameCalls++;
       if(frameHold){res.writeHead(204);res.end();return;}
       if(moving)sequence++;
       if(Number(path.searchParams.get('after'))>=sequence){res.writeHead(204);res.end();return;}
@@ -58,15 +62,21 @@ const server=createServer(async(req,res)=>{
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const base=`http://127.0.0.1:${server.address().port}`;
 const report={scope:'Production browser assets; synthetic HTTP and invalid RTC offer; real JPEG decoding. No Android, vehicle or working H.264 transport claim.',browser:browser.version(),fontScale:1.3,checks:[],screenshots:[]};
-function fixture() {
-  localStorage.setItem('diplay-token','0'.repeat(32));localStorage.setItem('diplay-browser-audio','false');localStorage.setItem('diplay-video','jpeg');
+function fixture({paired=true,hevcUnsupported=false,mediaBusy=false}={}) {
+  if(paired)localStorage.setItem('diplay-token','0'.repeat(32));else localStorage.removeItem('diplay-token');
+  localStorage.setItem('diplay-browser-audio','false');localStorage.setItem('diplay-video',hevcUnsupported?'auto':'jpeg');
+  if(hevcUnsupported)RTCRtpReceiver.getCapabilities=()=>({codecs:[{mimeType:'video/H264'}]});
   addEventListener('DOMContentLoaded',()=>{document.body.style.fontSize='20.8px';});
-  const state=window.__feedbackFixture={hellos:0,fallbacks:0};
+  const state=window.__feedbackFixture={hellos:0,fallbacks:0,busy:mediaBusy};
   class Signaling {
     static OPEN=1;
     constructor(){this.readyState=0;state.socket=this;queueMicrotask(()=>{this.readyState=1;this.onopen?.();});}
     send(raw){const data=JSON.parse(raw);
-      if(data.type==='hello'){state.hellos++;if(data.rtc)this.onmessage?.({data:JSON.stringify({type:'rtc-offer',id:1,sdp:'synthetic invalid offer'})});}
+      if(data.type==='hello'){
+        state.hellos++;
+        this.onmessage?.({data:JSON.stringify({type:state.busy?'media-busy':'welcome'})});
+        if(data.rtc&&!state.busy)this.onmessage?.({data:JSON.stringify({type:'rtc-offer',id:1,codec:hevcUnsupported?'H265':'H264',sdp:'synthetic invalid offer'})});
+      }
       if(data.type==='rtc-fallback'){state.fallbacks++;this.onmessage?.({data:JSON.stringify({type:'rtc-stop',id:1,reason:'browser-fallback',retryAfterMs:5000})});}
     }
     close(){this.readyState=3;this.onclose?.();}
@@ -76,11 +86,34 @@ function fixture() {
 try {
   for(const scenario of [{name:'full-en',width:1920,height:1080,lang:'en'},{name:'compact-zh',width:1024,height:768,lang:'zh-CN'},{name:'narrow-ar',width:360,height:740,lang:'ar'}]) {
     console.log('Checking',scenario.name);level=-10;writes=[];conflictNext=failNext=false;moving=true;sequence=0;frameHold=true;denyAuth=false;
+    const pairContext=await browser.newContext({viewport:{width:scenario.width,height:scenario.height},locale:scenario.lang});
+    await pairContext.addInitScript(fixture,{paired:false});
+    const pairPage=await pairContext.newPage();pairPage.setDefaultTimeout(12000);
+    await pairPage.goto(`${base}/?lang=${scenario.lang}`);
+    await pairPage.locator('#pairing').waitFor({state:'visible'});
+    const pairLayout=await pairPage.locator('#pairing').evaluate(panel=>({width:panel.clientWidth,scroll:panel.scrollWidth,
+      viewport:innerWidth,document:document.documentElement.scrollWidth,input:getComputedStyle(panel.querySelector('input')).direction}));
+    assert.ok(pairLayout.scroll<=pairLayout.width+1 && pairLayout.document<=pairLayout.viewport,JSON.stringify(pairLayout));
+    assert.equal(pairLayout.input,'ltr');
+    const pairName=`pairing-${scenario.name}-font130.jpg`;
+    await pairPage.screenshot({path:resolve(output,pairName),type:'jpeg',quality:85});report.screenshots.push(pairName);
+    await pairPage.locator('#token').fill('000000');await pairPage.locator('#pairing button[type=submit]').click();
+    await pairPage.waitForFunction(()=>document.getElementById('pairError').textContent.length>0);
+    assert.equal(await pairPage.locator('#pairing').isVisible(),true,'Rejected code keeps the form available');
+    await pairPage.locator('#token').fill('123456');await pairPage.locator('#pairing button[type=submit]').click();
+    await pairPage.locator('#pairing').waitFor({state:'hidden'});
+    assert.equal(await pairPage.evaluate(()=>localStorage.getItem('diplay-token')),'0'.repeat(32));
+    report.checks.push({scenario:scenario.name,pairLayout,invalidCodeRecovery:true,successfulPairing:true});
+    await pairContext.close();
     const context=await browser.newContext({viewport:{width:scenario.width,height:scenario.height},locale:scenario.lang});
     await context.addInitScript(fixture);const page=await context.newPage();page.setDefaultTimeout(12000);
     const errors=[];page.on('pageerror',error=>errors.push(String(error)));
     await page.goto(`${base}/?lang=${scenario.lang}`);
     await page.locator('#menuButton').focus();await page.keyboard.press('Enter');
+    const topName=`menu-top-${scenario.name}-font130.jpg`;
+    await page.screenshot({path:resolve(output,topName),type:'jpeg',quality:85});report.screenshots.push(topName);
+    assert.equal(await page.locator('#audioAdvanced').getAttribute('open'),null,'Host tuning is collapsed by default');
+    await page.locator('#audioAdvanced > summary').click();
     await page.waitForFunction(()=>!document.getElementById('navigationLevel').disabled);
     // Local browser gains must coexist with the shared Android guidance setting.
     for(const [role,value] of [['music',37],['navigation',62]]) {
@@ -129,8 +162,11 @@ try {
     await page.locator('#menuButton').focus();await page.keyboard.press('Enter');
     await page.waitForFunction(()=>document.getElementById('videoExplanation').textContent.includes('negotiation-failed'));
     assert.equal(await page.evaluate(()=>window.__feedbackFixture.fallbacks),1);
-    assert.ok((await page.locator('#transportStatus').textContent()).includes('JPEG'));
-    if(scenario.name==='full-en')await capture('feedback-fallback-full-en-font130.jpg');
+    assert.ok(!(await page.locator('#transportStatus').textContent()).includes('JPEG'),'RTC failure must not claim JPEG playback');
+    const callsAfterFailure=frameCalls;
+    await page.waitForTimeout(500);
+    assert.equal(frameCalls,callsAfterFailure,'RTC failure must not silently request software JPEG conversion');
+    if(scenario.name==='full-en')await capture('feedback-rtc-retry-full-en-font130.jpg');
     if(scenario.name==='full-en') {
       denyAuth=true;
       await page.locator('#pairing').waitFor({state:'visible'});
@@ -145,6 +181,35 @@ try {
       volumePreservesMedia:true,browserAndHostVolumesIndependent:true,browserVolumesPersistAfterHostChanges:true,
       unavailableDistinctFromZero:true,actualDimensions:true,fallbackReasonVisible:true});
     await context.close();
+    const rejectedContext=await browser.newContext({viewport:{width:scenario.width,height:scenario.height},locale:scenario.lang});
+    await rejectedContext.addInitScript(fixture,{hevcUnsupported:true});
+    const rejected=await rejectedContext.newPage();rejected.setDefaultTimeout(12000);
+    await rejected.goto(`${base}/?lang=${scenario.lang}`);
+    await rejected.locator('#menuPanel').waitFor({state:'visible'});
+    await rejected.waitForFunction(()=>document.getElementById('videoExplanation').textContent.includes('HEVC'));
+    assert.equal(await rejected.locator('#transport').inputValue(),'auto');
+    const rejectedFrameCalls=frameCalls;
+    await rejected.waitForTimeout(500);
+    assert.equal(frameCalls,rejectedFrameCalls,'HEVC incompatibility must never activate JPEG');
+    const rejectedName=`hevc-unsupported-${scenario.name}-font130.jpg`;
+    await rejected.screenshot({path:resolve(output,rejectedName),type:'jpeg',quality:85});report.screenshots.push(rejectedName);
+    report.checks.push({scenario:scenario.name,hevcUnsupportedVisible:true,noAutomaticJpegOnCodecFailure:true});
+    await rejectedContext.close();
+    const busyContext=await browser.newContext({viewport:{width:scenario.width,height:scenario.height},locale:scenario.lang});
+    await busyContext.addInitScript(fixture,{mediaBusy:true});
+    const busyPage=await busyContext.newPage();busyPage.setDefaultTimeout(12000);
+    await busyPage.goto(`${base}/?lang=${scenario.lang}`);
+    await busyPage.locator('#menuButton').focus();await busyPage.keyboard.press('Enter');
+    await busyPage.waitForFunction(()=>/另一个网页|Another page|صفحة أخرى/.test(document.getElementById('videoExplanation').textContent));
+    const busyFrameCalls=frameCalls;
+    await busyPage.waitForTimeout(500);
+    assert.equal(frameCalls,busyFrameCalls,'A waiting JPEG page must not request frames while another page owns media');
+    const busyName=`media-busy-${scenario.name}-font130.jpg`;
+    await busyPage.screenshot({path:resolve(output,busyName),type:'jpeg',quality:85});report.screenshots.push(busyName);
+    await busyPage.evaluate(()=>window.__feedbackFixture.socket.onmessage({data:JSON.stringify({type:'welcome'})}));
+    await busyPage.waitForFunction(()=>!/另一个网页|Another page|صفحة أخرى/.test(document.getElementById('videoExplanation').textContent));
+    report.checks.push({scenario:scenario.name,mediaBusyVisible:true,noJpegWhileBusy:true,mediaLeaseRecovery:true});
+    await busyContext.close();
   }
   report.result='passed';await writeFile(resolve(output,'feedback-browser-verification.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
 }finally{await browser.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
