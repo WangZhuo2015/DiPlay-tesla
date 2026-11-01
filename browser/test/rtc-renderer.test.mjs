@@ -70,6 +70,21 @@ test('Canvas keeps native playback visible until its first decoded frame', () =>
   assert.deepEqual(f.draws[0], [f.video, 0, 0, 1280, 720]);
 });
 
+test('native diagnostic callbacks are retired on Canvas, stream replacement and disposal without changing playback', () => {
+  const f=fixture();f.renderer.setActive(true);f.renderer.samplePresentation();
+  assert.equal(f.callbacks.size,1);assert.equal(f.draws.length,0);
+  const late=[...f.callbacks.values()][0];
+  f.renderer.setMode('canvas');
+  late(10,{presentedFrames:999,presentationTime:10});
+  assert.equal(f.renderer.samplePresentation().presentedFrames,null);
+  assert.equal(f.callbacks.size,1,'Canvas must have only its existing drawing callback');
+  f.renderer.setMode('native');assert.equal(f.callbacks.size,0);
+  f.renderer.samplePresentation();assert.equal(f.callbacks.size,1);
+  f.video.srcObject={};f.renderer.setActive(true);
+  assert.equal(f.callbacks.size,0);assert.equal(f.renderer.samplePresentation().presentedFrames,null);
+  f.renderer.dispose();assert.equal(f.callbacks.size,0);assert.equal(f.timers.size,0);
+});
+
 test('decoded dimensions and aspect ratio are retained without same-size canvas resets', () => {
   const f = fixture(); f.start();
   assert.deepEqual(f.dimensions, [['width', 1280], ['height', 720]]);

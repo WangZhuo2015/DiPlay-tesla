@@ -293,11 +293,14 @@ test('browser decoder samples merge with server queue diagnostics and preserve n
       queueFrames:2,queueBytes:100,expiredFrames:3,overflowFrames:5,keyframeSkips:7,invalidatedFrames:11,recovering:true});
     await f.advance(1000);
     assert.equal(f.stats().decodedFps,null);assert.equal(f.stats().dropped,2);assert.equal(f.stats().expiredFrames,3);
+    assert.equal(f.stats().decodedFrames,1);
     peer.decoded=31;await f.advance(1000);
     assert.equal(f.stats().decodedFps,30);assert.equal(f.stats().queueBytes,100);assert.equal(f.stats().sendFailures,2);
+    assert.equal(f.stats().decodedFrames,31);
     f.sockets[0].message({type:'rtc-stop',id:1,reason:'keyframe-timeout'});
     assert.equal(f.stats().fallbackReason,'keyframe-timeout');assert.equal(f.stats().expiredFrames,3);
     assert.equal(f.stats().decodedFps,null);assert.equal(f.stats().recovering,false);
+    assert.equal(f.stats().decodedFrames,null);
   } finally { await f.dispose(); }
 });
 
@@ -309,10 +312,12 @@ test('a failed or hanging stats read clears the previous fps while a stationary 
     await f.advance(1000);assert.equal(f.stats().decodedFps,0);
     peer.behavior.stats=()=>Promise.reject(new Error('Counters unavailable'));
     await f.advance(1000);assert.equal(f.stats().decodedFps,null);assert.equal(f.stats().dropped,null);
+    assert.equal(f.stats().decodedFrames,null);
     peer.behavior.stats=()=>Promise.resolve(peer.report());
     peer.decoded=61;await f.advance(1000);assert.ok(f.stats().decodedFps>0);
     peer.behavior.stats=()=>new Promise(()=>{});
     await f.advance(2000);assert.equal(f.stats().decodedFps,null);
+    assert.equal(f.stats().decodedFrames,null);
     assert.equal(f.media.displayed,true);assert.equal(f.fallback().length,0);
   } finally { await f.dispose(); }
 });
