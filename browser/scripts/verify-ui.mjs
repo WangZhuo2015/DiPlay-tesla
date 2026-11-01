@@ -372,7 +372,7 @@ try {
       throw error;
     }
     assert.equal(await page.locator('#picture').isVisible(),false);
-    const diagnostics=await verifyDiagnostics(page);
+    const diagnosticsLifecycle=await verifyDiagnostics(page);
     console.log('Native video received');
     const volumes=await verifyVolumes(page,scenario);
     console.log('Volume controls, menu layout and reload persistence checked');
@@ -416,7 +416,7 @@ try {
     assert.equal(await page.locator('#picture').isVisible(),false);
     assert.equal(await page.evaluate(()=>window.__uiFixture.hellos.length),2,'Renderer-only save must not restart media');
     assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>window.__uiFixture.errors),[]);
-    report.checks.push({scenario:scenario.name,layout,volumes,diagnostics,codec:await page.evaluate(()=>window.__uiFixture.codec),
+    report.checks.push({scenario:scenario.name,layout,volumes,diagnosticsLifecycle,codec:await page.evaluate(()=>window.__uiFixture.codec),
       nativeToCanvasToNative:true,canvasTouch:true,jpegNotRequestedInRtcMode:true,frameRateSavedForNextConnection:true,recoveryHello:true,
       rendererOnlyKeepsMedia:true,focusTrap:true});
     await context.close();
