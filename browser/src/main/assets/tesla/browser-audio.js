@@ -1,13 +1,6 @@
 // PCM packet layout and independent playback route inspired by tepla 0.2.1 (GPL-3.0).
-// AudioBuffer carries the original sample rate; WebAudio performs hardware-rate conversion.
-export function decodeAudioPacket(buffer) {
-  if (!(buffer instanceof ArrayBuffer) || buffer.byteLength < 22 || buffer.byteLength > 65536) return null;
-  const header = new DataView(buffer), channels = header.getUint16(12,true), rate = header.getUint32(8,true);
-  if (header.getUint32(0,true) !== 0x31415057 || channels < 1 || channels > 2 || rate < 8000 || rate > 96000 || (buffer.byteLength-20) % (channels*2)) return null;
-  // The reserved u16 is a role, not the dynamically assigned stream ID.
-  // Zero/unknown roles from older or newer servers retain unity gain.
-  return {stream:header.getInt32(4,true),role:header.getUint16(14,true),rate,channels,sequence:header.getUint32(16,true),pcm:new Int16Array(buffer,20)};
-}
+import {decodeAudioPacket} from './audio-packet.js';
+export {decodeAudioPacket} from './audio-packet.js';
 
 export function normalizeAudioVolume(value) {
   if ((typeof value !== 'string' && typeof value !== 'number') || String(value).trim() === '') return 100;
@@ -28,14 +21,18 @@ export function createAudioPreference({audio,storedValue=null,save=()=>{}}) {
     },
     toggle(){
       wanted=!audio.enabled;save(String(wanted));
-      if(!wanted){audio.disable();return Promise.resolve(false);}
+      if(!wanted){audio.disable('manual-off');return Promise.resolve(false);}
       return audio.enable();
     }
   };
 }
 
-export function createBrowserAudio({send,onState=()=>{},volumes:initialVolumes={},createContext=()=>new (window.AudioContext||window.webkitAudioContext)({latencyHint:'playback'})}) {
+export function createBrowserAudio({send,onState=()=>{},onDiagnostic=()=>{},volumes:initialVolumes={},createContext=()=>new (window.AudioContext||window.webkitAudioContext)({latencyHint:'playback'})}) {
   let context = null, enabled = false, generation = 0, bufferMs = 200;
+  let transport=null, worklet=null, moduleLoad=null, workletFailed=false, playbackError=null;
+  let workletStats={};
+  const retired={underruns:0,musicUnderruns:0,navigationUnderruns:0,overruns:0};
+  const legacyUnderruns={music:0,navigation:0};
   const streams = new Map(), nodes = new Set();
   const volumes = {music:normalizeAudioVolume(initialVolumes.music),navigation:normalizeAudioVolume(initialVolumes.navigation)};
   const gains = new Map();
@@ -63,40 +60,93 @@ export function createBrowserAudio({send,onState=()=>{},volumes:initialVolumes={
   function notifyState() {
     // PCM packets arrive much more often than the controls change. Keep transport
     // acknowledgements at packet cadence without rewriting the audio UI each time.
-    if (publishedState && publishedState.enabled === enabled && publishedState.bufferMs === bufferMs && publishedState.underruns === underruns) return;
-    publishedState = {enabled,bufferMs,underruns};
+    const total=underruns+retired.underruns+(workletStats.underruns||0);
+    if (publishedState && publishedState.enabled === enabled && publishedState.bufferMs === bufferMs && publishedState.underruns === total) return;
+    publishedState = {enabled,bufferMs,underruns:total};
     onState({...publishedState});
   }
   function publish() { send({type:'audio-ready',playback:enabled && context && context.state === 'running'}); notifyState(); }
-  function disable() { generation++; enabled = false; stop(); publish(); }
+  function detachWorklet() {
+    if(!worklet)return;
+    for(const key of Object.keys(retired))retired[key]+=workletStats[key]||0;
+    workletStats={};worklet.onprocessorerror=null;worklet.disconnect();worklet.port.close();worklet=null;
+    transport?.unbindAudio();
+  }
+  function disable(reason='client-disable') {
+    if(enabled || worklet)onDiagnostic('audio-disable',{reason,contextState:context?.state||'unavailable'});
+    generation++; enabled = false; detachWorklet();stop(); publish();
+  }
+  function failWorklet(reason) {
+    onDiagnostic('audio-compatibility',{reason});
+    playbackError=reason;workletFailed=true;
+    console.warn('DiPlay audio: compatibility playback after '+reason);
+    detachWorklet();publish();
+  }
   async function enable() {
+    onDiagnostic('audio-enable-request',{contextState:context?.state||'unavailable'});
     const ticket = ++generation;
     try {
       if (!context || context.state === 'closed') {
         for (const gain of gains.values()) gain.disconnect();
         gains.clear();
         context = createContext();
+        moduleLoad=null;workletFailed=false;
         for (const role of ['music','navigation']) {
           const gain = context.createGain();
           gain.gain.value = volumes[role]/100;
           gain.connect(context.destination); gains.set(role,gain);
         }
-        context.onstatechange = () => { if (enabled && context.state !== 'running') disable(); };
+        context.onstatechange = () => {
+          onDiagnostic('audio-context',{contextState:context.state});
+          if (enabled && context.state !== 'running') disable('context-not-running');
+        };
       }
-      await context.resume();
+      // resume() must execute in the original user gesture, before waiting for a module fetch.
+      const resumed=context.resume();
+      if(transport?.bindAudio && context.audioWorklet && typeof AudioWorkletNode==='function' && !workletFailed) {
+        const loadedContext=context;
+        moduleLoad ||= new Promise((resolve,reject)=>{
+          const timeout=setTimeout(()=>reject(new Error('Audio worklet load timed out')),4000);
+          Promise.resolve().then(()=>loadedContext.audioWorklet.addModule(new URL('./audio-worklet.js',import.meta.url)))
+            .then(()=>{clearTimeout(timeout);resolve();},error=>{clearTimeout(timeout);reject(error);});
+        });
+        // Attach a handler immediately, even when resume() is waiting for autoplay permission.
+        moduleLoad.catch(()=>{});
+      }
+      await resumed;
       if (ticket !== generation) return false;
       if (context.state !== 'running') throw new Error('Audio context paused');
-      enabled = true; publish(); return true;
-    } catch (_) { if (ticket === generation) disable(); return false; }
+      if(moduleLoad && !workletFailed && transport?.bindAudio && !worklet) {
+        let node;
+        try {
+          await moduleLoad;
+          if(ticket!==generation)return false;
+          node=new AudioWorkletNode(context,'diplay-pcm',{numberOfInputs:0,numberOfOutputs:3,
+            outputChannelCount:[2,2,2]});
+          node.connect(gains.get('music'),0);node.connect(gains.get('navigation'),1);node.connect(context.destination,2);
+          node.onprocessorerror=()=>{if(worklet===node)failWorklet('processor-failed');};
+          transport.bindAudio(node.port,{bufferMs,playback:true,sampleRate:context.sampleRate});
+          worklet=node;playbackError=null;stop();
+        } catch {
+          if(ticket!==generation)return false;
+          if(node && worklet!==node) {node.disconnect();node.port.postMessage({type:'close'});node.port.close();}
+          failWorklet('worklet-unavailable');
+        }
+      }
+      enabled = true;onDiagnostic('audio-enabled',{contextState:context.state,engine:worklet?'worklet':'compatibility'});publish(); return true;
+    } catch (error) {
+      onDiagnostic('audio-enable-failed',{errorName:error?.name||'Error',contextState:context?.state||'unavailable'});
+      if (ticket === generation) disable('enable-failed'); return false;
+    }
   }
   function receive(buffer) {
     const frame = decodeAudioPacket(buffer);
     if (!frame) return false;
     send({type:'audio-ack',sequence:frame.sequence});
-    if (enabled && (!context || context.state !== 'running')) disable();
+    if (enabled && (!context || context.state !== 'running')) disable('context-not-running');
     if (!enabled) return true;
     const count = frame.pcm.length / frame.channels, duration = count / frame.rate;
-    if (duration > .5) { disable(); return true; }
+    if (duration > .5) { disable('packet-too-long'); return true; }
     const now = context.currentTime, target = bufferMs/1000;
     let stream = streams.get(frame.stream);
     if (!stream || stream.rate !== frame.rate || stream.channels !== frame.channels) {
@@ -105,9 +155,11 @@ export function createBrowserAudio({send,onState=()=>{},volumes:initialVolumes={
     if (stream.next < now + .01) {
       // Rebuffer only the starved stream. Navigation never cancels already queued music.
       stop(frame.stream); underruns++; stream.next = now + target;
+      if(frame.role===1)legacyUnderruns.music++;
+      if(frame.role===2)legacyUnderruns.navigation++;
     }
     // A long decoder/network backlog should release the route instead of repeatedly cutting audio.
-    if (stream.next-now > Math.max(.75,target+.4) || nodes.size >= 128) { disable(); return true; }
+    if (stream.next-now > Math.max(.75,target+.4) || nodes.size >= 128) { disable('audio-backlog'); return true; }
     const audio = context.createBuffer(frame.channels,count,frame.rate);
     for (let channel=0;channel<frame.channels;channel++) {
       const output = audio.getChannelData(channel);
@@ -121,11 +173,28 @@ export function createBrowserAudio({send,onState=()=>{},volumes:initialVolumes={
     notifyState(); return true;
   }
   return {enable,disable,receive,
+    setTransport(next) {
+      if(next===transport)return;
+      generation++;
+      detachWorklet();
+      if(transport){transport.onaudiostats=null;transport.onaudioerror=null;}
+      transport=next;
+      if(next) {
+        next.onaudiostats=value=>{
+          if(transport!==next || !worklet)return;
+          workletStats=value;notifyState();
+        };
+        next.onaudioerror=reason=>{if(transport===next && worklet)failWorklet(reason);};
+      }
+    },
     setVolume,
     get volumes() { return {...volumes}; },
     heartbeat:publish,
-    stopped:stop,
-    setBuffer(ms) { if (![80,200,400].includes(ms)) return; bufferMs=ms; stop(); publish(); },
+    stopped(stream) {
+      onDiagnostic('audio-stream-stop',{reason:'server-stream-stop'});
+      if(worklet)transport.stopAudio(stream);else stop(stream);
+    },
+    setBuffer(ms) { if (![80,200,400].includes(ms)) return; bufferMs=ms; stop(); if(worklet)transport.audioBuffer(ms);publish(); },
     close() {
       disable();
       for (const gain of gains.values()) gain.disconnect();
@@ -135,7 +204,12 @@ export function createBrowserAudio({send,onState=()=>{},volumes:initialVolumes={
     get enabled() { return enabled; },
     stats() {
       const now=context?.currentTime||0;
-      return {enabled,targetMs:bufferMs,queuedMs:enabled?Math.max(0,...[...streams.values()].map(stream=>(stream.next-now)*1000)):0,underruns};
+      return {enabled,targetMs:bufferMs,queuedMs:enabled?(worklet?workletStats.queuedMs||0:Math.max(0,...[...streams.values()].map(stream=>(stream.next-now)*1000))):0,
+        ...workletStats,underruns:underruns+retired.underruns+(workletStats.underruns||0),
+        musicUnderruns:legacyUnderruns.music+retired.musicUnderruns+(workletStats.musicUnderruns||0),
+        navigationUnderruns:legacyUnderruns.navigation+retired.navigationUnderruns+(workletStats.navigationUnderruns||0),
+        overruns:retired.overruns+(workletStats.overruns||0),
+        engine:worklet?'worklet':'compatibility',contextState:context?.state||'unavailable',playbackError};
     }
   };
 }

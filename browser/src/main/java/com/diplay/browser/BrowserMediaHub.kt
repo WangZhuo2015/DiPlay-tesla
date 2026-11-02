@@ -43,5 +43,8 @@ class BrowserMediaHub(private val record: (String) -> Unit = {}) {
         audio.detach(owner); video?.detach(); this.owner = null; send = null
         note("Browser media detached")
     }
+    internal fun resetAudio(owner: Any) = synchronized(lock) {
+        if (this.owner === owner) audio.reset(owner)
+    }
     internal fun note(message: String) { runCatching { record(message) } }
 }

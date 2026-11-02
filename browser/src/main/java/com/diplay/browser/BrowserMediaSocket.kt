@@ -9,6 +9,8 @@ import java.security.MessageDigest
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
 
 /** One bounded writer for PCM and signaling. Video payloads travel over WebRTC, not this queue. */
 internal class BrowserMediaSocket(
@@ -23,7 +25,9 @@ internal class BrowserMediaSocket(
     private val queue = ArrayBlockingQueue<Packet>(32)
     private val pending = ConcurrentHashMap<Long, Long>()
     private val closed = AtomicBoolean()
-    @Volatile private var failed = false
+    private val audioRecovery = AtomicReference<String?>()
+    private val droppedAudio = AtomicLong()
+    @Volatile private var failureReason: String? = null
     @Volatile private var authenticated = false
     private var attached = false
     private var rtc = false
@@ -34,23 +38,48 @@ internal class BrowserMediaSocket(
         try {
             while (!closed.get()) {
                 val packet = queue.take()
-                if (packet.audio && System.nanoTime() - packet.queued > 500_000_000) { disconnect(); break }
+                if (packet.audio) {
+                    if (audioRecovery.get() != null) { droppedAudio.incrementAndGet(); continue }
+                    if (System.nanoTime() - packet.queued > 500_000_000) {
+                        requestAudioRecovery("audio-write-expired"); droppedAudio.incrementAndGet(); continue
+                    }
+                }
                 super.sendFrame(packet.frame)
             }
-        } catch (_: InterruptedException) { } catch (_: IOException) { disconnect() }
+        } catch (_: InterruptedException) { } catch (failure: IOException) { disconnect("writer-${failure.javaClass.simpleName}") }
     }, "browser-media-writer").apply { isDaemon = true }
     override fun onOpen() { writer.start() }
     private fun sendControl(data: JSONObject): Boolean = enqueue(WebSocketFrame(WebSocketFrame.OpCode.Text, true, data.toString()), false)
     private fun enqueue(frame: WebSocketFrame, audio: Boolean): Boolean {
         if (closed.get()) return false
         if (queue.offer(Packet(frame, System.nanoTime(), audio))) return true
-        requestDisconnect(); return false
+        requestAudioRecovery("audio-queue-full")
+        if (audio) return false
+        if (queue.offer(Packet(frame, System.nanoTime(), false))) return true
+        requestDisconnect("control-queue-full"); return false
     }
     private fun sendAudio(data: ByteArray, sequence: Long): Boolean {
-        if (pending.size >= 24 || pending.values.any { System.nanoTime() - it > 500_000_000 }) { requestDisconnect(); return false }
+        if (closed.get()) return false
+        // Consume stale PCM on this route: network jitter must not switch Android audio focus.
+        if (audioRecovery.get() != null) { droppedAudio.incrementAndGet(); return true }
+        if (pending.size >= 24) {
+            requestAudioRecovery("audio-window-full"); droppedAudio.incrementAndGet(); return true
+        }
+        if (pending.values.any { System.nanoTime() - it > 500_000_000 }) {
+            requestAudioRecovery("audio-ack-timeout"); droppedAudio.incrementAndGet(); return true
+        }
         pending[sequence] = System.nanoTime()
         if (enqueue(WebSocketFrame(WebSocketFrame.OpCode.Binary, true, data), true)) return true
-        pending.remove(sequence); return false
+        pending.remove(sequence)
+        if (closed.get()) return false
+        droppedAudio.incrementAndGet(); return true
+    }
+    private fun requestAudioRecovery(reason: String) {
+        if (audioRecovery.compareAndSet(null, reason)) {
+            queue.removeIf { packet ->
+                if (packet.audio) { droppedAudio.incrementAndGet(); true } else false
+            }
+        }
     }
     override fun sendFrame(frame: WebSocketFrame) { enqueue(frame, false) }
     private fun claimMedia() {
@@ -91,26 +120,49 @@ internal class BrowserMediaSocket(
                 else -> throw IllegalArgumentException()
             }
             seen = System.nanoTime()
-        } catch (_: Exception) { disconnect() }
+        } catch (failure: Exception) { disconnect("message-${failure.javaClass.simpleName}") }
     }
     fun expire() {
         val now = System.nanoTime()
-        if (failed || now - seen > (if (authenticated) 5_000_000_000L else 3_000_000_000L) || pending.values.any { now - it > 500_000_000 }) disconnect()
+        val failure = failureReason
+        when {
+            failure != null -> { disconnect(failure); return }
+            now - seen > (if (authenticated) 5_000_000_000L else 3_000_000_000L) ->
+                { disconnect(if (authenticated) "heartbeat-timeout" else "authentication-timeout"); return }
+            pending.values.any { now - it > 500_000_000 } -> requestAudioRecovery("audio-ack-timeout")
+        }
+        val reason = audioRecovery.get()
+        if (reason != null && !closed.get()) {
+            val pendingCount = pending.size
+            pending.clear()
+            // Hub/PCM locks are acquired only on the watchdog, never from sendAudio's PCM callback.
+            media.resetAudio(this)
+            audioRecovery.compareAndSet(reason, null)
+            media.note("Browser audio reset reason=$reason pendingAudio=$pendingCount droppedAudio=${droppedAudio.get()}")
+        }
     }
-    private fun requestDisconnect() {
+    private fun requestDisconnect(reason: String) {
         // May run under the PCM route lock: defer hub cleanup to the reader/watchdog.
-        failed = true; queue.clear(); writer.interrupt()
+        if (failureReason == null) failureReason = reason
+        queue.clear(); writer.interrupt()
         runCatching { handshakeRequest.inputStream.close() }
     }
-    fun disconnect() {
+    fun disconnect(reason: String = "local-close") {
         if (!closed.compareAndSet(false, true)) return
+        val now = System.nanoTime()
+        val oldest = pending.values.minOrNull()
+        media.note("Browser socket closed reason=${failureReason ?: reason} authenticated=$authenticated " +
+            "pendingAudio=${pending.size} oldestAudioMs=${oldest?.let { (now - it).coerceAtLeast(0) / 1_000_000 } ?: 0} " +
+            "queued=${queue.size} idleMs=${(now - seen).coerceAtLeast(0) / 1_000_000}")
         media.detach(this); pending.clear(); queue.clear(); writer.interrupt()
         runCatching { handshakeRequest.inputStream.close() }
         ended(this)
     }
     // NanoWSD passes null for both fields when a client sends a valid empty close frame.
-    override fun close(code: WebSocketFrame.CloseCode?, reason: String?, initiatedByRemote: Boolean) = disconnect()
-    override fun onClose(code: WebSocketFrame.CloseCode?, reason: String?, initiatedByRemote: Boolean) = disconnect()
-    override fun onException(exception: IOException) = disconnect()
+    override fun close(code: WebSocketFrame.CloseCode?, reason: String?, initiatedByRemote: Boolean) =
+        disconnect("${if (initiatedByRemote) "remote" else "local"}-close-${code?.name ?: "empty"}")
+    override fun onClose(code: WebSocketFrame.CloseCode?, reason: String?, initiatedByRemote: Boolean) =
+        disconnect("${if (initiatedByRemote) "remote" else "local"}-close-${code?.name ?: "empty"}")
+    override fun onException(exception: IOException) = disconnect("reader-${exception.javaClass.simpleName}")
     override fun onPong(pong: WebSocketFrame) { seen = System.nanoTime() }
 }

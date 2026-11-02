@@ -1,5 +1,6 @@
 import {createBrowserAudio,createAudioPreference} from './browser-audio.js';
 import {createRtcHealth} from './rtc-health.js';
+import {createMediaSocket} from './media-socket.js';
 
 // NotAllowedError is a current playback/activation restriction, not permanent codec absence.
 const retryableRtcError = error => error?.name !== 'NotSupportedError';
@@ -35,7 +36,7 @@ export async function presentJpegFrame({response,canvas,drawing,isCurrent,decode
 }
 
 // Recovery waiting follows WheelPlay's 4/10/30-second policy; media queues stay bounded separately.
-export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},onStats=()=>{}}) {
+export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},onStats=()=>{},onDiagnostic=()=>{}}) {
   const recoveryKey = 'diplay-rtc-recovery-ms';
   const read = key => { try { return localStorage.getItem(key); } catch (_) { return null; } };
   const save = (key,value) => { try { localStorage.setItem(key,String(value)); } catch (_) {} };
@@ -55,7 +56,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     catch (_) { if (socket === ws) ws.close(); return false; }
   }
   const volumeKeys = {music:'diplay-music-volume',navigation:'diplay-navigation-volume'};
-  const audio = createBrowserAudio({send,onState:onAudio,
+  const audio = createBrowserAudio({send,onState:onAudio,onDiagnostic,
     volumes:{music:read(volumeKeys.music),navigation:read(volumeKeys.navigation)}});
   const audioPreference = createAudioPreference({audio,storedValue:read('diplay-browser-audio'),
     save:value=>save('diplay-browser-audio',value)});
@@ -64,9 +65,10 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     if (state?.playing) video.removeEventListener('playing',state.playing);
     if (state) state.playing = null;
   }
-  function stopRtc(reason = null,connectionEnded = false) {
+  function stopRtc(reason = null,connectionEnded = false,cause = reason || 'replacement') {
     const old = session;
     const wasDisplayed = displayed;
+    if(old || wasDisplayed)onDiagnostic('rtc-stop',{reason:cause,wasDisplayed});
     session = null; displayed = false;
     removePlaying(old);
     if (old) {
@@ -79,7 +81,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     // Closing the owning control connection still releases input even if it was JPEG.
     if (wasDisplayed || connectionEnded) onTransport(selectedMode === 'jpeg' ? 'jpeg' : 'waiting');
     if (!reason) stats = {};
-    publishStats({decodedFps:null,dropped:null,recoveryGraceMs:old?.health.graceMs ?? selectedGrace,
+    publishStats({decodedFps:null,decodedFrames:null,dropped:null,recoveryGraceMs:old?.health.graceMs ?? selectedGrace,
       recovering:false,fallbackReason:reason});
   }
   function fallback(state,reason,retryable = true) {
@@ -118,6 +120,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     });
   }
   async function offer(message,ws,ticket) {
+    onDiagnostic('rtc-offer');
     if (!socketCurrent(ws,ticket)) return;
     stopRtc(); lastOfferId = message.id;
     let state = null;
@@ -164,6 +167,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
       };
       rtc.onconnectionstatechange = () => {
         if (!current(state)) return;
+        onDiagnostic('rtc-connection',{connection:rtc.connectionState,ice:rtc.iceConnectionState});
         const at = now();
         if (['failed','closed'].includes(rtc.connectionState)) { fallback(state,'connection-failed'); return; }
         if (rtc.connectionState === 'disconnected') state.health.disconnected(at);
@@ -197,7 +201,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
       // One getStats call per peer. A never-settling Promise still has a recovery deadline.
       if (at - state.statsRequest.started >= 1000) {
         state.health.statsFailed(state.statsRequest.started);
-        publishStats({decodedFps:null,dropped:null});
+        publishStats({decodedFps:null,decodedFrames:null,dropped:null});
       }
       if (checkHealth(state,at)) publishRecovery(state,at);
       return;
@@ -209,7 +213,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
       if (!valid()) return;
       state.statsRequest = null;
       state.health.statsFailed(now());
-      if (checkHealth(state,now())) publishRecovery(state,now(),{decodedFps:null,dropped:null});
+      if (checkHealth(state,now())) publishRecovery(state,now(),{decodedFps:null,decodedFrames:null,dropped:null});
     };
     let pending;
     try { pending = state.rtc.getStats(); } catch (_) { failed(); return; }
@@ -243,13 +247,13 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
       send({type:'rtc-feedback',id:state.id,decoded,...(dropped===null?{}:{dropped}),...counters,
         width:video.videoWidth,height:video.videoHeight,connection:state.rtc.connectionState,ice:state.rtc.iceConnectionState});
       const expired = state.health.sample(decoded,sampled,state.displayed);
-      publishRecovery(state,sampled,{decodedFps,dropped});
+      publishRecovery(state,sampled,{decodedFps,decodedFrames:decoded,dropped});
       if (expired) checkHealth(state,sampled);
     },failed);
   }
   const timer = setInterval(() => {
     if (!socket || socket.readyState !== WebSocket.OPEN) return;
-    if (document.hidden) { close(); return; }
+    if (document.hidden) { close('page-hidden-watchdog'); return; }
     send({type:'ping'}); audio.heartbeat();
     const state = session, at = now();
     if (state && checkHealth(state,at)) pollStats(state,at);
@@ -267,16 +271,19 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     if (disposed || connecting || socket || document.hidden || !getToken()) return;
     clearTimeout(retry); retry = null;
     connecting = true;
+    onDiagnostic('media-open');
     const ticket = ++generation;
     let ws;
-    try { ws = new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/api/media`); }
+    try { ws = createMediaSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/api/media`); }
     catch (_) { connecting = false; scheduleRetry(ticket); return; }
     socket = ws; ws.binaryType = 'arraybuffer';
+    audio.setTransport(ws);
     ws.onopen = () => {
       if (!socketCurrent(ws,ticket)) return;
+      onDiagnostic('socket-open');
       connecting = false;
       const token = getToken();
-      if (!token) { close(); return; }
+      if (!token) { close('authentication-missing'); return; }
       send({type:'hello',token,videoMode:selectedMode,rtc:selectedMode !== 'jpeg' && typeof RTCPeerConnection === 'function',
         recoveryGraceMs:selectedGrace});
     };
@@ -287,7 +294,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
       try { data = JSON.parse(event.data); } catch (_) { return; }
       if (!data || typeof data !== 'object') return;
       if (data.type === 'media-busy') {
-        if (!busy) { busy = true; audio.disable(); stopRtc('media-busy'); onTransport('waiting'); }
+        if (!busy) { onDiagnostic('media-busy');busy = true; audio.disable('media-busy'); stopRtc('media-busy'); onTransport('waiting'); }
       } else if (data.type === 'welcome') {
         busy = false; publishStats({fallbackReason:null}); audioPreference.start();
       } else if (data.type === 'rtc-offer' && Number.isSafeInteger(data.id) && typeof data.sdp === 'string') offer(data,ws,ticket);
@@ -310,17 +317,19 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     };
     ws.onclose = () => {
       if (!socketCurrent(ws,ticket)) return;
+      onDiagnostic('socket-close');
       clearSocketHandlers(ws); socket = null; connecting = false;
-      audio.disable(); stopRtc(null,true); scheduleRetry(ticket);
+      audio.disable('socket-close');audio.setTransport(null); stopRtc(null,true,'socket-close'); scheduleRetry(ticket);
     };
-    ws.onerror = () => { if (socketCurrent(ws,ticket)) ws.close(); };
+    ws.onerror = event => { if (socketCurrent(ws,ticket)) {onDiagnostic('socket-error',{reason:event?.reason});ws.close();} };
   }
-  function close() {
+  function close(reason='client-close') {
+    onDiagnostic('media-close',{reason,hadSocket:Boolean(socket)});
     busy = false;
     generation++; clearTimeout(retry); retry = null; connecting = false;
     const old = socket; socket = null;
     if (old) { clearSocketHandlers(old); old.close(); }
-    audio.disable(); stopRtc(null,true);
+    audio.disable(reason);audio.setTransport(null); stopRtc(null,true,reason);
   }
   function configureVideo(mode,graceMs = selectedGrace) {
     if (disposed) return;
@@ -328,7 +337,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     save('diplay-video',nextMode); save(recoveryKey,nextGrace);
     if (nextMode === selectedMode && nextGrace === selectedGrace) return;
     selectedMode = nextMode; selectedGrace = nextGrace;
-    close(); open();
+    close('video-configuration'); open();
   }
   return {open,close,audio,audioPreference,configureVideo,
     get mode() { return selectedMode; },
@@ -343,7 +352,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     get displayed() { return displayed; },
     dispose() {
       if (disposed) return;
-      close(); disposed = true; clearInterval(timer); audio.close();
+      close('dispose'); disposed = true; clearInterval(timer); audio.close();
     },
   };
 }

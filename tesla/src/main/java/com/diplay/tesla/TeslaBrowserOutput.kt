@@ -75,7 +75,7 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
         Thread({
             try {
                 val (port, next) = startBrowserServer(
-                    create = { BrowserServer(it, context.assets, token, frames, this, media, pairing) },
+                    create = { BrowserServer(it, context.assets, token, frames, this, media, pairing, history::append) },
                     start = { it.start(5000, true) },
                 )
                 server = next
@@ -124,6 +124,7 @@ class TeslaBrowserOutput(private val context: Context) : CarPlayOutputExtension,
     }
     override fun connectionStage(message: String) { stage = message }
     override fun diagnosticReport(): String = history.report()
+    override fun exportDiagnostics(): String = history.report(java.io.File(context.filesDir, "logs"))
     override fun openHostPairing(renew: Boolean) {
         if (renew) pairing.begin() else pairing.beginIfAbsent()
     }

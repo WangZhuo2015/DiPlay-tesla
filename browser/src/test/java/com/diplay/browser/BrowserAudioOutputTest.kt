@@ -15,6 +15,34 @@ import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class) @Config(sdk = [29])
 class BrowserAudioOutputTest {
+    @Test fun audioRecoveryStopsOnlyOwnedStreamsAndPreservesTheBrowserReadinessLease() {
+        val output = BrowserAudioOutput { 1L }
+        val owner = Any()
+        val packets = mutableListOf<ByteArray>()
+        val stopped = mutableListOf<Int>()
+        output.attach(owner, { bytes, _ -> packets.add(bytes); true }, {
+            assertEquals("audio-stop", it.getString("type")); stopped.add(it.getInt("stream")); true
+        })
+        output.ready(owner, true)
+        val music = AudioStreamId(100, "media")
+        val guidance = AudioStreamId(101, "default")
+        val format = AudioFormat(AudioCodecKind.LPCM, 48000, 2, 100)
+        val pcm = byteArrayOf(1, 2, 3, 4)
+        assertTrue(output.offer(music, format, pcm, 0, pcm.size))
+        assertTrue(output.offer(guidance, format.copy(audioType = "default"), pcm, 0, pcm.size))
+        output.reset(Any())
+        assertTrue(stopped.isEmpty())
+        output.reset(owner)
+        assertEquals(setOf(1, 2), stopped.toSet())
+        assertTrue(output.active)
+        assertTrue(output.offer(music, format, pcm, 0, pcm.size))
+        assertEquals(3, ByteBuffer.wrap(packets.last()).order(ByteOrder.LITTLE_ENDIAN).getInt(4))
+        assertArrayEquals(pcm, packets.last().copyOfRange(20, packets.last().size))
+        output.ready(owner, false)
+        output.reset(owner)
+        assertFalse("Recovery must not re-enable deliberately stopped playback", output.active)
+    }
+
     @Test fun readinessExpiresAndPacketRetainsStreamRateChannelsAndPcm() {
         var now = 1L
         val output = BrowserAudioOutput { now }

@@ -36,6 +36,27 @@ class OutputDiagnosticLogTest {
         } finally { directory.deleteRecursively() }
     }
 
+    @Test fun browserExportIncludesRedactedCarPlaySourceLogsWithoutClearingEitherHistory() {
+        val directory = Files.createTempDirectory("browser-source-history").toFile()
+        try {
+            val browser = directory.resolve("browser")
+            val carPlay = directory.resolve("carplay").apply { mkdirs() }
+            val source = carPlay.resolve("diplay.log")
+            source.writeText("audio stats maxGapMs=502 dropped=0\ntoken=private-source-secret\n")
+            val original = source.readText()
+            OutputDiagnosticLog(browser).use { log ->
+                log.append("Video config changed inPlace=true")
+                val report = log.report(carPlay)
+                assertTrue(report.contains("Video config changed inPlace=true"))
+                assertTrue(report.contains("--- CarPlay diplay.log ---"))
+                assertTrue(report.contains("audio stats maxGapMs=502"))
+                assertFalse(report.contains("private-source-secret"))
+                assertEquals(original, source.readText())
+                assertTrue(log.report().contains("Video config changed inPlace=true"))
+            }
+        } finally { directory.deleteRecursively() }
+    }
+
     @Test fun aFullHistoryRotatesInsteadOfGrowingWithoutABound() {
         val directory = Files.createTempDirectory("browser-history-full").toFile()
         try {

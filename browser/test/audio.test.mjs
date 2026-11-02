@@ -8,7 +8,7 @@ function packet(stream,rate=48000,channels=2,frames=960,role=0) {
   header.setUint16(14,role,true);
   new Int16Array(bytes,20).fill(16384);return bytes;
 }
-function fixture(volumes={}) {
+function fixture(volumes={},onDiagnostic=()=>{}) {
   const started=[],messages=[],states=[],gains=[];
   const context={state:'running',currentTime:0,resume:async()=>{},close:async()=>{},destination:{},
     createGain(){const node={gain:{value:1,events:[],cancelAndHoldAtTime(time){this.events.push(['hold',time]);},
@@ -16,7 +16,7 @@ function fixture(volumes={}) {
       connect(target){this.target=target;},disconnect(){this.disconnected=true;}};gains.push(node);return node;},
     createBuffer(channels,count,rate){const data=Array.from({length:channels},()=>new Float32Array(count));return{rate,getChannelData:i=>data[i]};},
     createBufferSource(){return{connect(target){this.target=target;},disconnect(){this.disconnected=true;},stop(){this.stopped=true;},start(time){this.time=time;started.push(this);}};}};
-  const audio=createBrowserAudio({volumes,createContext:()=>context,send:data=>messages.push(data),onState:state=>states.push(state)});
+  const audio=createBrowserAudio({volumes,onDiagnostic,createContext:()=>context,send:data=>messages.push(data),onState:state=>states.push(state)});
   return{audio,context,started,messages,states,gains};
 }
 test('continuous PCM keeps original sample rate and bridges a 120ms scheduling pause',async()=>{
@@ -28,12 +28,15 @@ test('continuous PCM keeps original sample rate and bridges a 120ms scheduling p
   assert.ok(started.every(node=>!node.stopped));audio.close();
 });
 test('navigation starvation leaves music intact and context suspension releases playback',async()=>{
-  const{audio,context,started,messages}=fixture();await audio.enable();
+  const diagnostics=[];
+  const{audio,context,started,messages}=fixture({},(event,data)=>diagnostics.push({event,...data}));await audio.enable();
   audio.receive(packet(1));audio.receive(packet(2,24000,1,480));
   context.currentTime=.3;audio.receive(packet(2,24000,1,480));
   assert.ok(!started[0].stopped);assert.ok(started[1].stopped);
   context.state='suspended';context.onstatechange();
   assert.equal(audio.enabled,false);assert.equal(messages.at(-1).playback,false);assert.ok(started.every(node=>node.stopped));audio.close();
+  assert.ok(diagnostics.some(event=>event.event==='audio-context' && event.contextState==='suspended'));
+  assert.ok(diagnostics.some(event=>event.event==='audio-disable' && event.reason==='context-not-running'));
 });
 test('backlog releases the route and malformed or unaligned PCM is rejected',async()=>{
   const{audio,messages}=fixture();await audio.enable();
@@ -153,4 +156,69 @@ test('browsers without cancelAndHoldAtTime use the bounded ramp fallback',async(
   parameter.setValueAtTime=(value,time)=>parameter.events.push(['set',value,time]);
   audio.setVolume('music',50);
   assert.deepEqual(parameter.events,[['cancel',0],['set',1,0],['ramp',.5,.03]]);audio.close();
+});
+
+async function workletFixture(run,load=Promise.resolve()) {
+  const f=fixture(),nodes=[],calls=[];
+  const previous=Object.getOwnPropertyDescriptor(globalThis,'AudioWorkletNode');
+  f.context.sampleRate=48000;f.context.audioWorklet={addModule:()=>load};
+  Object.defineProperty(globalThis,'AudioWorkletNode',{configurable:true,value:class {
+    constructor(){this.port={close(){}};nodes.push(this);}
+    connect(target,output){calls.push(['connect',output,target]);}
+    disconnect(){this.disconnected=true;}
+  }});
+  const transport={bindAudio:(port,options)=>calls.push(['bind',port,options]),
+    unbindAudio:()=>calls.push(['unbind']),audioBuffer:ms=>calls.push(['buffer',ms]),stopAudio:id=>calls.push(['stop',id])};
+  f.audio.setTransport(transport);
+  try {await run({...f,nodes,calls,transport});}
+  finally {f.audio.close();if(previous)Object.defineProperty(globalThis,'AudioWorkletNode',previous);else delete globalThis.AudioWorkletNode;}
+}
+
+test('worklet owns PCM playback while existing gains and packet-independent controls remain live',async()=>{
+  await workletFixture(async({audio,nodes,calls,transport,gains,started})=>{
+    await audio.enable();
+    assert.equal(audio.stats().engine,'worklet');
+    assert.deepEqual(calls.filter(c=>c[0]==='connect').map(c=>c[1]),[0,1,2]);
+    assert.equal(calls.find(c=>c[0]==='bind')[2].sampleRate,48000);
+    transport.onaudiostats({queuedMs:400,underruns:3,musicUnderruns:3,navigationUnderruns:0});
+    assert.equal(audio.stats().queuedMs,400);assert.equal(audio.stats().musicUnderruns,3);
+    audio.setVolume('music',35);assert.equal(gains[0].gain.value,.35);
+    audio.setBuffer(400);assert.ok(calls.some(c=>c[0]==='buffer'&&c[1]===400));
+    audio.stopped(9);assert.ok(calls.some(c=>c[0]==='stop'&&c[1]===9));
+    assert.equal(started.length,0);
+    audio.disable();assert.equal(nodes[0].disconnected,true);
+    transport.onaudiostats({queuedMs:999,underruns:999});
+    assert.equal(audio.stats().underruns,3);assert.equal(audio.enabled,false);
+  });
+});
+
+test('worklet module failure explicitly falls back to native-rate legacy audio on the same transport',async()=>{
+  await workletFixture(async({audio,started})=>{
+    await audio.enable();
+    assert.equal(audio.enabled,true);assert.equal(audio.stats().engine,'compatibility');
+    assert.equal(audio.stats().playbackError,'worklet-unavailable');
+    audio.receive(packet(1,44100,2,882,1));
+    assert.equal(started[0].buffer.rate,44100);
+  },Promise.reject(new Error('Module unavailable')));
+});
+
+test('disabling audio while its module loads cannot attach a late playback port',async()=>{
+  let ready;
+  await workletFixture(async({audio,nodes,calls})=>{
+    const pending=audio.enable();audio.disable();ready();
+    assert.equal(await pending,false);assert.equal(nodes.length,0);
+    assert.ok(!calls.some(c=>c[0]==='bind'));
+  },new Promise(resolve=>ready=resolve));
+});
+
+test('processor failure keeps saved volumes and restores compatibility without a reconnect or gesture',async()=>{
+  await workletFixture(async({audio,nodes,started,gains})=>{
+    audio.setVolume('music',42);await audio.enable();
+    nodes[0].onprocessorerror();
+    assert.equal(audio.enabled,true);assert.equal(audio.stats().playbackError,'processor-failed');
+    assert.equal(nodes[0].disconnected,true);
+    audio.receive(packet(1));
+    assert.equal(started.length,1);assert.equal(gains[0].gain.value,.42);
+    await audio.enable();assert.equal(nodes.length,1);
+  });
 });

@@ -6,6 +6,14 @@ import java.io.ByteArrayOutputStream
 
 /** Codec records are inspected and packetized, never decoded or transcoded on Android. */
 internal data class RtcVideoConfig(val codec: VideoCodec, val parameters: ByteArray, val fmtp: String) {
+    fun accepts(next: RtcVideoConfig): Boolean {
+        if (codec != VideoCodec.H264 || next.codec != VideoCodec.H264) return false
+        val offered = fmtp.substringAfter("profile-level-id=").substringBefore(';').toInt(16)
+        val source = next.fmtp.substringAfter("profile-level-id=").substringBefore(';').toInt(16)
+        return (offered and 0xffff00) == (source and 0xffff00) &&
+            (source and 0xff) <= (offered and 0xff) && fmtp.substringAfter(';') == next.fmtp.substringAfter(';')
+    }
+
     companion object {
         private val START = byteArrayOf(0, 0, 0, 1)
 

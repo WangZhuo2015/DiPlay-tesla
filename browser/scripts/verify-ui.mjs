@@ -11,6 +11,7 @@ import {createServer} from 'node:http';
 import {readFile, mkdir, writeFile} from 'node:fs/promises';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {resolve, extname} from 'node:path';
+import {installPresentationProbe,verifyVideoPresentation} from './video-presentation-check.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const assets = resolve(root, 'browser/src/main/assets/tesla');
@@ -22,6 +23,9 @@ const cjkFont=process.env.DIPLAY_UI_CJK_FONT ? await readFile(process.env.DIPLAY
 await mkdir(output, {recursive:true});
 const initialDisplay = () => ({mode:'RIGHT',right:{width:1024,height:768},full:{width:1920,height:1080},fps:20,jpegFps:20,jpegQuality:75});
 let display = initialDisplay(), activeDisplay = initialDisplay(), touches = [], saves = [], actions = [], lateFrames = 0;
+const clientDiagnostics=[];
+let failNextStatus=false,failNextLogExport=false;
+const diagnosticReport='Browser diagnostic evidence\nCarPlay audio stats maxGapMs=502 dropped=0\n';
 const pixel = Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD3+iiigD//2Q==', 'base64');
 const server = createServer(async (req,res) => {
   try {
@@ -32,8 +36,17 @@ const server = createServer(async (req,res) => {
     if(url.pathname.startsWith('/api/') && req.headers.authorization !== 'Bearer '+ '0'.repeat(32)) {
       res.writeHead(401); res.end(); return;
     }
-    if(url.pathname==='/api/status') return json({connected:true,stage:'Synthetic browser verification',display,activeDisplay,
-      pendingReconnect:JSON.stringify(display)!==JSON.stringify(activeDisplay)});
+    if(url.pathname==='/api/client-diagnostics') {clientDiagnostics.push(await body());return json({ok:true});}
+    if(url.pathname==='/api/diagnostic-report') {
+      if(failNextLogExport){failNextLogExport=false;res.writeHead(500);res.end();return;}
+      res.writeHead(200,{'Content-Type':'text/plain; charset=utf-8','Content-Disposition':'attachment; filename="DiPlay-diagnostics.txt"'});
+      res.end(diagnosticReport);return;
+    }
+    if(url.pathname==='/api/status') {
+      if(failNextStatus){failNextStatus=false;res.writeHead(503);res.end();return;}
+      return json({connected:true,stage:'Synthetic browser verification',display,activeDisplay,
+        pendingReconnect:JSON.stringify(display)!==JSON.stringify(activeDisplay)});
+    }
     if(url.pathname==='/api/display') {
       display=await body(); display.jpegFps=Math.min(display.fps,30); saves.push(display); return json(display);
     }
@@ -59,6 +72,8 @@ const report={scope:'Production browser assets, synthetic local WebRTC peer and 
 
 // This is a signaling fixture, not a fake RTCPeerConnection or fake video element.
 function installFixture({cjk}) {
+  // This in-page signaling fixture exercises compatibility transport; verify-audio tests real workers.
+  window.Worker=undefined;
   localStorage.setItem('diplay-token','0'.repeat(32));
   localStorage.setItem('diplay-browser-audio','false');
   localStorage.setItem('diplay-video','auto');
@@ -73,14 +88,28 @@ function installFixture({cjk}) {
       document.head.append(style);
     }
   });
-  const fixture=window.__uiFixture={hellos:[],answers:0,ready:0,codec:null,encoded:0,errors:[]};
+  const fixture=window.__uiFixture={hellos:[],answers:0,ready:0,codec:null,encoded:0,errors:[],
+    counters:{expiredFrames:0,overflowFrames:0,keyframeSkips:0,sendFailures:0}};
+  const Audio=window.AudioContext;
+  window.AudioContext=class extends Audio {
+    constructor(options){super(options);fixture.audioContext=this;}
+  };
   const Peer=window.RTCPeerConnection;
   let sequence=0;
   class LocalMediaSocket {
     static OPEN=1;
     static CLOSED=3;
-    constructor() {this.readyState=0;this.closed=false;queueMicrotask(()=>{this.readyState=1;this.onopen?.({});});}
+    constructor() {
+      this.readyState=0;this.closed=false;
+      fixture.reportCounters=values=>{Object.assign(fixture.counters,values);this.reportProgress();};
+      fixture.pcm=buffer=>{if(!this.closed)this.onmessage?.({data:buffer});};
+      queueMicrotask(()=>{this.readyState=1;this.onopen?.({});});
+    }
     deliver(data) {if(!this.closed)this.onmessage?.({data:JSON.stringify(data)});}
+    reportProgress() {
+      this.deliver({type:'rtc-progress',id:this.id,sent:fixture.encoded,received:fixture.encoded,recoveryGraceMs:this.grace,
+        recovering:false,queueBudgetMs:50,queueFrames:0,queueBytes:0,invalidatedFrames:0,...fixture.counters});
+    }
     send(raw) {
       const data=JSON.parse(raw);
       if(data.type==='hello') {
@@ -93,7 +122,7 @@ function installFixture({cjk}) {
       else if(data.type==='rtc-fallback')this.deliver({type:'rtc-stop',id:this.id,reason:'browser-fallback'});
     }
     async start(grace) {
-      this.id=++sequence;
+      this.id=++sequence;this.grace=grace;
       const source=document.createElement('canvas');source.width=960;source.height=540;
       const ctx=source.getContext('2d');let frame=0;
       const paint=()=>{
@@ -132,8 +161,7 @@ function installFixture({cjk}) {
         stats.forEach(row=>{if(row.type==='outbound-rtp' && row.kind==='video'){
           encoded=row.framesEncoded || 0;fixture.encoded=encoded;fixture.codec=stats.get(row.codecId)?.mimeType || null;
         }});
-        this.deliver({type:'rtc-progress',id:this.id,sent:encoded,received:encoded,sendFailures:0,recoveryGraceMs:grace,
-          recovering:false,queueBudgetMs:50,queueFrames:0,queueBytes:0,expiredFrames:0,overflowFrames:0,keyframeSkips:0,invalidatedFrames:0});
+        this.reportProgress();
       },500);
     }
     close() {if(this.closed)return;this.closed=true;this.readyState=3;clearInterval(this.paintTimer);clearInterval(this.progressTimer);
@@ -186,6 +214,79 @@ async function assertVolumeLayout(page,lang) {
   assert.ok(layout.controls.every(control=>control.width>0 && control.left>=layout.left && control.right<=layout.right),JSON.stringify(layout));
   assert.equal(layout.font,20.8);assert.equal(layout.direction,lang==='ar'?'rtl':'ltr');
   return layout;
+}
+async function verifyDiagnostics(page) {
+  await page.evaluate(()=>{
+    const list=document.getElementById('diagnosticValues');
+    window.__diagnosticsMutations=0;window.__summaryMutations=0;
+    new MutationObserver(records=>{__diagnosticsMutations+=records.length;}).observe(list,{childList:true,subtree:true});
+    new MutationObserver(records=>{__summaryMutations+=records.length;})
+      .observe(document.getElementById('transportStatus'),{childList:true,subtree:true});
+    window.__diagnosticsText=()=>document.getElementById('diagnosticValues').textContent;
+  });
+  await page.waitForFunction(()=>__summaryMutations>0);
+  assert.equal(await page.evaluate(()=>__diagnosticsMutations),0,'a hidden menu must not build diagnostic rows');
+  await openVolumeMenu(page);
+  await page.locator('#audioButton').click();
+  await page.waitForFunction(()=>document.getElementById('audioButton').getAttribute('aria-pressed')==='true');
+  const sendPcm=()=>page.evaluate(()=>{
+    const buffer=new ArrayBuffer(3860),header=new DataView(buffer);
+    header.setUint32(0,0x31415057,true);header.setInt32(4,1,true);header.setUint32(8,48000,true);
+    header.setUint16(12,2,true);header.setUint16(14,1,true);__uiFixture.pcm(buffer);
+    window.__lastPcmTime=__uiFixture.audioContext.currentTime;
+  });
+  await sendPcm();
+  await page.waitForFunction(()=>__uiFixture.audioContext.currentTime>__lastPcmTime+.35);
+  await sendPcm();
+  await page.evaluate(()=>__uiFixture.reportCounters({expiredFrames:7,overflowFrames:11,keyframeSkips:5,sendFailures:13}));
+  await page.waitForTimeout(1100);
+  assert.equal(await page.evaluate(()=>__diagnosticsMutations),0,'collapsed diagnostics must not build rows while counters advance');
+  const revealed=await page.evaluate(()=>new Promise(resolve=>{
+    const details=document.getElementById('diagnostics');
+    details.addEventListener('toggle',()=>resolve(__diagnosticsText()),{once:true});details.open=true;
+  }));
+  const counterValues=await page.locator('#diagnosticValues dd').allTextContents();
+  assert.deepEqual(counterValues.slice(5,9),['7','11','5','13']);
+  assert.ok(revealed.length>0,'the toggle handler must render immediately, not at the next polling tick');
+  const audioValue=counterValues[10];
+  assert.equal(audioValue,'1','real PCM starvation must still be counted while diagnostics are folded');
+  const visibleMutations=await page.evaluate(()=>__diagnosticsMutations);
+  await page.evaluate(()=>__uiFixture.reportCounters({expiredFrames:9}));
+  await page.waitForFunction(count=>__diagnosticsMutations>count,visibleMutations);
+  assert.equal((await page.locator('#diagnosticValues dd').allTextContents())[5],'9');
+  await page.keyboard.press('Escape');
+  const hidden=await page.evaluate(()=>({mutations:__diagnosticsMutations,text:__diagnosticsText(),summary:__summaryMutations}));
+  await page.waitForFunction(()=>__uiFixture.audioContext.currentTime>__lastPcmTime+.35);
+  await sendPcm();
+  await page.evaluate(()=>__uiFixture.reportCounters({expiredFrames:17}));
+  await page.waitForTimeout(1100);
+  assert.equal(await page.evaluate(()=>__diagnosticsMutations),hidden.mutations,'an expanded list in a hidden menu must not mutate');
+  assert.equal(await page.evaluate(()=>__diagnosticsText()),hidden.text);
+  assert.ok(await page.evaluate(count=>__summaryMutations>count,hidden.summary),'the stream summary must keep updating');
+  const reopened=await page.evaluate(()=>{
+    document.getElementById('menuButton').click();return __diagnosticsText();
+  });
+  assert.notEqual(reopened,hidden.text,'reopening the menu must refresh already-expanded diagnostics synchronously');
+  const latest=await page.locator('#diagnosticValues dd').allTextContents();
+  assert.equal(latest[5],'17');assert.equal(latest[10],'2');
+  await page.locator('#audioButton').click();
+  const folded=await page.evaluate(()=>new Promise(resolve=>{
+    const details=document.getElementById('diagnostics');
+    details.addEventListener('toggle',()=>resolve(__diagnosticsMutations),{once:true});details.open=false;
+  }));
+  await page.evaluate(()=>__uiFixture.reportCounters({expiredFrames:21}));
+  await page.waitForTimeout(1100);
+  assert.equal(await page.evaluate(()=>__diagnosticsMutations),folded,'folding a populated list must stop DOM updates');
+  await page.evaluate(()=>new Promise(resolve=>{
+    const details=document.getElementById('diagnostics');
+    details.addEventListener('toggle',resolve,{once:true});details.open=true;
+  }));
+  const unfolded=await page.locator('#diagnosticValues dd').allTextContents();
+  assert.equal(unfolded[5],'21');assert.equal(unfolded[10],'2');
+  await page.evaluate(()=>document.getElementById('diagnostics').open=false);
+  await page.keyboard.press('Escape');
+  return {noHiddenListMutations:true,countersContinue:true,immediateReveal:true,immediateMenuReopen:true,
+    streamSummaryContinues:true,foldedListStopsUpdating:true,audioRebuffersWhileHidden:2,expiredFramesWhileHidden:21};
 }
 async function verifyVolumes(page,scenario) {
   const baseline={hellos:await page.evaluate(()=>window.__uiFixture.hellos.length),actions:actions.length};
@@ -274,6 +375,7 @@ try {
     const context=await browser.newContext({viewport:{width:scenario.width,height:scenario.height},locale:scenario.lang,
       deviceScaleFactor:scenario.deviceScaleFactor || 1});
     await context.addInitScript(installFixture,{cjk:Boolean(cjkFont)});
+    await context.addInitScript(installPresentationProbe);
     const page=await context.newPage();page.setDefaultTimeout(15000);
     const errors=[];page.on('pageerror',error=>{errors.push(String(error));console.error('Browser error:',String(error));});
     await page.goto(`${base}/?lang=${scenario.lang}`);
@@ -285,10 +387,39 @@ try {
         video:{width:document.getElementById('video').videoWidth,hidden:document.getElementById('video').hidden}})));
       throw error;
     }
+    const presentationChecks=await verifyVideoPresentation(page,scenario,capture);
     assert.equal(await page.locator('#picture').isVisible(),false);
+    const diagnosticsLifecycle=await verifyDiagnostics(page);
     console.log('Native video received');
     const volumes=await verifyVolumes(page,scenario);
     console.log('Volume controls, menu layout and reload persistence checked');
+    await openVolumeMenu(page);
+    await page.locator('#diagnostics summary').click();
+    await page.waitForFunction(()=>document.getElementById('diagnosticValues').children.length>12);
+    await page.locator('#saveLogs').scrollIntoViewIfNeeded();
+    await capture(page,`diagnostic-export-${scenario.name}-font130.jpg`);
+    const hellosBeforeExport=await page.evaluate(()=>window.__uiFixture.hellos.length);
+    const downloaded=page.waitForEvent('download');
+    await page.locator('#saveLogs').click();
+    const download=await downloaded;
+    assert.match(download.suggestedFilename(),/^DiPlay-diagnostics-.*\.txt$/);
+    assert.equal(await readFile(await download.path(),'utf8'),diagnosticReport);
+    await page.waitForFunction(()=>!document.getElementById('saveLogs').disabled);
+    failNextLogExport=true;
+    await page.locator('#saveLogs').click();
+    await page.waitForFunction(()=>!document.getElementById('saveLogs').disabled);
+    assert.match(await page.locator('#logExportStatus').textContent(),/失败|failed|تعذّر/);
+    assert.equal(await page.evaluate(()=>window.__uiFixture.hellos.length),hellosBeforeExport,
+      'exporting or retrying diagnostic logs must not restart media');
+    assert.equal(actions.length,0);
+    await page.locator('#diagnosticValues').scrollIntoViewIfNeeded();
+    const diagnostics=await page.locator('#diagnosticValues').evaluate(node=>({
+      width:node.clientWidth,scroll:node.scrollWidth,text:node.textContent
+    }));
+    assert.ok(diagnostics.scroll<=diagnostics.width+1,JSON.stringify(diagnostics));
+    assert.ok(!diagnostics.text.includes('undefined'));
+    await capture(page,`audio-diagnostics-${scenario.name}-font130.jpg`);
+    await page.keyboard.press('Escape');
     await openSettings(page);
     await page.locator('#renderer').selectOption('canvas');
     await page.locator('#recovery').selectOption('4000');
@@ -328,10 +459,29 @@ try {
     await page.waitForFunction(()=>!document.getElementById('video').hidden && !document.getElementById('video').classList.contains('rtcOffscreen'));
     assert.equal(await page.locator('#picture').isVisible(),false);
     assert.equal(await page.evaluate(()=>window.__uiFixture.hellos.length),2,'Renderer-only save must not restart media');
+    const diagnosticStart=clientDiagnostics.length;
+    const diagnosticSince=await page.evaluate(()=>Date.now());
+    const failedUpload=page.waitForResponse(response=>response.url().endsWith('/api/client-diagnostics') &&
+      response.request().postDataJSON()?.events?.some(event=>event.event==='request-failed' &&
+        event.data.httpStatus===503 && event.atMs>=diagnosticSince));
+    const failedStatus=page.waitForResponse(response=>response.url().endsWith('/api/status') && response.status()===503);
+    failNextStatus=true;await failedStatus;
+    const blurUpload=page.waitForResponse(response=>response.url().endsWith('/api/client-diagnostics') &&
+      response.request().postDataJSON()?.events?.some(event=>event.event==='blur' && event.atMs>=diagnosticSince));
+    await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
+    await Promise.all([failedUpload,blurUpload]);
+    const events=clientDiagnostics.slice(diagnosticStart).flatMap(batch=>batch.events).filter(event=>event.atMs>=diagnosticSince);
+    assert.ok(events.some(event=>event.event==='request-failed' && event.data.httpStatus===503 && event.data.request==='status'));
+    assert.ok(events.some(event=>event.event==='canvas-clear' && event.data.reason==='stream-error'));
+    assert.ok(events.some(event=>event.event==='blur'));
+    assert.ok(!events.some(event=>event.event==='media-close'),'blur and status failure must not change media policy');
+    assert.equal(await page.evaluate(()=>window.__uiFixture.hellos.length),2);
     assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>window.__uiFixture.errors),[]);
-    report.checks.push({scenario:scenario.name,layout,volumes,codec:await page.evaluate(()=>window.__uiFixture.codec),
+    report.checks.push({scenario:scenario.name,layout,volumes,diagnosticsLifecycle,codec:await page.evaluate(()=>window.__uiFixture.codec),
       nativeToCanvasToNative:true,canvasTouch:true,jpegNotRequestedInRtcMode:true,frameRateSavedForNextConnection:true,recoveryHello:true,
       rendererOnlyKeepsMedia:true,focusTrap:true});
+    report.checks.at(-1).clientDiagnostics={httpStatusAndClearReason:true,blurDoesNotCloseMedia:true};
+    report.checks.at(-1).presentationChecks=presentationChecks;
     await context.close();
   }
   report.result='passed';

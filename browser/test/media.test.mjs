@@ -10,7 +10,7 @@ function deferred() {
   return {promise,resolve,reject};
 }
 function fixture({grace=4000,storedGrace=String(grace),storageBlocked=false,savedVolumes={},onTransport=()=>{},capabilities}={}) {
-  const original = new Map(), timers = new Map(), sockets = [], peers = [], behaviors = [], snapshots = [], transports = [];
+  const original = new Map(), timers = new Map(), sockets = [], peers = [], behaviors = [], snapshots = [], transports = [], diagnostics = [];
   const storage = new Map([['diplay-browser-audio','false'],['diplay-rtc-recovery-ms',storedGrace]]);
   for(const [role,value] of Object.entries(savedVolumes))storage.set('diplay-'+role+'-volume',value);
   let clock=0, timerId=0;
@@ -72,6 +72,7 @@ function fixture({grace=4000,storedGrace=String(grace),storageBlocked=false,save
   install('setTimeout',(fn,delay)=>schedule(fn,delay));install('clearTimeout',id=>timers.delete(id));
   install('setInterval',(fn,delay)=>schedule(fn,delay,true));install('clearInterval',id=>timers.delete(id));
   const media=createMedia({video,getToken:()=> 'paired-token',onStats:value=>snapshots.push(value),
+    onDiagnostic:(event,data)=>diagnostics.push({event,...data}),
     onTransport:value=>{transports.push(value);onTransport(value);}});
   media.open();sockets[0].open();
   async function advance(duration) {
@@ -100,10 +101,36 @@ function fixture({grace=4000,storedGrace=String(grace),storageBlocked=false,save
       if(descriptor)Object.defineProperty(globalThis,name,descriptor);else delete globalThis[name];
     }
   }
-  return {media,video,listeners,sockets,peers,storage,snapshots,transports,timers,advance,offer,ready,dispose,
+  return {media,video,listeners,sockets,peers,storage,snapshots,transports,diagnostics,timers,advance,offer,ready,dispose,
     fallback:()=>sockets.flatMap(ws=>ws.sent).filter(value=>value.type==='rtc-fallback'),
     stats:()=>snapshots.at(-1),messages:type=>sockets.flatMap(ws=>ws.sent).filter(value=>value.type===type)};
 }
+
+test('worker failure reason is preserved before closing and retrying the media socket',async()=>{
+  const f=fixture();
+  try {
+    await f.ready();
+    f.sockets[0].onerror({reason:'worker-unavailable'});
+    assert.ok(f.diagnostics.some(event=>event.event==='socket-error' && event.reason==='worker-unavailable'));
+    assert.equal(f.sockets[0].closeCalls,1);
+    assert.equal(f.media.displayed,false);
+    await f.advance(3000);
+    assert.equal(f.sockets.length,2);
+  } finally {await f.dispose();}
+});
+
+test('audio recovery stop messages leave the displayed WebRTC peer and media socket intact',async()=>{
+  const f=fixture();
+  try {
+    const peer=await f.ready(),stream=f.video.srcObject;
+    for(const id of [1,2])f.sockets[0].message({type:'audio-stop',stream:id});
+    assert.equal(f.media.displayed,true);
+    assert.equal(f.video.srcObject,stream);
+    assert.equal(peer.closeCalls,0);
+    assert.equal(f.sockets[0].closeCalls,0);
+    assert.equal(f.fallback().length,0);
+  } finally {await f.dispose();}
+});
 
 test('hello validates saved recovery settings and one configuration change reopens media only once',async()=>{
   const f=fixture({storedGrace:'999999'});
@@ -293,11 +320,14 @@ test('browser decoder samples merge with server queue diagnostics and preserve n
       queueFrames:2,queueBytes:100,expiredFrames:3,overflowFrames:5,keyframeSkips:7,invalidatedFrames:11,recovering:true});
     await f.advance(1000);
     assert.equal(f.stats().decodedFps,null);assert.equal(f.stats().dropped,2);assert.equal(f.stats().expiredFrames,3);
+    assert.equal(f.stats().decodedFrames,1);
     peer.decoded=31;await f.advance(1000);
     assert.equal(f.stats().decodedFps,30);assert.equal(f.stats().queueBytes,100);assert.equal(f.stats().sendFailures,2);
+    assert.equal(f.stats().decodedFrames,31);
     f.sockets[0].message({type:'rtc-stop',id:1,reason:'keyframe-timeout'});
     assert.equal(f.stats().fallbackReason,'keyframe-timeout');assert.equal(f.stats().expiredFrames,3);
     assert.equal(f.stats().decodedFps,null);assert.equal(f.stats().recovering,false);
+    assert.equal(f.stats().decodedFrames,null);
   } finally { await f.dispose(); }
 });
 
@@ -309,10 +339,12 @@ test('a failed or hanging stats read clears the previous fps while a stationary 
     await f.advance(1000);assert.equal(f.stats().decodedFps,0);
     peer.behavior.stats=()=>Promise.reject(new Error('Counters unavailable'));
     await f.advance(1000);assert.equal(f.stats().decodedFps,null);assert.equal(f.stats().dropped,null);
+    assert.equal(f.stats().decodedFrames,null);
     peer.behavior.stats=()=>Promise.resolve(peer.report());
     peer.decoded=61;await f.advance(1000);assert.ok(f.stats().decodedFps>0);
     peer.behavior.stats=()=>new Promise(()=>{});
     await f.advance(2000);assert.equal(f.stats().decodedFps,null);
+    assert.equal(f.stats().decodedFrames,null);
     assert.equal(f.media.displayed,true);assert.equal(f.fallback().length,0);
   } finally { await f.dispose(); }
 });
@@ -429,6 +461,20 @@ test('closing or hiding the page while JPEG is waiting cannot create browser-own
     document.hidden=false;f.media.open();f.sockets.at(-1).open();
     await f.ready(3);assert.equal(f.media.displayed,true);
   } finally { await f.dispose(); }
+});
+
+test('diagnostic close reasons preserve the existing hidden-page media teardown and visible-page restart',async()=>{
+  const f=fixture();
+  try {
+    const peer=await f.ready();
+    document.hidden=true;f.media.close('page-hidden');
+    assert.equal(peer.closeCalls,1);assert.equal(f.video.srcObject,null);assert.equal(f.video.paused,true);
+    assert.ok(f.diagnostics.some(event=>event.event==='media-close' && event.reason==='page-hidden'));
+    assert.ok(f.diagnostics.some(event=>event.event==='rtc-stop' && event.reason==='page-hidden' && event.wasDisplayed));
+    await f.advance(10000);assert.equal(f.sockets.length,1);
+    document.hidden=false;f.media.open();f.sockets.at(-1).open();
+    await f.ready(2);assert.equal(f.media.displayed,true);
+  } finally {await f.dispose();}
 });
 
 test('browser volumes load independently, persist normalized values and never restart media',async()=>{

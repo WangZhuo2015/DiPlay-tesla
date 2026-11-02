@@ -28,6 +28,7 @@ interface BrowserTarget {
     fun action(name: String): Boolean
     fun saveDisplay(display: BrowserDisplay)
     fun saveNavigationLevel(expectedDb: Int, db: Int): Boolean = false
+    fun exportDiagnostics(): String? = null
 }
 
 class BrowserServer(
@@ -38,6 +39,7 @@ class BrowserServer(
     private val target: BrowserTarget,
     private val media: BrowserMediaHub = BrowserMediaHub(),
     private val pairing: BrowserPairing = BrowserPairing(),
+    private val onClientDiagnostic: (String) -> Unit = { android.util.Log.i("DiPlay-Browser", it) },
 ) : Closeable {
     private val controls = BrowserControl(target::touch)
     private val watchdog = Executors.newSingleThreadScheduledExecutor { Thread(it, "browser-touch-watchdog").apply { isDaemon = true } }
@@ -84,9 +86,12 @@ class BrowserServer(
                 if (session.method != Method.GET) return reply(Response.Status.METHOD_NOT_ALLOWED)
                 val asset = when (session.uri) {
                     "/", "/index.html" -> "index.html" to "text/html; charset=utf-8"
+                    "/video-presentation.js", "/client-diagnostics.js" -> session.uri.drop(1) to "text/javascript; charset=utf-8"
                     "/app.js" -> "app.js" to "text/javascript; charset=utf-8"
                     "/media.js", "/browser-audio.js", "/rtc-health.js", "/rtc-renderer.js", "/display-presets.js",
                     "/browser-touch.js", "/stream-summary.js", "/navigation-volume.js" -> session.uri.drop(1) to "text/javascript; charset=utf-8"
+                    "/audio-packet.js", "/audio-worklet.js", "/media-worker.js", "/media-socket.js" ->
+                        session.uri.drop(1) to "text/javascript; charset=utf-8"
                     "/style.css" -> "style.css" to "text/css; charset=utf-8"
                     "/rtc-licenses.txt" -> "rtc-licenses.txt" to "text/plain; charset=utf-8"
                     else -> return reply(Response.Status.NOT_FOUND)
@@ -110,6 +115,20 @@ class BrowserServer(
             }
             return when (session.uri) {
                 "/api/status" -> if (session.method == Method.GET) json(target.status()) else reply(Response.Status.METHOD_NOT_ALLOWED)
+                "/api/diagnostic-report" -> {
+                    if (session.method != Method.GET) return reply(Response.Status.METHOD_NOT_ALLOWED)
+                    onClientDiagnostic("Browser diagnostic report requested")
+                    val report = target.exportDiagnostics() ?: return reply(Response.Status.NOT_IMPLEMENTED)
+                    decorate(newFixedLengthResponse(Response.Status.OK, "text/plain; charset=utf-8", report)).apply {
+                        addHeader("Content-Disposition", "attachment; filename=\"DiPlay-diagnostics.txt\"")
+                    }
+                }
+                "/api/client-diagnostics" -> {
+                    if (session.method != Method.POST) return reply(Response.Status.METHOD_NOT_ALLOWED)
+                    val body = body(session) ?: return reply(Response.Status.BAD_REQUEST)
+                    BrowserClientDiagnostics.lines(body).forEach(onClientDiagnostic)
+                    json(JSONObject().put("ok", true))
+                }
                 "/api/frame" -> {
                     if (session.method != Method.GET) return reply(Response.Status.METHOD_NOT_ALLOWED)
                     frames.request()
