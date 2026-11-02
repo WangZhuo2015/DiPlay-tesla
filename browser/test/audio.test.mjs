@@ -8,7 +8,7 @@ function packet(stream,rate=48000,channels=2,frames=960,role=0) {
   header.setUint16(14,role,true);
   new Int16Array(bytes,20).fill(16384);return bytes;
 }
-function fixture(volumes={}) {
+function fixture(volumes={},onDiagnostic=()=>{}) {
   const started=[],messages=[],states=[],gains=[];
   const context={state:'running',currentTime:0,resume:async()=>{},close:async()=>{},destination:{},
     createGain(){const node={gain:{value:1,events:[],cancelAndHoldAtTime(time){this.events.push(['hold',time]);},
@@ -16,7 +16,7 @@ function fixture(volumes={}) {
       connect(target){this.target=target;},disconnect(){this.disconnected=true;}};gains.push(node);return node;},
     createBuffer(channels,count,rate){const data=Array.from({length:channels},()=>new Float32Array(count));return{rate,getChannelData:i=>data[i]};},
     createBufferSource(){return{connect(target){this.target=target;},disconnect(){this.disconnected=true;},stop(){this.stopped=true;},start(time){this.time=time;started.push(this);}};}};
-  const audio=createBrowserAudio({volumes,createContext:()=>context,send:data=>messages.push(data),onState:state=>states.push(state)});
+  const audio=createBrowserAudio({volumes,onDiagnostic,createContext:()=>context,send:data=>messages.push(data),onState:state=>states.push(state)});
   return{audio,context,started,messages,states,gains};
 }
 test('continuous PCM keeps original sample rate and bridges a 120ms scheduling pause',async()=>{
@@ -28,12 +28,15 @@ test('continuous PCM keeps original sample rate and bridges a 120ms scheduling p
   assert.ok(started.every(node=>!node.stopped));audio.close();
 });
 test('navigation starvation leaves music intact and context suspension releases playback',async()=>{
-  const{audio,context,started,messages}=fixture();await audio.enable();
+  const diagnostics=[];
+  const{audio,context,started,messages}=fixture({},(event,data)=>diagnostics.push({event,...data}));await audio.enable();
   audio.receive(packet(1));audio.receive(packet(2,24000,1,480));
   context.currentTime=.3;audio.receive(packet(2,24000,1,480));
   assert.ok(!started[0].stopped);assert.ok(started[1].stopped);
   context.state='suspended';context.onstatechange();
   assert.equal(audio.enabled,false);assert.equal(messages.at(-1).playback,false);assert.ok(started.every(node=>node.stopped));audio.close();
+  assert.ok(diagnostics.some(event=>event.event==='audio-context' && event.contextState==='suspended'));
+  assert.ok(diagnostics.some(event=>event.event==='audio-disable' && event.reason==='context-not-running'));
 });
 test('backlog releases the route and malformed or unaligned PCM is rejected',async()=>{
   const{audio,messages}=fixture();await audio.enable();

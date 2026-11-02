@@ -6,7 +6,7 @@
 import {createVideoPresentation} from './video-presentation.js';
 
 export function createRtcRenderer({
-  video, canvas, onError = () => {}, onFrame = () => {},
+  video, canvas, onError = () => {}, onFrame = () => {}, onDiagnostic = () => {},
   requestFrame = callback => requestAnimationFrame(callback),
   cancelFrame = id => cancelAnimationFrame(id), now = () => performance.now(),
   schedule = (callback, delay) => setTimeout(callback, delay), cancelScheduled = id => clearTimeout(id),
@@ -42,6 +42,7 @@ export function createRtcRenderer({
   }
 
   function fail(error) {
+    onDiagnostic('renderer-error',{errorName:error?.name||'Error'});
     cancel();
     mode = 'native';
     showNative();
@@ -66,6 +67,7 @@ export function createRtcRenderer({
     try {
       width = video.videoWidth; height = video.videoHeight;
       resized = canvas.width !== width || canvas.height !== height;
+      if(resized)onDiagnostic('canvas-resize',{reason:'video-dimensions'});
       const key = frameKey(metadata, stalled);
       if (!resized && key !== null && key === lastFrameKey) return;
       // Assigning a dimension clears and reallocates the backing store. Preserve it
@@ -84,6 +86,7 @@ export function createRtcRenderer({
   }
 
   function restart() {
+    onDiagnostic('renderer-restart',{reason:active?'active':'inactive'});
     cancel();
     source = video.srcObject;
     showNative();
@@ -170,7 +173,7 @@ export function createRtcRenderer({
     setMode(value) {
       if (disposed) return mode;
       const selected = value === 'canvas' ? 'canvas' : 'native';
-      if (mode !== selected) { mode = selected; restart(); }
+      if (mode !== selected) { mode = selected;onDiagnostic('renderer-change',{renderer:mode});restart(); }
       return mode;
     },
     setActive,

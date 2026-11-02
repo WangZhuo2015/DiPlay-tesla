@@ -21,13 +21,13 @@ export function createAudioPreference({audio,storedValue=null,save=()=>{}}) {
     },
     toggle(){
       wanted=!audio.enabled;save(String(wanted));
-      if(!wanted){audio.disable();return Promise.resolve(false);}
+      if(!wanted){audio.disable('manual-off');return Promise.resolve(false);}
       return audio.enable();
     }
   };
 }
 
-export function createBrowserAudio({send,onState=()=>{},volumes:initialVolumes={},createContext=()=>new (window.AudioContext||window.webkitAudioContext)({latencyHint:'playback'})}) {
+export function createBrowserAudio({send,onState=()=>{},onDiagnostic=()=>{},volumes:initialVolumes={},createContext=()=>new (window.AudioContext||window.webkitAudioContext)({latencyHint:'playback'})}) {
   let context = null, enabled = false, generation = 0, bufferMs = 200;
   let transport=null, worklet=null, moduleLoad=null, workletFailed=false, playbackError=null;
   let workletStats={};
@@ -72,13 +72,18 @@ export function createBrowserAudio({send,onState=()=>{},volumes:initialVolumes={
     workletStats={};worklet.onprocessorerror=null;worklet.disconnect();worklet.port.close();worklet=null;
     transport?.unbindAudio();
   }
-  function disable() { generation++; enabled = false; detachWorklet();stop(); publish(); }
+  function disable(reason='client-disable') {
+    if(enabled || worklet)onDiagnostic('audio-disable',{reason,contextState:context?.state||'unavailable'});
+    generation++; enabled = false; detachWorklet();stop(); publish();
+  }
   function failWorklet(reason) {
+    onDiagnostic('audio-compatibility',{reason});
     playbackError=reason;workletFailed=true;
     console.warn('DiPlay audio: compatibility playback after '+reason);
     detachWorklet();publish();
   }
   async function enable() {
+    onDiagnostic('audio-enable-request',{contextState:context?.state||'unavailable'});
     const ticket = ++generation;
     try {
       if (!context || context.state === 'closed') {
@@ -91,7 +96,10 @@ export function createBrowserAudio({send,onState=()=>{},volumes:initialVolumes={
           gain.gain.value = volumes[role]/100;
           gain.connect(context.destination); gains.set(role,gain);
         }
-        context.onstatechange = () => { if (enabled && context.state !== 'running') disable(); };
+        context.onstatechange = () => {
+          onDiagnostic('audio-context',{contextState:context.state});
+          if (enabled && context.state !== 'running') disable('context-not-running');
+        };
       }
       // resume() must execute in the original user gesture, before waiting for a module fetch.
       const resumed=context.resume();
@@ -125,17 +133,20 @@ export function createBrowserAudio({send,onState=()=>{},volumes:initialVolumes={
           failWorklet('worklet-unavailable');
         }
       }
-      enabled = true; publish(); return true;
-    } catch (_) { if (ticket === generation) disable(); return false; }
+      enabled = true;onDiagnostic('audio-enabled',{contextState:context.state,engine:worklet?'worklet':'compatibility'});publish(); return true;
+    } catch (error) {
+      onDiagnostic('audio-enable-failed',{errorName:error?.name||'Error',contextState:context?.state||'unavailable'});
+      if (ticket === generation) disable('enable-failed'); return false;
+    }
   }
   function receive(buffer) {
     const frame = decodeAudioPacket(buffer);
     if (!frame) return false;
     send({type:'audio-ack',sequence:frame.sequence});
-    if (enabled && (!context || context.state !== 'running')) disable();
+    if (enabled && (!context || context.state !== 'running')) disable('context-not-running');
     if (!enabled) return true;
     const count = frame.pcm.length / frame.channels, duration = count / frame.rate;
-    if (duration > .5) { disable(); return true; }
+    if (duration > .5) { disable('packet-too-long'); return true; }
     const now = context.currentTime, target = bufferMs/1000;
     let stream = streams.get(frame.stream);
     if (!stream || stream.rate !== frame.rate || stream.channels !== frame.channels) {
@@ -148,7 +159,7 @@ export function createBrowserAudio({send,onState=()=>{},volumes:initialVolumes={
       if(frame.role===2)legacyUnderruns.navigation++;
     }
     // A long decoder/network backlog should release the route instead of repeatedly cutting audio.
-    if (stream.next-now > Math.max(.75,target+.4) || nodes.size >= 128) { disable(); return true; }
+    if (stream.next-now > Math.max(.75,target+.4) || nodes.size >= 128) { disable('audio-backlog'); return true; }
     const audio = context.createBuffer(frame.channels,count,frame.rate);
     for (let channel=0;channel<frame.channels;channel++) {
       const output = audio.getChannelData(channel);
@@ -179,7 +190,10 @@ export function createBrowserAudio({send,onState=()=>{},volumes:initialVolumes={
     setVolume,
     get volumes() { return {...volumes}; },
     heartbeat:publish,
-    stopped(stream) {if(worklet)transport.stopAudio(stream);else stop(stream);},
+    stopped(stream) {
+      onDiagnostic('audio-stream-stop',{reason:'server-stream-stop'});
+      if(worklet)transport.stopAudio(stream);else stop(stream);
+    },
     setBuffer(ms) { if (![80,200,400].includes(ms)) return; bufferMs=ms; stop(); if(worklet)transport.audioBuffer(ms);publish(); },
     close() {
       disable();
@@ -195,7 +209,7 @@ export function createBrowserAudio({send,onState=()=>{},volumes:initialVolumes={
         musicUnderruns:legacyUnderruns.music+retired.musicUnderruns+(workletStats.musicUnderruns||0),
         navigationUnderruns:legacyUnderruns.navigation+retired.navigationUnderruns+(workletStats.navigationUnderruns||0),
         overruns:retired.overruns+(workletStats.overruns||0),
-        engine:worklet?'worklet':'compatibility',playbackError};
+        engine:worklet?'worklet':'compatibility',contextState:context?.state||'unavailable',playbackError};
     }
   };
 }

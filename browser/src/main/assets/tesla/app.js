@@ -4,6 +4,7 @@ import {createTouchSender} from './browser-touch.js';
 import {streamSummary,createJpegMetrics} from './stream-summary.js';
 import {createNavigationVolume} from './navigation-volume.js';
 import {createRtcRenderer} from './rtc-renderer.js';
+import {createClientDiagnostics} from './client-diagnostics.js';
 /* Local H.264/WebRTC with JPEG fallback; optional PCM playback is independent of video. */
 (() => {
   'use strict';
@@ -11,6 +12,10 @@ import {createRtcRenderer} from './rtc-renderer.js';
   const language=(new URLSearchParams(location.search).get('lang')||navigator.language).toLowerCase();
   const zh=language.startsWith('zh'), ar=language.startsWith('ar');
   const copy = {
+    saveLogs:['保存诊断日志','Save diagnostic logs'],
+    logsHint:['日志自动保存在主机，下载不会清空。若车载浏览器不支持下载，可在手机导出诊断报告。','Logs are saved automatically on the host. Downloading does not clear them. If this browser cannot download, export a diagnostic report on Android.'],
+    logsSaving:['正在整理日志…','Preparing logs…'],logsSaved:['已请求下载；主机仍保留日志。','Download requested; logs remain on the host.'],
+    logsFailed:['日志下载失败，请重试，或在手机导出诊断报告。','Log download failed. Retry or export a diagnostic report on Android.'],
     jpegDiagnostics:['JPEG（手动排障）','JPEG (manual diagnostics)'],
     hevcUnsupported:['此浏览器无法接收 HEVC WebRTC。请在 Android 的高级设置关闭 HEVC，并重新连接 CarPlay。','This browser cannot receive HEVC over WebRTC. Turn off HEVC in Android Advanced settings and reconnect CarPlay.'],
     jpegHevcUnsupported:['JPEG 排障模式只支持 H.264。请先关闭 Android 的 HEVC，再重新连接 CarPlay。','JPEG diagnostics require H.264. Turn off HEVC on Android, then reconnect CarPlay.'],
@@ -71,6 +76,10 @@ import {createRtcRenderer} from './rtc-renderer.js';
     unavailable:['此浏览器不支持全屏，请使用 Tesla 的窗口控制。','Fullscreen is unavailable; use Tesla window controls.']
   };
   const arabic={
+    saveLogs:'حفظ سجلات التشخيص',
+    logsHint:'تُحفظ السجلات تلقائيًا على المضيف ولا يمسحها التنزيل. إذا لم يدعم المتصفح التنزيل، صدّر تقرير التشخيص على Android.',
+    logsSaving:'جارٍ إعداد السجلات…',logsSaved:'طُلب التنزيل؛ تبقى السجلات على المضيف.',
+    logsFailed:'تعذّر تنزيل السجلات. أعد المحاولة أو صدّر تقرير التشخيص على Android.',
     hevcUnsupported:'لا يدعم هذا المتصفح استقبال HEVC عبر WebRTC. عطّل HEVC من الإعدادات المتقدمة على Android ثم أعد اتصال CarPlay.',
     mediaBusy:'تستخدم صفحة أخرى اتصال الوسائط. أغلقها وستتصل هذه الصفحة تلقائيًا.',
     jpegHevcUnsupported:'يتطلب وضع تشخيص JPEG فيديو H.264. عطّل HEVC على Android ثم أعد اتصال CarPlay.',
@@ -121,8 +130,12 @@ import {createRtcRenderer} from './rtc-renderer.js';
   const canvas = $('picture'), drawing = canvas.getContext('2d');
   const screen = $('screen'), video = $('video');
   let videoMetrics = {}, rendererNotice = null, videoTransport='waiting';
+  const diagnostics=createClientDiagnostics({client:client.slice(-8),getToken:()=>token,
+    context:()=>({visibility:document.visibilityState,focused:document.hasFocus(),renderer:renderer.mode,
+      transport:videoTransport,paused:video.paused,readyState:video.readyState,currentTime:video.currentTime,
+      elementHidden:video.hidden})});
   const jpegMetrics=createJpegMetrics();
-  const renderer = createRtcRenderer({video,canvas,onError:()=>{
+  const renderer = createRtcRenderer({video,canvas,onDiagnostic:diagnostics.record,onError:()=>{
     rendererNotice=t('rendererFailed');
     localStorage.setItem('diplay-rtc-renderer','native');$('renderer').value='native';
     $('status').textContent=rendererNotice;
@@ -148,7 +161,7 @@ import {createRtcRenderer} from './rtc-renderer.js';
   $('keysButton').addEventListener('click',()=>{ showKeys($('virtualKeys').hidden); closeMenu(); });
   $('hideKeys').addEventListener('click',()=>{ showKeys(false); $('menuButton').focus(); });
   let hevcErrorAnnounced=false;
-  const media = createMedia({video,getToken:()=>token,
+  const media = createMedia({video,getToken:()=>token,onDiagnostic:diagnostics.record,
     onTransport:mode=>{
       if(mode!==videoTransport){jpegMetrics.reset();sequence=-1;}
       videoTransport=mode;renderer.setActive(mode==='webrtc');releaseTouches();
@@ -212,17 +225,19 @@ import {createRtcRenderer} from './rtc-renderer.js';
   const fingers = new Map();
   const touchSender=createTouchSender({send:contacts=>api('/api/touch',{client,contacts}),onError:()=>fingers.clear()});
   const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-  async function api(path, body, keepalive = false, allowConflict = false) {
+  async function api(path, body, keepalive = false, allowConflict = false, timeoutMs = 5000) {
     const requestToken = token;
     const abort = new AbortController();
-    const timer = setTimeout(() => abort.abort(), 5000);
+    const timer = setTimeout(() => abort.abort(), timeoutMs);
+    const started=performance.now();let httpStatus=null;
     try {
       const response = await fetch(path, { method:body === undefined ? 'GET' : 'POST',
         headers:{ Authorization:'Bearer ' + requestToken, ...(body === undefined ? {} : {'Content-Type':'application/json'}) },
         body:body === undefined ? undefined : JSON.stringify(body), cache:'no-store', signal:abort.signal, keepalive });
+      httpStatus=response.status;
       if (response.status === 401) {
         if (requestToken === token) {
-          live=false;statusAvailable=false;media.close();resetPicture();navigationVolume.unavailable();token='';
+          live=false;statusAvailable=false;media.close('authentication-failed');resetPicture('authentication-failed');navigationVolume.unavailable();token='';
           localStorage.removeItem('diplay-token');sessionStorage.removeItem('diplay-token');
           closeMenu();$('displayPanel').hidden=true;$('reconnectPanel').hidden=true;$('pending').hidden=true;
           $('pairing').hidden=false;$('token').focus();
@@ -231,19 +246,43 @@ import {createRtcRenderer} from './rtc-renderer.js';
       }
       if (!response.ok && !(allowConflict && response.status===409)) throw new Error(t('invalid'));
       return response;
+    } catch(error) {
+      diagnostics.record('request-failed',{request:path.split('?')[0].replace('/api/',''),httpStatus,
+        errorName:error?.name||'Error',durationMs:Math.round(performance.now()-started)});
+      throw error;
     } finally { clearTimeout(timer); }
   }
-  function resetPicture() { drawing.clearRect(0,0,canvas.width,canvas.height); sequence = -1; jpegMetrics.reset(); }
+  function resetPicture(reason) {
+    diagnostics.record('canvas-clear',{reason});
+    drawing.clearRect(0,0,canvas.width,canvas.height); sequence = -1; jpegMetrics.reset();
+  }
+  $('saveLogs').addEventListener('click',async()=>{
+    const button=$('saveLogs'),state=$('logExportStatus');
+    button.disabled=true;state.textContent=t('logsSaving');
+    try {
+      diagnostics.record('log-export');await diagnostics.flush(true);
+      const response=await api('/api/diagnostic-report',undefined,false,false,60000);
+      const url=URL.createObjectURL(await response.blob()),link=document.createElement('a');
+      link.href=url;link.download='DiPlay-diagnostics-'+new Date().toISOString().replace(/[:.]/g,'-')+'.txt';
+      document.body.appendChild(link);link.click();link.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
+      state.textContent=t('logsSaved');
+    } catch(error) {
+      diagnostics.record('log-export-failed',{errorName:error?.name||'Error'});
+      state.textContent=t('logsFailed');
+    } finally { button.disabled=false; }
+  });
   async function status() {
     const request=++requestedStatus, readEpoch=navigationVolume.epoch;
     const state = await (await api('/api/status')).json();
     if(request<appliedStatus)return current;
+    if(!statusAvailable || current?.connected!==state.connected)diagnostics.record('status-connection',{connected:Boolean(state.connected)});
     appliedStatus=request;current = state;statusAvailable=true;
     navigationVolume.observe(state.navigationAttenuationDb,readEpoch);
     $('status').textContent = state.error || rendererNotice || (videoMetrics.recovering ? t('recovering') : null) || state.stage || (state.connected ? 'CarPlay' : t('waiting'));
     $('pending').hidden = !state.pendingReconnect || !$('reconnectPanel').hidden;
     document.querySelectorAll('[data-action]').forEach(button => { button.disabled = !state.connected; });
-    if (!state.connected) resetPicture();
+    if (!state.connected) resetPicture('status-disconnected');
     updateDiagnostics(state);
     return state;
   }
@@ -251,6 +290,21 @@ import {createRtcRenderer} from './rtc-renderer.js';
     const audio=media.audio.stats();
     const jpeg=jpegMetrics.sample();
     const presentation=renderer.samplePresentation();
+    diagnostics.sample({
+      decodedFrames:videoMetrics.decodedFrames??null,decodedFps:videoMetrics.decodedFps??null,
+      presentedFrames:presentation.presentedFrames,presentedFps:presentation.presentedFps,
+      callbackAgeMs:presentation.callbackAgeMs,callbackPendingMs:presentation.callbackPendingMs,
+      submittedFrameAgeMs:presentation.submittedFrameAgeMs,streamActive:presentation.streamActive,
+      sent:videoMetrics.sent??null,received:videoMetrics.received??null,
+      expiredFrames:videoMetrics.expiredFrames??null,overflowFrames:videoMetrics.overflowFrames??null,
+      keyframeSkips:videoMetrics.keyframeSkips??null,sendFailures:videoMetrics.sendFailures??null,
+      recovering:videoMetrics.recovering??false,fallbackReason:videoMetrics.fallbackReason??null,
+    },{enabled:audio.enabled,contextState:audio.contextState,engine:audio.engine,queuedMs:audio.queuedMs,
+      underruns:audio.underruns,overruns:audio.overruns,targetMs:audio.targetMs,packets:audio.packets??null,
+      maxArrivalGapMs:audio.maxArrivalGapMs??null,musicMaxGapMs:audio.musicMaxGapMs??null,
+      navigationMaxGapMs:audio.navigationMaxGapMs??null,musicQueuedMs:audio.musicQueuedMs??null,
+      navigationQueuedMs:audio.navigationQueuedMs??null,musicUnderruns:audio.musicUnderruns,
+      navigationUnderruns:audio.navigationUnderruns});
     const connected=Boolean(statusAvailable && state.connected && token && !document.hidden);
     const jpegSelected=!media.busy && media.mode==='jpeg' && state.videoCodec!=='H265';
     const fps=connected?(media.displayed?videoMetrics.decodedFps:jpegSelected?jpeg.fps:null):null;
@@ -365,7 +419,8 @@ import {createRtcRenderer} from './rtc-renderer.js';
         const fps = profile.jpegFps || Math.min(profile.fps,30);
         await delay(Math.max(15,1000/fps - (Date.now()-start)));
       } catch (error) {
-        statusAvailable=false; resetPicture(); releaseTouches(); navigationVolume.unavailable();
+        diagnostics.record('stream-error',{errorName:error?.name||'Error'});
+        statusAvailable=false; resetPicture('stream-error'); releaseTouches(); navigationVolume.unavailable();
         if(current)updateDiagnostics({...current,connected:false});
         $('status').textContent = error.message || t('disconnected');
         $('pairError').textContent = error.message || t('disconnected');
@@ -412,9 +467,26 @@ import {createRtcRenderer} from './rtc-renderer.js';
     if(fingers.has(event.pointerId))releaseTouches();
   }));
   setInterval(()=>touchSender.heartbeat(Array.from(fingers.values())),50);
-  window.addEventListener('blur',releaseTouches);
-  window.addEventListener('pagehide',() => { navigationVolume.unavailable(); media.close(); fingers.clear(); if (token) api('/api/touch',{client,contacts:[]},true).catch(() => {}); });
-  document.addEventListener('visibilitychange',() => { if (document.hidden) {releaseTouches();media.close();navigationVolume.unavailable();} else {media.open();status().catch(()=>navigationVolume.unavailable());} });
+  window.addEventListener('blur',()=>{diagnostics.record('blur');releaseTouches();diagnostics.flush(true);});
+  window.addEventListener('focus',()=>{diagnostics.record('focus');diagnostics.flush(true);});
+  window.addEventListener('pagehide',event => {
+    diagnostics.record('pagehide',{persisted:event.persisted});
+    navigationVolume.unavailable(); media.close('pagehide'); fingers.clear();
+    if (token) api('/api/touch',{client,contacts:[]},true).catch(() => {});
+    diagnostics.flush(true);
+  });
+  window.addEventListener('pageshow',event=>{diagnostics.record('pageshow',{persisted:event.persisted});diagnostics.flush(true);});
+  document.addEventListener('visibilitychange',() => {
+    diagnostics.record('visibilitychange');
+    if (document.hidden) {releaseTouches();media.close('page-hidden');navigationVolume.unavailable();}
+    else {media.open();status().catch(()=>navigationVolume.unavailable());}
+    diagnostics.flush(true);
+  });
+  for(const name of ['freeze','resume'])document.addEventListener(name,()=>{diagnostics.record(name);diagnostics.flush(true);});
+  for(const name of ['playing','waiting','stalled','pause','emptied','loadeddata','resize','error','suspend','ended'])
+    video.addEventListener(name,()=>diagnostics.record('video-'+name));
+  window.addEventListener('error',event=>diagnostics.record('script-error',{errorName:event.error?.name||'Error'}));
+  window.addEventListener('unhandledrejection',event=>diagnostics.record('script-rejection',{errorName:event.reason?.name||'Error'}));
   document.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click',() => {
     releaseTouches(); api('/api/action',{action:button.dataset.action}).catch(error => { $('status').textContent = error.message; });
   }));
@@ -429,7 +501,7 @@ import {createRtcRenderer} from './rtc-renderer.js';
       const credential=(await response.json()).token;
       if(!/^[a-f0-9]{32}$/.test(credential))throw new Error(t('invalid'));
       rememberToken(credential); $('token').value=''; $('pairing').hidden=true;
-      media.close(); resetPicture(); stream();
+      media.close('paired'); resetPicture('paired'); stream();
     } catch (_) { $('pairError').textContent=t('invalid'); }
     finally { clearTimeout(timer); button.disabled=false; }
   }
@@ -492,7 +564,7 @@ import {createRtcRenderer} from './rtc-renderer.js';
   $('cancelReconnect').addEventListener('click',() => { $('reconnectPanel').hidden=true; $('pending').hidden=!current?.pendingReconnect; $('reconnectButton').focus(); });
   $('confirmReconnect').addEventListener('click',async () => {
     $('reconnectPanel').hidden=true;
-    try { releaseTouches(); await api('/api/action',{action:'reconnect'}); resetPicture(); await status(); }
+    try { releaseTouches(); await api('/api/action',{action:'reconnect'}); resetPicture('manual-reconnect'); await status(); }
     catch (error) { $('status').textContent = error.message; }
   });
   $('expandButton').addEventListener('click',async () => {
@@ -516,6 +588,9 @@ import {createRtcRenderer} from './rtc-renderer.js';
     }
   });
   $('pairing').hidden = Boolean(token);
+  diagnostics.record('page-start',{rvfc:typeof video.requestVideoFrameCallback==='function',
+    browser:/Tesla/i.test(navigator.userAgent)?'tesla':'other'});
+  diagnostics.flush(true);
   if (token) stream();
   else if(pairingCode)pair(pairingCode);
 })();

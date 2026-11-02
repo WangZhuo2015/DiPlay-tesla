@@ -23,6 +23,9 @@ const cjkFont=process.env.DIPLAY_UI_CJK_FONT ? await readFile(process.env.DIPLAY
 await mkdir(output, {recursive:true});
 const initialDisplay = () => ({mode:'RIGHT',right:{width:1024,height:768},full:{width:1920,height:1080},fps:20,jpegFps:20,jpegQuality:75});
 let display = initialDisplay(), activeDisplay = initialDisplay(), touches = [], saves = [], actions = [], lateFrames = 0;
+const clientDiagnostics=[];
+let failNextStatus=false,failNextLogExport=false;
+const diagnosticReport='Browser diagnostic evidence\nCarPlay audio stats maxGapMs=502 dropped=0\n';
 const pixel = Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD3+iiigD//2Q==', 'base64');
 const server = createServer(async (req,res) => {
   try {
@@ -33,8 +36,17 @@ const server = createServer(async (req,res) => {
     if(url.pathname.startsWith('/api/') && req.headers.authorization !== 'Bearer '+ '0'.repeat(32)) {
       res.writeHead(401); res.end(); return;
     }
-    if(url.pathname==='/api/status') return json({connected:true,stage:'Synthetic browser verification',display,activeDisplay,
-      pendingReconnect:JSON.stringify(display)!==JSON.stringify(activeDisplay)});
+    if(url.pathname==='/api/client-diagnostics') {clientDiagnostics.push(await body());return json({ok:true});}
+    if(url.pathname==='/api/diagnostic-report') {
+      if(failNextLogExport){failNextLogExport=false;res.writeHead(500);res.end();return;}
+      res.writeHead(200,{'Content-Type':'text/plain; charset=utf-8','Content-Disposition':'attachment; filename="DiPlay-diagnostics.txt"'});
+      res.end(diagnosticReport);return;
+    }
+    if(url.pathname==='/api/status') {
+      if(failNextStatus){failNextStatus=false;res.writeHead(503);res.end();return;}
+      return json({connected:true,stage:'Synthetic browser verification',display,activeDisplay,
+        pendingReconnect:JSON.stringify(display)!==JSON.stringify(activeDisplay)});
+    }
     if(url.pathname==='/api/display') {
       display=await body(); display.jpegFps=Math.min(display.fps,30); saves.push(display); return json(display);
     }
@@ -384,6 +396,22 @@ try {
     await openVolumeMenu(page);
     await page.locator('#diagnostics summary').click();
     await page.waitForFunction(()=>document.getElementById('diagnosticValues').children.length>12);
+    await page.locator('#saveLogs').scrollIntoViewIfNeeded();
+    await capture(page,`diagnostic-export-${scenario.name}-font130.jpg`);
+    const hellosBeforeExport=await page.evaluate(()=>window.__uiFixture.hellos.length);
+    const downloaded=page.waitForEvent('download');
+    await page.locator('#saveLogs').click();
+    const download=await downloaded;
+    assert.match(download.suggestedFilename(),/^DiPlay-diagnostics-.*\.txt$/);
+    assert.equal(await readFile(await download.path(),'utf8'),diagnosticReport);
+    await page.waitForFunction(()=>!document.getElementById('saveLogs').disabled);
+    failNextLogExport=true;
+    await page.locator('#saveLogs').click();
+    await page.waitForFunction(()=>!document.getElementById('saveLogs').disabled);
+    assert.match(await page.locator('#logExportStatus').textContent(),/失败|failed|تعذّر/);
+    assert.equal(await page.evaluate(()=>window.__uiFixture.hellos.length),hellosBeforeExport,
+      'exporting or retrying diagnostic logs must not restart media');
+    assert.equal(actions.length,0);
     await page.locator('#diagnosticValues').scrollIntoViewIfNeeded();
     const diagnostics=await page.locator('#diagnosticValues').evaluate(node=>({
       width:node.clientWidth,scroll:node.scrollWidth,text:node.textContent
@@ -431,10 +459,28 @@ try {
     await page.waitForFunction(()=>!document.getElementById('video').hidden && !document.getElementById('video').classList.contains('rtcOffscreen'));
     assert.equal(await page.locator('#picture').isVisible(),false);
     assert.equal(await page.evaluate(()=>window.__uiFixture.hellos.length),2,'Renderer-only save must not restart media');
+    const diagnosticStart=clientDiagnostics.length;
+    const diagnosticSince=await page.evaluate(()=>Date.now());
+    const failedUpload=page.waitForResponse(response=>response.url().endsWith('/api/client-diagnostics') &&
+      response.request().postDataJSON()?.events?.some(event=>event.event==='request-failed' &&
+        event.data.httpStatus===503 && event.atMs>=diagnosticSince));
+    const failedStatus=page.waitForResponse(response=>response.url().endsWith('/api/status') && response.status()===503);
+    failNextStatus=true;await failedStatus;
+    const blurUpload=page.waitForResponse(response=>response.url().endsWith('/api/client-diagnostics') &&
+      response.request().postDataJSON()?.events?.some(event=>event.event==='blur' && event.atMs>=diagnosticSince));
+    await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
+    await Promise.all([failedUpload,blurUpload]);
+    const events=clientDiagnostics.slice(diagnosticStart).flatMap(batch=>batch.events).filter(event=>event.atMs>=diagnosticSince);
+    assert.ok(events.some(event=>event.event==='request-failed' && event.data.httpStatus===503 && event.data.request==='status'));
+    assert.ok(events.some(event=>event.event==='canvas-clear' && event.data.reason==='stream-error'));
+    assert.ok(events.some(event=>event.event==='blur'));
+    assert.ok(!events.some(event=>event.event==='media-close'),'blur and status failure must not change media policy');
+    assert.equal(await page.evaluate(()=>window.__uiFixture.hellos.length),2);
     assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>window.__uiFixture.errors),[]);
     report.checks.push({scenario:scenario.name,layout,volumes,diagnosticsLifecycle,codec:await page.evaluate(()=>window.__uiFixture.codec),
       nativeToCanvasToNative:true,canvasTouch:true,jpegNotRequestedInRtcMode:true,frameRateSavedForNextConnection:true,recoveryHello:true,
       rendererOnlyKeepsMedia:true,focusTrap:true});
+    report.checks.at(-1).clientDiagnostics={httpStatusAndClearReason:true,blurDoesNotCloseMedia:true};
     report.checks.at(-1).presentationChecks=presentationChecks;
     await context.close();
   }

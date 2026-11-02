@@ -22,12 +22,18 @@ class BrowserServerTest {
         var touches = 0
         var navigationLevel = -10
         var navigationWrites = 0
+        var reportReads = 0
+        val diagnosticLines = java.util.Collections.synchronizedList(mutableListOf<String>())
         val target = object : BrowserTarget {
             override fun status() = JSONObject().put("display", BrowserDisplayJson.encode(selected))
                 .put("navigationAttenuationDb", navigationLevel)
             override fun touch(contacts: List<AirPlayContact>): Boolean { touches++; return true }
             override fun action(name: String) = true
             override fun saveDisplay(display: BrowserDisplay) { selected = display }
+            override fun exportDiagnostics(): String {
+                assertEquals("Browser diagnostic report requested", diagnosticLines.last())
+                reportReads++; return "Browser and CarPlay diagnostic evidence\n"
+            }
             @Synchronized override fun saveNavigationLevel(expectedDb: Int, db: Int): Boolean {
                 if (navigationLevel != expectedDb) return false
                 navigationLevel = db; navigationWrites++; return true
@@ -35,7 +41,8 @@ class BrowserServerTest {
         }
         val pairing = BrowserPairing(nextCode = { 123456 })
         pairing.begin()
-        val server = BrowserServer(port, RuntimeEnvironment.getApplication().assets, token, frames, target, pairing = pairing)
+        val server = BrowserServer(port, RuntimeEnvironment.getApplication().assets, token, frames, target,
+            pairing = pairing, onClientDiagnostic = { diagnosticLines.add(it) })
         server.start(2000, true)
         try {
             fun request(path: String, auth: Boolean = true, body: String? = null, origin: String? = null): Pair<Int, ByteArray> {
@@ -69,7 +76,8 @@ class BrowserServerTest {
             assertEquals(200, presets.first)
             assertTrue(String(presets.second).contains("export function displayPreset"))
             for (asset in listOf("browser-touch.js", "stream-summary.js", "rtc-renderer.js", "rtc-health.js", "media.js",
-                "navigation-volume.js", "audio-packet.js", "audio-worklet.js", "media-worker.js", "media-socket.js")) {
+                "navigation-volume.js", "audio-packet.js", "audio-worklet.js", "media-worker.js", "media-socket.js",
+                "client-diagnostics.js")) {
                 assertEquals(200, request("/$asset", auth = false).first)
             }
             assertEquals(401, request("/api/status",auth = false).first)
@@ -86,6 +94,27 @@ class BrowserServerTest {
             assertEquals(401, request("/api/status", auth = false).first)
             assertEquals(403, request("/api/status",origin = "http://elsewhere").first)
             assertEquals(200, request("/api/status").first)
+            assertEquals(401, request("/api/diagnostic-report", auth = false).first)
+            assertEquals(403, request("/api/diagnostic-report", origin = "https://elsewhere").first)
+            assertEquals(405, request("/api/diagnostic-report", body = "{}").first)
+            assertEquals(0, reportReads)
+            assertTrue(diagnosticLines.isEmpty())
+            val report = request("/api/diagnostic-report")
+            assertEquals(200, report.first)
+            assertEquals("Browser and CarPlay diagnostic evidence\n", String(report.second))
+            assertEquals(1, reportReads)
+            assertEquals(listOf("Browser diagnostic report requested"), diagnosticLines.toList())
+            diagnosticLines.clear()
+            assertFalse("Exporting logs must not start software JPEG decoding", frames.hasDemand())
+            val diagnosticBody = """{"client":"1234abcd","dropped":0,"events":[{"seq":1,"atMs":1000,"elapsedMs":10,"event":"media-close","data":{"reason":"page-hidden"}}]}"""
+            assertEquals(401, request("/api/client-diagnostics", auth = false, body = diagnosticBody).first)
+            assertEquals(403, request("/api/client-diagnostics", body = diagnosticBody, origin = "https://elsewhere").first)
+            assertEquals(405, request("/api/client-diagnostics").first)
+            assertEquals(400, request("/api/client-diagnostics", body = diagnosticBody.replace("reason", "url")).first)
+            assertTrue(diagnosticLines.isEmpty())
+            assertEquals(200, request("/api/client-diagnostics", body = diagnosticBody).first)
+            assertEquals(1, diagnosticLines.size)
+            assertTrue(diagnosticLines.single().contains("page-hidden"))
             assertFalse(frames.hasDemand())
             assertEquals(401, request("/api/frame", auth = false).first)
             assertEquals(403, request("/api/frame", origin = "http://elsewhere").first)

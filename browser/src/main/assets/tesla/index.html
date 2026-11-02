@@ -56,7 +56,12 @@
       <button id="expandButton" data-i18n="expand">全屏</button>
       <button id="themeButton" data-i18n="theme">日夜</button>
     </div>
-    <details id="diagnostics"><summary data-i18n="diagnostics">实时诊断</summary><dl id="diagnosticValues"></dl></details>
+    <details id="diagnostics"><summary data-i18n="diagnostics">实时诊断</summary>
+      <button id="saveLogs" type="button" data-i18n="saveLogs">保存诊断日志</button>
+      <p data-i18n="logsHint">日志自动保存在主机，下载不会清空。若车载浏览器不支持下载，可在手机导出诊断报告。</p>
+      <p id="logExportStatus" role="status" aria-live="polite"></p>
+      <dl id="diagnosticValues"></dl>
+    </details>
     <p><a href="/rtc-licenses.txt">Licenses</a></p>
   </div>
   </section>

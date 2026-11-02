@@ -19,19 +19,23 @@ class OutputDiagnosticLog(private val directory: File) : Closeable {
     }
 
     /** Exporting never clears history; no reset/rotation merely because the app restarts. */
-    fun report(): String {
+    fun report(carPlayLogs: File? = null): String {
         log.awaitIdle(2_000)
         return buildString {
             appendLine("--- Browser transport history (up to about 4 MiB; oldest files rotate) ---")
-            for (name in SessionLogFile.REPORT_NAMES) {
-                val file = File(directory, name)
-                if (file.isFile) {
-                    appendLine("--- Browser $name ---")
-                    runCatching { file.useLines { lines -> lines.forEach { line ->
-                        DiagnosticRedactor.redact(line)?.let { appendLine(it) }
-                    } } }.onFailure { appendLine("History file unavailable during export") }
+            fun appendLogs(directory: File, label: String) {
+                for (name in SessionLogFile.REPORT_NAMES) {
+                    val file = File(directory, name)
+                    if (file.isFile) {
+                        appendLine("--- $label $name ---")
+                        runCatching { file.useLines { lines -> lines.forEach { line ->
+                            DiagnosticRedactor.redact(line)?.let { appendLine(it) }
+                        } } }.onFailure { appendLine("History file unavailable during export") }
+                    }
                 }
             }
+            appendLogs(directory, "Browser")
+            if (carPlayLogs != null) appendLogs(carPlayLogs, "CarPlay")
         }
     }
 
