@@ -18,6 +18,8 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class) @Config(sdk = [29])
 class BrowserMediaSocketTest {
@@ -76,7 +78,8 @@ class BrowserMediaSocketTest {
                 else -> null
             }
         } as IHTTPSession
-        val media = BrowserMediaHub()
+        val notes = mutableListOf<String>()
+        val media = BrowserMediaHub { notes.add(it) }
         var ended = 0
         val socket = BrowserMediaSocket(handshake, "1234567890abcdef1234567890abcdef", media) { ended++ }
         assertTrue(media.attach(socket, false, { true }, { _, _ -> true }))
@@ -86,6 +89,8 @@ class BrowserMediaSocketTest {
         (socket as WebSocket).close(close.closeCode, close.closeReason, true)
         socket.disconnect()
         assertEquals(1, ended)
+        assertEquals(1, notes.count { it.startsWith("Browser socket closed ") })
+        assertTrue(notes.any { it.contains("reason=remote-close-empty") && it.contains("pendingAudio=0") })
         assertFalse(media.audio.active)
         val next = Any()
         assertTrue(media.attach(next, false, { true }, { _, _ -> true }))
@@ -95,7 +100,14 @@ class BrowserMediaSocketTest {
     @Test fun mediaRequiresOriginAndPairingThenTransportsReadyPcmAndReleasesOwnership() {
         val port = ServerSocket(0).use { it.localPort }
         val token = "1234567890abcdef1234567890abcdef"
-        val media = BrowserMediaHub()
+        val notes = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val windowReset = CountDownLatch(1)
+        val ackReset = CountDownLatch(1)
+        val media = BrowserMediaHub {
+            notes.add(it)
+            if (it.startsWith("Browser audio reset reason=audio-window-full ")) windowReset.countDown()
+            if (it.startsWith("Browser audio reset reason=audio-ack-timeout ")) ackReset.countDown()
+        }
         val target = object : BrowserTarget {
             override fun status() = JSONObject()
             override fun touch(contacts: List<AirPlayContact>) = true
@@ -150,8 +162,48 @@ class BrowserMediaSocketTest {
             } }
             connect("http://127.0.0.1:$port").let { (socket, status) -> socket.use {
                 assertEquals(101, status)
-                send(it, """{"type":"hello","token":"$token","rtc":false}""")
+                send(it, """{"type":"hello","token":"$token","rtc":true}""")
                 assertEquals("welcome", JSONObject(frame(it.getInputStream()).second.toString(Charsets.UTF_8)).getString("type"))
+                send(it, """{"type":"audio-ready","playback":true}""")
+                send(it, """{"type":"ping"}""")
+                assertEquals("pong", JSONObject(frame(it.getInputStream()).second.toString(Charsets.UTF_8)).getString("type"))
+                notes.clear()
+                val pcm = byteArrayOf(1, 2, 3, 4)
+                val id = AudioStreamId(100, "media")
+                val format = AudioFormat(AudioCodecKind.LPCM, 44100, 2, 100)
+                repeat(24) { assertTrue(media.audio.offer(id, format, pcm, 0, pcm.size)) }
+                assertTrue("Overload must stay on the browser route, not grab Android audio focus",
+                    media.audio.offer(id, format, pcm, 0, pcm.size))
+                assertTrue(windowReset.await(2, TimeUnit.SECONDS))
+                fun receiveStop(): Int {
+                    repeat(32) {
+                        val (opcode, payload) = frame(socket.getInputStream())
+                        if (opcode == 1) {
+                            val message = JSONObject(payload.toString(Charsets.UTF_8))
+                            if (message.getString("type") == "audio-stop") return message.getInt("stream")
+                        }
+                    }
+                    error("Audio recovery did not stop stale playback")
+                }
+                val oldStream = receiveStop()
+                assertTrue(media.viewerAttached)
+                assertTrue(media.audio.active)
+                assertTrue(notes.none { line -> line == "Browser media detached" })
+                assertTrue(media.audio.offer(id, format, pcm, 0, pcm.size))
+                val (opcode, packet) = frame(socket.getInputStream())
+                assertEquals(2, opcode)
+                assertNotEquals(oldStream, ByteBuffer.wrap(packet).order(ByteOrder.LITTLE_ENDIAN).getInt(4))
+                assertArrayEquals(pcm, packet.copyOfRange(20, packet.size))
+                // Deliberately leave this packet unacknowledged: expiry must also recover audio only.
+                assertTrue(ackReset.await(2, TimeUnit.SECONDS))
+                receiveStop()
+                send(socket, """{"type":"ping"}""")
+                assertEquals("pong", JSONObject(frame(socket.getInputStream()).second.toString(Charsets.UTF_8)).getString("type"))
+                assertTrue(media.viewerAttached)
+                assertTrue(media.audio.active)
+                assertTrue(notes.none { line -> line == "Browser media detached" })
+                assertTrue(notes.none { line -> line.startsWith("Browser socket closed ") &&
+                    (line.contains("audio-window-full") || line.contains("audio-ack-timeout")) })
             } }
         } finally { server.close() }
     }

@@ -27,6 +27,12 @@ class BrowserAudioOutput(private val clock: () -> Long = System::nanoTime) : Rem
     fun detach(owner: Any) = synchronized(lock) {
         if (this.owner === owner) { this.owner = null; send = null; control = null; readyAt = 0; streams.clear() }
     }
+    fun reset(owner: Any) = synchronized(lock) {
+        if (this.owner === owner) {
+            for (stream in streams.values) control?.invoke(JSONObject().put("type", "audio-stop").put("stream", stream))
+            streams.clear()
+        }
+    }
     override fun offer(id: AudioStreamId, format: AudioFormat, pcm: ByteArray, offset: Int, length: Int): Boolean = synchronized(lock) {
         if (!active || format.audioType !in PLAYBACK_TYPES || format.channels !in 1..2 || format.sampleRate !in 8000..96000) return false
         if (offset < 0 || length <= 0 || length > 65516 || offset > pcm.size - length || length % (format.channels * 2) != 0) return false

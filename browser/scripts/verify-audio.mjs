@@ -108,9 +108,13 @@ server.on('upgrade',(req,socket,head)=>{
     const now=performance.now();
     if(!state.ready)return;
     while(state.next<=now) {
-      socket.write(frame(2,pcm(1,++state.sequence,state.offset*882)));
+      if(!state.burstyMusic)socket.write(frame(2,pcm(1,++state.sequence,state.offset*882)));
       socket.write(frame(2,pcm(2,++state.sequence,state.offset*480)));
       state.offset++;state.next+=20;
+    }
+    if(state.burstyMusic&&state.nextMusic<=now) {
+      for(let i=0;i<20;i++)socket.write(frame(2,pcm(1,++state.sequence,state.musicOffset++*882)));
+      state.nextMusic+=state.musicBursts++%2===0?460:340;
     }
   },5);
   socket.on('close',()=>{clearInterval(timer);sockets.delete(socket);});
@@ -266,6 +270,22 @@ try {
       await f.page.waitForTimeout(700);assert.equal(f.state.ready,true);
       assert.equal(connections.length,count);
       report.checks.push('Independent music/navigation gains, manual off/on, context suspension/recovery: one socket, no reconnect');
+      await f.page.waitForTimeout(1000);
+      const beforeGap=await f.page.evaluate(()=>media.audio.stats().musicUnderruns||0);
+      Object.assign(f.state,{burstyMusic:true,nextMusic:performance.now()+1000,
+        musicOffset:f.state.offset,musicBursts:0});
+      await f.page.waitForTimeout(6200);
+      const recovered=await f.page.evaluate(()=>({stats:media.audio.stats(),samples:__samples.slice(-12)}));
+      assert.equal(recovered.stats.musicUnderruns-beforeGap,1,
+        'one real source gap followed by jittery 400 ms bursts must not cause repeated music rebuffering: '+
+        JSON.stringify({beforeGap,stats:recovered.stats,bursts:f.state.musicBursts,
+          musicRms:recovered.samples.map(sample=>sample.music)}));
+      assert.ok(recovered.samples.every(sample=>sample.music>.03&&sample.navigation>.1),
+        'both roles must remain audible after the selected music buffer is restored');
+      report.jitter={burstMs:400,arrivalJitterMs:60,sourceGapMs:1000,
+        additionalMusicUnderruns:recovered.stats.musicUnderruns-beforeGap,
+        minimumRecoveredMusicRms:Math.min(...recovered.samples.map(sample=>sample.music))};
+      report.checks.push('Real source gap + jittery 400 ms Wi-Fi bursts: one original gap, no repeated rebuffer, guidance unaffected');
     } finally {
       await f.page.evaluate(()=>{
         media.close();clearInterval(window.__paint);window.__sender?.close();

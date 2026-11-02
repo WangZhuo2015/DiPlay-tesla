@@ -38,14 +38,15 @@ export class PcmPlayback {
         if (this.streams.size>=8) return 'stream-limit';
       }
       stream={rate:packet.rate,channels:packet.channels,role:packet.role,
-        capacity:Math.ceil(packet.rate*.8)+TAPS+2,head:0,count:0,phase:0,skip:0,starved:false,played:false,
+        capacity:Math.ceil(packet.rate)+TAPS+2,head:0,count:0,phase:0,skip:0,starved:false,played:false,
         start:this.frame+Math.ceil(this.bufferMs*this.rate/1000),fade:0,last:[0,0]};
       stream.kernel=kernel||resamplingKernel(packet.rate,this.rate);
       stream.data=new Float32Array(stream.capacity*stream.channels);
       this.streams.set(packet.stream,stream);
     }
     const frames=packet.pcm.length/packet.channels;
-    const budget=Math.ceil(packet.rate*Math.max(.75,this.bufferMs/1000+.4));
+    // Capacity includes a valid 500 ms burst plus 100 ms arrival jitter, not extra playout delay.
+    const budget=Math.ceil(packet.rate*Math.max(.75,this.bufferMs/1000+.6));
     if (stream.count+frames>budget) {
       this.overruns++; stream.head=0; stream.count=0; stream.phase=0;stream.skip=0;
       stream.data.fill(0,(stream.capacity-TAPS)*stream.channels);
@@ -55,8 +56,9 @@ export class PcmPlayback {
       this.underruns++;
       this.byRole[stream.role===1?'music':stream.role===2?'navigation':'legacy']++;
       stream.starved=false; stream.phase=0; stream.skip=0;stream.fade=0;
-      // A genuine gap cannot be reconstructed. Resume with a short prefill, not another full delay.
-      stream.start=this.frame+Math.ceil(Math.min(20,this.bufferMs)*this.rate/1000);
+      // Restore the selected music jitter buffer; 20 ms immediately starves again on Wi-Fi bursts.
+      const prefill=stream.role===1?this.bufferMs:Math.min(20,this.bufferMs);
+      stream.start=this.frame+Math.ceil(prefill*this.rate/1000);
     }
     let write=((stream.head+stream.count)%stream.capacity)*stream.channels;
     for (let i=0;i<packet.pcm.length;i++) {

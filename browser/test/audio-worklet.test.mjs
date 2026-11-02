@@ -62,19 +62,35 @@ test('downsampling retains sample debt when an odd packet ends exactly at a rend
   assert.equal(player.stats().underruns,0);
 });
 
-test('a genuine music gap resumes after a short prefill and counts only when more data returns',()=>{
+test('a genuine music gap restores the selected prefill and counts only when more data returns',()=>{
   const player=new PcmPlayback(48000);player.bufferMs=400;
   player.receive(packet());render(player,48000*.5);
   assert.equal(player.stats().underruns,0);
   player.receive(packet({offset:960}));
   assert.equal(player.stats().musicUnderruns,1);
   assert.equal(player.stats().navigationUnderruns,0);
-  const resumed=render(player,48000*.05)[0];
-  assert.equal(rms(resumed.slice(0,960)),0);
-  assert.ok(rms(resumed.slice(1200,1800))>.1);
+  const resumed=render(player,48000*.425)[0];
+  assert.equal(rms(resumed.slice(0,19200)),0);
+  assert.ok(rms(resumed.slice(19440,19920))>.1);
   render(player,48000);
   assert.equal(player.stats().underruns,1);
   player.clear(1);player.receive(packet());assert.equal(player.stats().underruns,1);
+});
+
+test('music recovery survives 400 ms Wi-Fi bursts with arrival jitter without rebuffering again',()=>{
+  const player=new PcmPlayback(48000);player.bufferMs=400;
+  const receiveBurst=offset=>{
+    for(let i=0;i<20;i++)assert.equal(player.receive(packet({offset:offset+i*960})),null);
+  };
+  receiveBurst(0);render(player,48000*.9);
+  assert.equal(player.streams.get(1).starved,true);
+  for(let burst=0;burst<12;burst++) {
+    receiveBurst((burst+1)*19200);
+    render(player,[22080,16224,22176,16320][burst%4]);
+  }
+  assert.equal(player.stats().musicUnderruns,1,'one source gap must not turn into a rebuffer loop');
+  assert.equal(player.stats().overruns,0);
+  assert.equal(player.stats().musicQueuedMs,400);
 });
 
 test('guidance stop and starvation cannot cancel queued music',()=>{
