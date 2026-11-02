@@ -32,6 +32,10 @@ import {createRtcRenderer} from './rtc-renderer.js';
     fitScale:['适配缩放','Fit scale'], scaleHalf:['1/2（推荐）','1/2 (recommended)'], scaleThreeQuarters:['3/4','3/4'], scaleFull:['1×','1×'], scaleHint:['缩放宽和高；1/2 的像素量为 1/4。小窗口最低保留 320×240，实际尺寸见下方。保存后下次连接生效。','Scales width and height; 1/2 uses one quarter of the pixels. Small windows stop at 320×240 minimum; see the actual size below. Save for the next connection.'],
     presets:['画面预设','Picture presets'], presetLight:['低负载 · 720p','Low load · 720p'], presetClear:['清晰 · 1080p','Clear · 1080p'], presetQhd:['2K 清晰 · 1440p','2K clear · 1440p'], qhdHint:['2K 按窗口比例适配，最高 2560×1440，负载高于 1080p。','2K follows the window shape, up to 2560×1440, with higher load than 1080p.'], manualDisplay:['手动调整','Manual adjustments'],
     unknown:['未知','Unknown'], stale:['未更新','Not updated'], resolution:['实际视频尺寸','Actual video size'], decoded:['实际解码帧率','Decoded frame rate'], dropped:['丢帧','Dropped frames'], queue:['实际音频缓冲','Queued audio'], underruns:['音频重新缓冲次数','Audio rebuffer count'], memory:['可用内存','Available memory'], thermal:['系统热状态','System thermal status'], sampleAge:['设备采样时间','Device sample age'],
+    audioEngine:['音频播放器','Audio player'],audioWorklet:['后台连续播放','Continuous background playback'],audioCompatibility:['兼容播放','Compatibility playback'],
+    musicArrivalGap:['最大音乐到包间隔','Maximum music arrival gap'],
+    audioPlaybackError:['音频兼容回退原因','Audio compatibility fallback reason'],musicQueue:['音乐缓冲','Music buffer'],navigationQueue:['导航／提示音缓冲','Guidance buffer'],
+    musicUnderruns:['音乐重新缓冲次数','Music rebuffer count'],navigationUnderruns:['导航／提示音重新缓冲次数','Guidance rebuffer count'],audioOverruns:['音频积压恢复次数','Audio backlog recovery count'],audioArrivalGap:['最大音频到包间隔','Maximum audio arrival gap'],
     settings:['显示设置','Display settings'], expand:['全屏','Fullscreen'], theme:['日夜','Day / night'],
     pair:['连接你的主机','Connect your host'], pairHint:['在 Android 主机首页查看 6 位连接码，5 分钟内有效。配对后，此浏览器会记住主机。','Find the six-digit code on the Android host home screen. It is valid for five minutes. This browser remembers the host after pairing.'],
     code:['6 位配对码','6-digit pairing code'], connect:['连接','Connect'], home:['主页','Home'], back:['返回','Back'], previous:['上一曲','Previous'], play:['播放 / 暂停','Play / pause'], next:['下一曲','Next'],
@@ -78,6 +82,10 @@ import {createRtcRenderer} from './rtc-renderer.js';
     fitScale:'مقياس الملاءمة',scaleHalf:'1/2 (موصى به)',scaleThreeQuarters:'3/4',scaleFull:'1×',scaleHint:'يُغيّر العرض والارتفاع؛ يستخدم النصف ربع عدد البكسلات. الحد الأدنى للنوافذ الصغيرة هو \u2066320×240\u2069؛ تظهر الأبعاد الفعلية أدناه. احفظ للاتصال التالي.',
     presets:'إعدادات الصورة المسبقة',presetLight:'حمل منخفض · 720p',presetClear:'وضوح · 1080p',presetQhd:'وضوح 2K · 1440p',qhdHint:'تتبع أبعاد 2K نسبة النافذة حتى \u20662560×1440\u2069، بحمل أعلى من 1080p.',manualDisplay:'ضبط يدوي',
     unknown:'غير معروف',stale:'لم تُحدّث',resolution:'أبعاد الفيديو الفعلية',decoded:'معدل فك الترميز الفعلي',dropped:'الإطارات المفقودة',queue:'الصوت المخزن مؤقتًا',underruns:'مرات إعادة تخزين الصوت',memory:'الذاكرة المتاحة',thermal:'الحالة الحرارية للنظام',sampleAge:'عمر عينة الجهاز',
+    audioEngine:'مشغل الصوت',audioWorklet:'تشغيل مستمر في الخلفية',audioCompatibility:'تشغيل متوافق',audioPlaybackError:'سبب الرجوع إلى التشغيل المتوافق',
+    musicQueue:'مخزن الموسيقى',navigationQueue:'مخزن الإرشادات',musicUnderruns:'مرات إعادة تخزين الموسيقى',navigationUnderruns:'مرات إعادة تخزين الإرشادات',
+    audioOverruns:'مرات استعادة تراكم الصوت',audioArrivalGap:'أطول فترة بين حزم الصوت',
+    musicArrivalGap:'أطول فترة بين حزم الموسيقى',
     settings:'إعدادات العرض',expand:'ملء الشاشة',theme:'نهار / ليل',pair:'اتصال بالمضيف',pairHint:'اعرض رمز الاتصال المكوّن من ستة أرقام على الصفحة الرئيسية لجهاز Android المضيف. صالح لخمس دقائق. يتذكر المتصفح المضيف بعد الاقتران.',code:'رمز الاقتران من 6 أرقام',connect:'اتصال',home:'الرئيسية',back:'رجوع',previous:'السابق',play:'تشغيل / إيقاف مؤقت',next:'التالي',
     audio:'يشغّل المتصفح الموسيقى وإرشادات الملاحة؛ تستخدم المكالمات وصوت Siri والميكروفون جهاز Android المضيف حاليًا.',browserAudio:'صوت المتصفح (تجريبي)',audioOn:'صوت المتصفح مفعّل (تجريبي)',audioPending:'صوت المتصفح · اضغط للتشغيل (تجريبي)',buffer:'تخزين الصوت مؤقتًا',transport:'نقل الفيديو',auto:'WebRTC (دون انتقال تلقائي إلى JPEG)',audioBlocked:'اضغط مجددًا للسماح بالصوت؛ استُعيد صوت Android.',
     displayHint:'تُحفظ أبعاد النافذة اليمنى والكاملة بشكل مستقل للاتصال التالي.',transportHint:'يتغير نقل الفيديو فورًا بعد الحفظ.',mode:'إعداد النافذة',right:'النافذة اليمنى',full:'ملء الشاشة',rightWidth:'عرض النافذة اليمنى',rightHeight:'ارتفاع النافذة اليمنى',fullWidth:'عرض ملء الشاشة',fullHeight:'ارتفاع ملء الشاشة',fps:'معدل الإطارات (\u20665–60\u2069)',quality:'جودة JPEG (40–95)',cancel:'إلغاء',save:'حفظ للاتصال التالي',pending:'تسري الإعدادات الجديدة عند الاتصال التالي',reconnect:'تطبيق وإعادة الاتصال',confirm:'تطبيق الإعدادات المحفوظة وإعادة اتصال CarPlay الآن؟',waiting:'بانتظار CarPlay',disconnected:'انقطع الاتصال؛ تجري إعادة المحاولة…',invalid:'تحقق من رمز الاقتران والأبعاد واتصال الشبكة.',unavailable:'ملء الشاشة غير متاح؛ استخدم عناصر التحكم في Tesla.'
@@ -265,6 +273,15 @@ import {createRtcRenderer} from './rtc-renderer.js';
     if(videoMetrics.fallbackReason)add(t('fallbackReason'),videoMetrics.fallbackReason);
     add(t('queue'),audio.enabled?Math.round(audio.queuedMs)+' ms':t('audio'));
     add(t('underruns'),audio.underruns);
+    add(t('audioEngine'),t(audio.engine==='worklet'?'audioWorklet':'audioCompatibility'));
+    if(audio.playbackError)add(t('audioPlaybackError'),audio.playbackError);
+    if(Number.isFinite(audio.musicQueuedMs))add(t('musicQueue'),Math.round(audio.musicQueuedMs)+' ms');
+    if(Number.isFinite(audio.navigationQueuedMs))add(t('navigationQueue'),Math.round(audio.navigationQueuedMs)+' ms');
+    add(t('musicUnderruns'),audio.musicUnderruns);
+    add(t('navigationUnderruns'),audio.navigationUnderruns);
+    add(t('audioOverruns'),audio.overruns);
+    if(Number.isFinite(audio.maxArrivalGapMs))add(t('audioArrivalGap'),Math.round(audio.maxArrivalGapMs)+' ms');
+    if(Number.isFinite(audio.musicMaxGapMs))add(t('musicArrivalGap'),Math.round(audio.musicMaxGapMs)+' ms');
     add(t('sampleAge'),device?Math.round(device.ageMs/1000)+' s':unknown);
     add(t('memory'),fresh?Math.round(device.availableBytes/1048576)+' MiB':stale);
     add(t('thermal'),fresh && device.thermalStatus>=0?device.thermalStatus:fresh?unknown:stale);

@@ -1,5 +1,6 @@
 import {createBrowserAudio,createAudioPreference} from './browser-audio.js';
 import {createRtcHealth} from './rtc-health.js';
+import {createMediaSocket} from './media-socket.js';
 
 // NotAllowedError is a current playback/activation restriction, not permanent codec absence.
 const retryableRtcError = error => error?.name !== 'NotSupportedError';
@@ -269,9 +270,10 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     connecting = true;
     const ticket = ++generation;
     let ws;
-    try { ws = new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/api/media`); }
+    try { ws = createMediaSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/api/media`); }
     catch (_) { connecting = false; scheduleRetry(ticket); return; }
     socket = ws; ws.binaryType = 'arraybuffer';
+    audio.setTransport(ws);
     ws.onopen = () => {
       if (!socketCurrent(ws,ticket)) return;
       connecting = false;
@@ -311,7 +313,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     ws.onclose = () => {
       if (!socketCurrent(ws,ticket)) return;
       clearSocketHandlers(ws); socket = null; connecting = false;
-      audio.disable(); stopRtc(null,true); scheduleRetry(ticket);
+      audio.disable();audio.setTransport(null); stopRtc(null,true); scheduleRetry(ticket);
     };
     ws.onerror = () => { if (socketCurrent(ws,ticket)) ws.close(); };
   }
@@ -320,7 +322,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     generation++; clearTimeout(retry); retry = null; connecting = false;
     const old = socket; socket = null;
     if (old) { clearSocketHandlers(old); old.close(); }
-    audio.disable(); stopRtc(null,true);
+    audio.disable();audio.setTransport(null); stopRtc(null,true);
   }
   function configureVideo(mode,graceMs = selectedGrace) {
     if (disposed) return;

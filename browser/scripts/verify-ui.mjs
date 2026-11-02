@@ -59,6 +59,8 @@ const report={scope:'Production browser assets, synthetic local WebRTC peer and 
 
 // This is a signaling fixture, not a fake RTCPeerConnection or fake video element.
 function installFixture({cjk}) {
+  // This in-page signaling fixture exercises compatibility transport; verify-audio tests real workers.
+  window.Worker=undefined;
   localStorage.setItem('diplay-token','0'.repeat(32));
   localStorage.setItem('diplay-browser-audio','false');
   localStorage.setItem('diplay-video','auto');
@@ -289,6 +291,17 @@ try {
     console.log('Native video received');
     const volumes=await verifyVolumes(page,scenario);
     console.log('Volume controls, menu layout and reload persistence checked');
+    await openVolumeMenu(page);
+    await page.locator('#diagnostics summary').click();
+    await page.waitForFunction(()=>document.getElementById('diagnosticValues').children.length>12);
+    await page.locator('#diagnosticValues').scrollIntoViewIfNeeded();
+    const diagnostics=await page.locator('#diagnosticValues').evaluate(node=>({
+      width:node.clientWidth,scroll:node.scrollWidth,text:node.textContent
+    }));
+    assert.ok(diagnostics.scroll<=diagnostics.width+1,JSON.stringify(diagnostics));
+    assert.ok(!diagnostics.text.includes('undefined'));
+    await capture(page,`audio-diagnostics-${scenario.name}-font130.jpg`);
+    await page.keyboard.press('Escape');
     await openSettings(page);
     await page.locator('#renderer').selectOption('canvas');
     await page.locator('#recovery').selectOption('4000');
