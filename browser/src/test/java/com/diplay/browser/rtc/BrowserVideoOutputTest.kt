@@ -160,6 +160,8 @@ class BrowserVideoOutputTest {
 
     @Test fun permanentBrowserRejectionAfterNativeFailureCancelsRetryUntilANewConfiguration() {
         Fixture(4_000).use { fixture ->
+            val logs = java.util.Collections.synchronizedList(mutableListOf<String>())
+            fixture.output.eventLogger = { logs.add(it) }
             fixture.peer.event("failed", "")
             fixture.message("rtc-stop")
             fixture.output.command(JSONObject().put("type", "rtc-fallback").put("id", fixture.offer.getLong("id"))
@@ -168,6 +170,101 @@ class BrowserVideoOutputTest {
             fixture.clock.set(120_000_000_000); fixture.tick(); fixture.assertNoOffer()
             fixture.output.onVideoConfig(110, byteArrayOf(1,0x42,0,0x20,-1,-31,0,4,0x67,0x42,0,0x20,1,0,2,0x68,0))
             fixture.nextOffer(); fixture.ready()
+            assertEquals("webrtc", fixture.output.transport)
+            assertTrue(logs.any { it.contains("Video config changed") })
+            assertTrue(logs.any { it.contains("cause=connection-failed") })
+        }
+
+    }
+
+    @Test fun liveConfigurationRestartHasAConcreteDiagnosticCause() {
+        Fixture(4_000).use { fixture ->
+            val logs = java.util.Collections.synchronizedList(mutableListOf<String>())
+            fixture.output.eventLogger = { logs.add(it) }
+            fixture.ready()
+            fixture.output.onVideoConfig(110, byteArrayOf(1,0x42,0,0x20,-1,-31,0,4,0x67,0x42,0,0x20,1,0,2,0x68,0))
+            fixture.nextOffer()
+            assertTrue(logs.any { it.contains("reason=session-change cause=video-config-change") })
+            fixture.ready()
+            assertEquals("webrtc", fixture.output.transport)
+        }
+
+    }
+
+    @Test fun compatibleAvcParametersKeepThePeerAndOnlyTheNewestKeyframeCanCrossTheConfigFence() {
+        Fixture(4_000).use { fixture ->
+            val peer = fixture.peer
+            val keyRequests = fixture.keyRequests.get()
+            val next = byteArrayOf(1,0x42,0,0x1f,-1,-31,0,4,0x67,0x42,0,0x1f,1,0,2,0x68,1)
+            val latest = next.copyOf().apply { this[lastIndex] = 2 }
+            val predictive = byteArrayOf(0,0,0,1,0x41,1)
+            val key = byteArrayOf(0,0,0,1,0x65,2)
+            fixture.withWorkerPaused {
+                fixture.output.onVideoFrame(110, predictive)
+                fixture.output.onVideoConfig(110, next)
+                fixture.output.onVideoFrame(110, key)
+                fixture.output.onVideoConfig(110, latest)
+                fixture.output.onVideoFrame(110, key)
+            }
+            fixture.barrier()
+            assertSame(peer, fixture.peer)
+            assertEquals(0, peer.closed.get())
+            assertEquals(keyRequests, fixture.keyRequests.get())
+            assertEquals("webrtc", fixture.output.transport)
+            fixture.assertNoOffer()
+            assertArrayEquals(RtcVideoConfig.parse(com.shilapi.xcertplay.airplay.VideoCodec.H264, latest).parameters + key,
+                peer.frames.poll(2, TimeUnit.SECONDS))
+            fixture.output.onVideoFrame(110, predictive)
+            assertArrayEquals(predictive, peer.frames.poll(2, TimeUnit.SECONDS))
+            assertNull(peer.frames.poll(50, TimeUnit.MILLISECONDS))
+        }
+    }
+
+    @Test fun repeatedIdenticalAvcConfigDoesNotDiscardQueuedVideo() {
+        Fixture(4_000).use { fixture ->
+            val frame = byteArrayOf(0,0,0,1,0x65,1)
+            fixture.withWorkerPaused {
+                fixture.output.onVideoFrame(110, frame)
+                fixture.output.onVideoConfig(110, byteArrayOf(1,0x42,0,0x1f,-1,-31,0,4,0x67,0x42,0,0x1f,1,0,2,0x68,0))
+            }
+            assertNotNull(fixture.peer.frames.poll(2, TimeUnit.SECONDS))
+            fixture.assertNoOffer()
+            assertEquals("webrtc", fixture.output.transport)
+        }
+    }
+
+    @Test fun levelChangesWithinTheNegotiatedAvcEnvelopeDoNotRebuildOrRequestRedundantKeyframes() {
+        Fixture(4_000).use { fixture ->
+            val high = byteArrayOf(1,0x42,0,0x29,-1,-31,0,4,0x67,0x42,0,0x29,1,0,2,0x68,0)
+            fixture.output.onVideoConfig(110, high)
+            fixture.nextOffer(); fixture.ready()
+            val peer = fixture.peer
+            val requests = fixture.keyRequests.get()
+            val key = byteArrayOf(0,0,0,1,0x65,2)
+            for (level in listOf(0x20, 0x1f, 0x29, 0x20)) {
+                val next = high.copyOf().apply { this[3] = level.toByte(); this[11] = level.toByte() }
+                fixture.withWorkerPaused {
+                    fixture.output.onVideoConfig(110, next)
+                    fixture.output.onVideoFrame(110, key)
+                }
+                fixture.barrier()
+                assertSame(peer, fixture.peer)
+                assertEquals(0, peer.closed.get())
+                assertEquals(requests, fixture.keyRequests.get())
+                assertArrayEquals(RtcVideoConfig.parse(com.shilapi.xcertplay.airplay.VideoCodec.H264, next).parameters + key,
+                    peer.frames.poll(2, TimeUnit.SECONDS))
+                fixture.assertNoOffer()
+            }
+        }
+    }
+
+    @Test fun avcProfileChangesStillRequireANewPeerEvenAtALowerLevel() {
+        Fixture(4_000).use { fixture ->
+            val old = fixture.peer
+            fixture.output.onVideoConfig(110, byteArrayOf(1,0x64,0,0x1e,-1,-31,0,4,0x67,0x64,0,0x1e,1,0,2,0x68,0))
+            fixture.nextOffer(); fixture.ready()
+            assertNotSame(old, fixture.peer)
+            assertEquals(1, old.closed.get())
             assertEquals("webrtc", fixture.output.transport)
         }
     }

@@ -36,10 +36,14 @@ class BrowserVideoOutput internal constructor(
     private val rendered = AtomicBoolean()
     private val lastRecovery = AtomicLong(Long.MIN_VALUE)
     private var config: ByteArray? = null
+    private var latestConfig: ByteArray? = null
+    private var sourceConfig: RtcVideoConfig? = null
+    private var configRevision = 0L
+    private var appliedConfigRevision = 0L
+    private var peerConfig: RtcVideoConfig? = null
     @Volatile private var codec = VideoCodec.H264
     @Volatile var codecName: String? = null; private set
     private var dropRasl = false
-    private var parameters = ByteArray(0)
     private var enabled = false
     private val retry = RtcRetryPolicy(clock)
     private var reply: ((JSONObject) -> Boolean)? = null
@@ -68,7 +72,7 @@ class BrowserVideoOutput internal constructor(
     }
     fun attach(rtc: Boolean, send: (JSONObject) -> Boolean) = attach(rtc, RtcRecoveryPolicy.BALANCED.graceMs, send)
     fun attach(rtc: Boolean, recoveryGraceMs: Long, send: (JSONObject) -> Boolean) = execute {
-        stop(); reply = send; enabled = rtc
+        stop(cause = "viewer-attach"); reply = send; enabled = rtc
         recoveryPolicy = RtcRecoveryPolicy.fromMillis(recoveryGraceMs)
         start()
     }
@@ -98,7 +102,7 @@ class BrowserVideoOutput internal constructor(
                 ?: "browser-fallback", data.optBoolean("retryable", true))
         }
     }
-    fun detach() = execute { enabled = false; reply = null; stop() }
+    fun detach() = execute { enabled = false; reply = null; stop(cause = "viewer-detach") }
     override fun setVideoRecoveryHandler(type: Int, handler: () -> Unit) {
         jpeg.setVideoRecoveryHandler(type, handler)
         if (type == MAIN_SCREEN) recovery = handler
@@ -117,22 +121,61 @@ class BrowserVideoOutput internal constructor(
         val changed = this.codec != codec
         this.codec = codec
         codecName = codec.name
-        log("Video source codec=${codec.name}")
+        if (changed) log("Video source codec=${codec.name} changed=true")
         (jpeg as? JpegVideoSink)?.setSuspended(codec != VideoCodec.H264 || displayed)
         if (codec == VideoCodec.H264) jpeg.onVideoCodec(type, codec)
         if (changed) {
             connected = false
-            execute { config = null; stop() }
+            invalidateConfig()
+            execute { config = null; stop(cause = "codec-change") }
         }
     }
     override fun onVideoConfig(type: Int, codecData: ByteArray) {
         if (codec == VideoCodec.H264) jpeg.onVideoConfig(type, codecData)
         if (type != MAIN_SCREEN) return
         val bytes = codecData.copyOf()
-        execute {
-            if (config?.contentEquals(bytes) == true) return@execute
-            stop(); config = bytes; codecName = codec.name; start()
+        val sourceCodec = codec
+        val next: RtcVideoConfig?
+        // Keep parameter prefixes and queued reference chains in the same source generation.
+        val revision = synchronized(lock) {
+            if (latestConfig?.contentEquals(bytes) == true) return
+            latestConfig = bytes
+            queue.clear()
+            next = try { RtcVideoConfig.parse(sourceCodec, bytes) } catch (_: IllegalArgumentException) { null }
+            sourceConfig = next
+            ++configRevision
         }
+        execute {
+            if (synchronized(lock) { revision != configRevision }) return@execute
+            if (next == null) {
+                stop("invalid-video-config", retryable = false)
+                return@execute
+            }
+            val compatible = peer != null && peerConfig?.accepts(next) == true
+            log("Video config changed codec=${next.codec.name} previousBytes=${config?.size ?: 0} bytes=${bytes.size} inPlace=$compatible previousFormat=${peerConfig?.fmtp} nextFormat=${next.fmtp}")
+            if (!compatible) stop(cause = "video-config-change")
+            synchronized(lock) {
+                if (revision != configRevision) return@execute
+                config = bytes
+                codecName = next.codec.name
+                dropRasl = false
+                appliedConfigRevision = revision
+                if (compatible && !draining && queue.size > 0) { draining = true; execute { drain() } }
+            }
+            if (compatible) {
+                try {
+                    worker.schedule({
+                        if (!closed && connected && synchronized(lock) { revision == configRevision && queue.needsKey }) requestKey()
+                    }, 100, TimeUnit.MILLISECONDS)
+                } catch (_: RejectedExecutionException) { }
+            } else start()
+        }
+    }
+    private fun invalidateConfig() = synchronized(lock) {
+        latestConfig = null
+        sourceConfig = null
+        configRevision++
+        queue.clear()
     }
     override fun onVideoFrame(type: Int, naluBytes: ByteArray) = onVideoFrame(type, naluBytes, clock(), clock())
     override fun onVideoFrame(type: Int, naluBytes: ByteArray, senderNanos: Long, arrivalNanos: Long) {
@@ -143,33 +186,38 @@ class BrowserVideoOutput internal constructor(
         val frame = RtcAccessUnit.inspect(naluBytes, codec) ?: return
         val needsKey = synchronized(lock) {
             if (closed || !connected) return
+            val source = sourceConfig ?: return
             // A receiver joining at an HEVC CRA/BLA must not receive its RASL leading pictures.
             if (codec == VideoCodec.H265) {
                 if (frame.key) dropRasl = true
                 if (dropRasl && frame.rasl) return
                 if (!frame.key && !frame.rasl) dropRasl = false
             }
-            val prefix = if (frame.key) parameters else EMPTY
+            val prefix = if (frame.key) source.parameters else EMPTY
             queue.offer(frame.size, senderNanos, frame.key, clock(), prefix.size) { frame.copyAnnexB(prefix) }
             // Rejected dependent frames need recovery, but do not need an empty worker task.
-            if (!draining && queue.size > 0) { draining = true; execute { drain() } }
-            queue.needsKey
+            val applied = appliedConfigRevision == configRevision
+            if (applied && !draining && queue.size > 0) { draining = true; execute { drain() } }
+            applied && queue.needsKey
         }
         if (needsKey) requestKey()
     }
     override fun onScreenStreamActive(type: Int, active: Boolean) {
+        if (type == MAIN_SCREEN) log("Video source active=$active")
+        if (type == MAIN_SCREEN && !active) invalidateConfig()
         if (type == MAIN_SCREEN && !active) diagnostic = null
         jpeg.onScreenStreamActive(type, active)
-        if (type == MAIN_SCREEN && !active) execute { stop(); config = null }
+        if (type == MAIN_SCREEN && !active) execute { stop(cause = "screen-stream-inactive"); config = null }
     }
     private fun start() {
+        if (synchronized(lock) { appliedConfigRevision != configRevision }) return
         val bytes = config ?: return
         if (!enabled || reply == null || !retry.start()) return
         try {
             val video = try { RtcVideoConfig.parse(codec, bytes) } catch (_: IllegalArgumentException) {
                 stop("invalid-video-config", retryable = false); return
             }
-            parameters = video.parameters
+            peerConfig = video
             // A reconnect creates a new output while the old worker may still
             // send rtc-stop. Keep IDs unique across outputs on this WebSocket.
             val generation = OFFER_IDS.incrementAndGet().also { id = it }
@@ -213,6 +261,7 @@ class BrowserVideoOutput internal constructor(
     private fun drain() {
         repeat(6) {
             val frame = synchronized(lock) {
+                if (appliedConfigRevision != configRevision) return@synchronized null
                 val next = queue.poll(clock())
                 queue.takeSendFailure()?.let { health?.sendFailed(it); retry.interrupted() }
                 next
@@ -230,8 +279,10 @@ class BrowserVideoOutput internal constructor(
         }
         synchronized(lock) {
             draining = false
-            if (queue.needsKey) requestKey()
-            if (queue.size > 0) { draining = true; execute { drain() } }
+            if (appliedConfigRevision == configRevision) {
+                if (queue.needsKey) requestKey()
+                if (queue.size > 0) { draining = true; execute { drain() } }
+            }
         }
     }
     private fun requestKey(force: Boolean = false) {
@@ -270,14 +321,14 @@ class BrowserVideoOutput internal constructor(
         }
         reply?.invoke(progress)
     }
-    private fun stop(reason: String? = null, retryable: Boolean = true) {
+    private fun stop(reason: String? = null, retryable: Boolean = true, cause: String = reason ?: "session-change") {
         val wasDisplaying = displayed
         val hadAttempt = retry.inFlight
         if (reason == null) retry.reset() else retry.finish(retryable)
         displayed = false; connected = false; health = null
         (jpeg as? JpegVideoSink)?.setSuspended(codec != VideoCodec.H264)
-        val old = peer; peer = null
-        if (old != null || reason != null) log("RTC attempt=$id stopped reason=${reason ?: "session-change"} retryable=$retryable " +
+        val old = peer; peer = null; peerConfig = null
+        if (old != null || reason != null) log("RTC attempt=$id stopped reason=${reason ?: "session-change"} cause=$cause retryable=$retryable " +
             "received=$receivedFrames sent=$sentFrames sendFailures=$sendFailures displayed=$wasDisplaying")
         runCatching { old?.close() }
         synchronized(lock) { queue.clear(); dropRasl = false }
@@ -291,7 +342,7 @@ class BrowserVideoOutput internal constructor(
     override fun close() {
         if (closed) return
         closed = true; displayed = false
-        worker.execute { stop() }
+        worker.execute { stop(cause = "output-close") }
         worker.shutdown()
         closeJpeg()
     }
