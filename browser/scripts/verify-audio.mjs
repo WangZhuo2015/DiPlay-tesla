@@ -163,10 +163,12 @@ try {
       __gains[0].connect(node,0,0);__gains[1].connect(node,0,1);node.connect(__context.destination);
       window.__probe=node;
     });
-    await page.waitForFunction(()=>__samples.length>8 && __samples.at(-1).music>.03 && __samples.at(-1).navigation>.1);
+    await page.waitForFunction(()=>__samples.length>8 && __samples.slice(-3).every(sample=>
+      Math.abs(sample.music-.25*.35/Math.sqrt(2))<.004 &&
+      Math.abs(sample.navigation-.25*.8/Math.sqrt(2))<.004));
     const sample=await page.evaluate(()=>__samples.at(-1));
-    assert.ok(Math.abs(sample.music-.25*.35/Math.sqrt(2))<.004);
-    assert.ok(Math.abs(sample.navigation-.25*.8/Math.sqrt(2))<.004);
+    assert.ok(Math.abs(sample.music-.25*.35/Math.sqrt(2))<.004,mode+': '+JSON.stringify(sample));
+    assert.ok(Math.abs(sample.navigation-.25*.8/Math.sqrt(2))<.004,mode+': '+JSON.stringify(sample));
     if(mode!=='failed') {
       await page.evaluate(async()=>{
         const canvas=document.createElement('canvas');canvas.width=960;canvas.height=540;
