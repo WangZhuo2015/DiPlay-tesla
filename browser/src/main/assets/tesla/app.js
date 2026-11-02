@@ -264,6 +264,8 @@ import {createRtcRenderer} from './rtc-renderer.js';
     }
     $('videoExplanation').textContent=explanation;
     $('videoExplanation').hidden=!explanation;
+    // Sampling and the stream summary above must keep running while the list is hidden.
+    if(!$('diagnostics').open || $('menuPanel').hidden)return;
     add(t('resolution'),width && height?`${width} × ${height}`:unknown);
     add(t('measured'),Number.isFinite(fps) && fps>=0?fps.toFixed(1)+' fps':unknown);
     add(t('dropped'),videoMetrics.dropped??unknown);
@@ -294,6 +296,9 @@ import {createRtcRenderer} from './rtc-renderer.js';
     const list=$('diagnosticValues'); list.textContent='';
     for(const [name,value] of rows) {const term=document.createElement('dt'),detail=document.createElement('dd');term.textContent=name;detail.textContent=value;list.append(term,detail);}
   }
+  const refreshDiagnostics=()=>{if(current && $('diagnostics').open)updateDiagnostics(current);};
+  $('diagnostics').addEventListener('toggle',refreshDiagnostics);
+  $('menuButton').addEventListener('click',refreshDiagnostics);
   setInterval(()=>{if(current)updateDiagnostics(current);},1000);
   async function stream() {
     if (live) return;
