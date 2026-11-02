@@ -84,6 +84,7 @@ class BrowserServer(
                 if (session.method != Method.GET) return reply(Response.Status.METHOD_NOT_ALLOWED)
                 val asset = when (session.uri) {
                     "/", "/index.html" -> "index.html" to "text/html; charset=utf-8"
+                    "/video-presentation.js" -> "video-presentation.js" to "text/javascript; charset=utf-8"
                     "/app.js" -> "app.js" to "text/javascript; charset=utf-8"
                     "/media.js", "/browser-audio.js", "/rtc-health.js", "/rtc-renderer.js", "/display-presets.js",
                     "/browser-touch.js", "/stream-summary.js", "/navigation-volume.js" -> session.uri.drop(1) to "text/javascript; charset=utf-8"

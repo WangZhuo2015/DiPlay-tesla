@@ -11,6 +11,7 @@ import {createServer} from 'node:http';
 import {readFile, mkdir, writeFile} from 'node:fs/promises';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {resolve, extname} from 'node:path';
+import {installPresentationProbe,verifyVideoPresentation} from './video-presentation-check.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const assets = resolve(root, 'browser/src/main/assets/tesla');
@@ -362,6 +363,7 @@ try {
     const context=await browser.newContext({viewport:{width:scenario.width,height:scenario.height},locale:scenario.lang,
       deviceScaleFactor:scenario.deviceScaleFactor || 1});
     await context.addInitScript(installFixture,{cjk:Boolean(cjkFont)});
+    await context.addInitScript(installPresentationProbe);
     const page=await context.newPage();page.setDefaultTimeout(15000);
     const errors=[];page.on('pageerror',error=>{errors.push(String(error));console.error('Browser error:',String(error));});
     await page.goto(`${base}/?lang=${scenario.lang}`);
@@ -373,6 +375,7 @@ try {
         video:{width:document.getElementById('video').videoWidth,hidden:document.getElementById('video').hidden}})));
       throw error;
     }
+    const presentationChecks=await verifyVideoPresentation(page,scenario,capture);
     assert.equal(await page.locator('#picture').isVisible(),false);
     const diagnosticsLifecycle=await verifyDiagnostics(page);
     console.log('Native video received');
@@ -432,6 +435,7 @@ try {
     report.checks.push({scenario:scenario.name,layout,volumes,diagnosticsLifecycle,codec:await page.evaluate(()=>window.__uiFixture.codec),
       nativeToCanvasToNative:true,canvasTouch:true,jpegNotRequestedInRtcMode:true,frameRateSavedForNextConnection:true,recoveryHello:true,
       rendererOnlyKeepsMedia:true,focusTrap:true});
+    report.checks.at(-1).presentationChecks=presentationChecks;
     await context.close();
   }
   report.result='passed';

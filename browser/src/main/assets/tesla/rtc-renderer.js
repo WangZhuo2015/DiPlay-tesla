@@ -3,6 +3,8 @@
  * The caller owns the stream, playback and JPEG drawing. The rtcOffscreen CSS class
  * must keep the video laid out outside the viewport, never display:none.
  */
+import {createVideoPresentation} from './video-presentation.js';
+
 export function createRtcRenderer({
   video, canvas, onError = () => {}, onFrame = () => {},
   requestFrame = callback => requestAnimationFrame(callback),
@@ -12,8 +14,10 @@ export function createRtcRenderer({
   let mode = 'native', active = false, disposed = false, generation = 0;
   let source = null, context = null, presented = false, videoCallback = null, animationCallback = null, watchdog = null;
   let lastFrameKey = null, lastVideoCallbackAt = 0, usesVideoCallbacks = false;
+  const presentation=createVideoPresentation({video,now});
 
   function cancel() {
+    presentation.reset();
     generation++;
     if (videoCallback !== null && typeof video.cancelVideoFrameCallback === 'function') {
       try { video.cancelVideoFrameCallback(videoCallback); } catch (_) { /* Late callbacks are fenced below. */ }
@@ -175,7 +179,9 @@ export function createRtcRenderer({
       if (disposed) return;
       active = false; disposed = true;
       cancel(); showNative(); source = null;
+      presentation.dispose();
     },
+    samplePresentation() {return presentation.sample(active && mode==='native');},
     get mode() { return mode; },
     // Use this element's rectangle for touch mapping; Canvas retains video source dimensions.
     get surface() { return active && !presented ? video : canvas; },

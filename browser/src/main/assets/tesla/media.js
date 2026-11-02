@@ -80,7 +80,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
     // Closing the owning control connection still releases input even if it was JPEG.
     if (wasDisplayed || connectionEnded) onTransport(selectedMode === 'jpeg' ? 'jpeg' : 'waiting');
     if (!reason) stats = {};
-    publishStats({decodedFps:null,dropped:null,recoveryGraceMs:old?.health.graceMs ?? selectedGrace,
+    publishStats({decodedFps:null,decodedFrames:null,dropped:null,recoveryGraceMs:old?.health.graceMs ?? selectedGrace,
       recovering:false,fallbackReason:reason});
   }
   function fallback(state,reason,retryable = true) {
@@ -198,7 +198,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
       // One getStats call per peer. A never-settling Promise still has a recovery deadline.
       if (at - state.statsRequest.started >= 1000) {
         state.health.statsFailed(state.statsRequest.started);
-        publishStats({decodedFps:null,dropped:null});
+        publishStats({decodedFps:null,decodedFrames:null,dropped:null});
       }
       if (checkHealth(state,at)) publishRecovery(state,at);
       return;
@@ -210,7 +210,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
       if (!valid()) return;
       state.statsRequest = null;
       state.health.statsFailed(now());
-      if (checkHealth(state,now())) publishRecovery(state,now(),{decodedFps:null,dropped:null});
+      if (checkHealth(state,now())) publishRecovery(state,now(),{decodedFps:null,decodedFrames:null,dropped:null});
     };
     let pending;
     try { pending = state.rtc.getStats(); } catch (_) { failed(); return; }
@@ -244,7 +244,7 @@ export function createMedia({video,getToken,onTransport=()=>{},onAudio=()=>{},on
       send({type:'rtc-feedback',id:state.id,decoded,...(dropped===null?{}:{dropped}),...counters,
         width:video.videoWidth,height:video.videoHeight,connection:state.rtc.connectionState,ice:state.rtc.iceConnectionState});
       const expired = state.health.sample(decoded,sampled,state.displayed);
-      publishRecovery(state,sampled,{decodedFps,dropped});
+      publishRecovery(state,sampled,{decodedFps,decodedFrames:decoded,dropped});
       if (expired) checkHealth(state,sampled);
     },failed);
   }
