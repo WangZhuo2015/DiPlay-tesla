@@ -73,14 +73,28 @@ function installFixture({cjk}) {
       document.head.append(style);
     }
   });
-  const fixture=window.__uiFixture={hellos:[],answers:0,ready:0,codec:null,encoded:0,errors:[]};
+  const fixture=window.__uiFixture={hellos:[],answers:0,ready:0,codec:null,encoded:0,errors:[],
+    counters:{expiredFrames:0,overflowFrames:0,keyframeSkips:0,sendFailures:0}};
+  const Audio=window.AudioContext;
+  window.AudioContext=class extends Audio {
+    constructor(options){super(options);fixture.audioContext=this;}
+  };
   const Peer=window.RTCPeerConnection;
   let sequence=0;
   class LocalMediaSocket {
     static OPEN=1;
     static CLOSED=3;
-    constructor() {this.readyState=0;this.closed=false;queueMicrotask(()=>{this.readyState=1;this.onopen?.({});});}
+    constructor() {
+      this.readyState=0;this.closed=false;
+      fixture.reportCounters=values=>{Object.assign(fixture.counters,values);this.reportProgress();};
+      fixture.pcm=buffer=>{if(!this.closed)this.onmessage?.({data:buffer});};
+      queueMicrotask(()=>{this.readyState=1;this.onopen?.({});});
+    }
     deliver(data) {if(!this.closed)this.onmessage?.({data:JSON.stringify(data)});}
+    reportProgress() {
+      this.deliver({type:'rtc-progress',id:this.id,sent:fixture.encoded,received:fixture.encoded,recoveryGraceMs:this.grace,
+        recovering:false,queueBudgetMs:50,queueFrames:0,queueBytes:0,invalidatedFrames:0,...fixture.counters});
+    }
     send(raw) {
       const data=JSON.parse(raw);
       if(data.type==='hello') {
@@ -93,7 +107,7 @@ function installFixture({cjk}) {
       else if(data.type==='rtc-fallback')this.deliver({type:'rtc-stop',id:this.id,reason:'browser-fallback'});
     }
     async start(grace) {
-      this.id=++sequence;
+      this.id=++sequence;this.grace=grace;
       const source=document.createElement('canvas');source.width=960;source.height=540;
       const ctx=source.getContext('2d');let frame=0;
       const paint=()=>{
@@ -132,8 +146,7 @@ function installFixture({cjk}) {
         stats.forEach(row=>{if(row.type==='outbound-rtp' && row.kind==='video'){
           encoded=row.framesEncoded || 0;fixture.encoded=encoded;fixture.codec=stats.get(row.codecId)?.mimeType || null;
         }});
-        this.deliver({type:'rtc-progress',id:this.id,sent:encoded,received:encoded,sendFailures:0,recoveryGraceMs:grace,
-          recovering:false,queueBudgetMs:50,queueFrames:0,queueBytes:0,expiredFrames:0,overflowFrames:0,keyframeSkips:0,invalidatedFrames:0});
+        this.reportProgress();
       },500);
     }
     close() {if(this.closed)return;this.closed=true;this.readyState=3;clearInterval(this.paintTimer);clearInterval(this.progressTimer);
@@ -186,6 +199,79 @@ async function assertVolumeLayout(page,lang) {
   assert.ok(layout.controls.every(control=>control.width>0 && control.left>=layout.left && control.right<=layout.right),JSON.stringify(layout));
   assert.equal(layout.font,20.8);assert.equal(layout.direction,lang==='ar'?'rtl':'ltr');
   return layout;
+}
+async function verifyDiagnostics(page) {
+  await page.evaluate(()=>{
+    const list=document.getElementById('diagnosticValues');
+    window.__diagnosticsMutations=0;window.__summaryMutations=0;
+    new MutationObserver(records=>{__diagnosticsMutations+=records.length;}).observe(list,{childList:true,subtree:true});
+    new MutationObserver(records=>{__summaryMutations+=records.length;})
+      .observe(document.getElementById('transportStatus'),{childList:true,subtree:true});
+    window.__diagnosticsText=()=>document.getElementById('diagnosticValues').textContent;
+  });
+  await page.waitForFunction(()=>__summaryMutations>0);
+  assert.equal(await page.evaluate(()=>__diagnosticsMutations),0,'a hidden menu must not build diagnostic rows');
+  await openVolumeMenu(page);
+  await page.locator('#audioButton').click();
+  await page.waitForFunction(()=>document.getElementById('audioButton').getAttribute('aria-pressed')==='true');
+  const sendPcm=()=>page.evaluate(()=>{
+    const buffer=new ArrayBuffer(3860),header=new DataView(buffer);
+    header.setUint32(0,0x31415057,true);header.setInt32(4,1,true);header.setUint32(8,48000,true);
+    header.setUint16(12,2,true);header.setUint16(14,1,true);__uiFixture.pcm(buffer);
+    window.__lastPcmTime=__uiFixture.audioContext.currentTime;
+  });
+  await sendPcm();
+  await page.waitForFunction(()=>__uiFixture.audioContext.currentTime>__lastPcmTime+.35);
+  await sendPcm();
+  await page.evaluate(()=>__uiFixture.reportCounters({expiredFrames:7,overflowFrames:11,keyframeSkips:5,sendFailures:13}));
+  await page.waitForTimeout(1100);
+  assert.equal(await page.evaluate(()=>__diagnosticsMutations),0,'collapsed diagnostics must not build rows while counters advance');
+  const revealed=await page.evaluate(()=>new Promise(resolve=>{
+    const details=document.getElementById('diagnostics');
+    details.addEventListener('toggle',()=>resolve(__diagnosticsText()),{once:true});details.open=true;
+  }));
+  const counterValues=await page.locator('#diagnosticValues dd').allTextContents();
+  assert.deepEqual(counterValues.slice(5,9),['7','11','5','13']);
+  assert.ok(revealed.length>0,'the toggle handler must render immediately, not at the next polling tick');
+  const audioValue=counterValues[10];
+  assert.equal(audioValue,'1','real PCM starvation must still be counted while diagnostics are folded');
+  const visibleMutations=await page.evaluate(()=>__diagnosticsMutations);
+  await page.evaluate(()=>__uiFixture.reportCounters({expiredFrames:9}));
+  await page.waitForFunction(count=>__diagnosticsMutations>count,visibleMutations);
+  assert.equal((await page.locator('#diagnosticValues dd').allTextContents())[5],'9');
+  await page.keyboard.press('Escape');
+  const hidden=await page.evaluate(()=>({mutations:__diagnosticsMutations,text:__diagnosticsText(),summary:__summaryMutations}));
+  await page.waitForFunction(()=>__uiFixture.audioContext.currentTime>__lastPcmTime+.35);
+  await sendPcm();
+  await page.evaluate(()=>__uiFixture.reportCounters({expiredFrames:17}));
+  await page.waitForTimeout(1100);
+  assert.equal(await page.evaluate(()=>__diagnosticsMutations),hidden.mutations,'an expanded list in a hidden menu must not mutate');
+  assert.equal(await page.evaluate(()=>__diagnosticsText()),hidden.text);
+  assert.ok(await page.evaluate(count=>__summaryMutations>count,hidden.summary),'the stream summary must keep updating');
+  const reopened=await page.evaluate(()=>{
+    document.getElementById('menuButton').click();return __diagnosticsText();
+  });
+  assert.notEqual(reopened,hidden.text,'reopening the menu must refresh already-expanded diagnostics synchronously');
+  const latest=await page.locator('#diagnosticValues dd').allTextContents();
+  assert.equal(latest[5],'17');assert.equal(latest[10],'2');
+  await page.locator('#audioButton').click();
+  const folded=await page.evaluate(()=>new Promise(resolve=>{
+    const details=document.getElementById('diagnostics');
+    details.addEventListener('toggle',()=>resolve(__diagnosticsMutations),{once:true});details.open=false;
+  }));
+  await page.evaluate(()=>__uiFixture.reportCounters({expiredFrames:21}));
+  await page.waitForTimeout(1100);
+  assert.equal(await page.evaluate(()=>__diagnosticsMutations),folded,'folding a populated list must stop DOM updates');
+  await page.evaluate(()=>new Promise(resolve=>{
+    const details=document.getElementById('diagnostics');
+    details.addEventListener('toggle',resolve,{once:true});details.open=true;
+  }));
+  const unfolded=await page.locator('#diagnosticValues dd').allTextContents();
+  assert.equal(unfolded[5],'21');assert.equal(unfolded[10],'2');
+  await page.evaluate(()=>document.getElementById('diagnostics').open=false);
+  await page.keyboard.press('Escape');
+  return {noHiddenListMutations:true,countersContinue:true,immediateReveal:true,immediateMenuReopen:true,
+    streamSummaryContinues:true,foldedListStopsUpdating:true,audioRebuffersWhileHidden:2,expiredFramesWhileHidden:21};
 }
 async function verifyVolumes(page,scenario) {
   const baseline={hellos:await page.evaluate(()=>window.__uiFixture.hellos.length),actions:actions.length};
@@ -286,6 +372,7 @@ try {
       throw error;
     }
     assert.equal(await page.locator('#picture').isVisible(),false);
+    const diagnosticsLifecycle=await verifyDiagnostics(page);
     console.log('Native video received');
     const volumes=await verifyVolumes(page,scenario);
     console.log('Volume controls, menu layout and reload persistence checked');
@@ -329,7 +416,7 @@ try {
     assert.equal(await page.locator('#picture').isVisible(),false);
     assert.equal(await page.evaluate(()=>window.__uiFixture.hellos.length),2,'Renderer-only save must not restart media');
     assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>window.__uiFixture.errors),[]);
-    report.checks.push({scenario:scenario.name,layout,volumes,codec:await page.evaluate(()=>window.__uiFixture.codec),
+    report.checks.push({scenario:scenario.name,layout,volumes,diagnosticsLifecycle,codec:await page.evaluate(()=>window.__uiFixture.codec),
       nativeToCanvasToNative:true,canvasTouch:true,jpegNotRequestedInRtcMode:true,frameRateSavedForNextConnection:true,recoveryHello:true,
       rendererOnlyKeepsMedia:true,focusTrap:true});
     await context.close();
